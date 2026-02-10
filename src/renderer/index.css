@@ -1,0 +1,46 @@
+/* 全局样式重置 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+:root {
+  /* ===== 主色系 ===== */
+  --color-primary: #5b8cff;
+  --color-primary-hover: #739cff;
+  --color-primary-active: #4a78e0;
+
+  /* ===== 背景 ===== */
+  --color-bg-app: #1e1e1e;
+  --color-bg-sidebar: #111111;
+  --color-bg-titlebar: #161616;
+  --color-bg-content: #1e1e1e;
+
+  /* ===== 文本 ===== */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #b3b3b3;
+  --color-text-disabled: #666666;
+
+  /* ===== 边框 / 分割线 ===== */
+  --color-border: #2a2a2a;
+
+  /* ===== 状态色 ===== */
+  --color-success: #4caf50;
+  --color-warning: #ff9800;
+  --color-error: #f44336;
+}
