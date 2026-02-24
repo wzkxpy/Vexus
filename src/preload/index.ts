@@ -16,3 +16,8 @@ contextBridge.exposeInMainWorld('gameAPI', {
   deleteGame: (id: string): Promise<boolean> => ipcRenderer.invoke('deleteGame', id),
 //属性值: (参数: 参数类型): Promise<返回值类型> => ipcRenderer.invoke('IPC通道', 参数)
 })
+
+// 启动游戏 API
+contextBridge.exposeInMainWorld('launchAPI', {
+  launchGame: (exePath: string) => ipcRenderer.invoke('launchGame', exePath)
+})

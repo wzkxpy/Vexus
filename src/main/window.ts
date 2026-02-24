@@ -7,8 +7,8 @@ const __dirname = dirname(__filename);
 
 export function createWindow() {
   const win = new BrowserWindow({
-    width: 1000,
-    height: 680,
+    width: 980,
+    height: 710,
 
     autoHideMenuBar: true,   // 隐藏菜单栏
     frame: false,            // 隐藏标题栏

@@ -23,7 +23,7 @@ function go(path: string) {
 
 <style scoped>
 .sidebar {
-  width: 72px;
+  width: 52px;
   background: var(--color-primary);
   display: flex;
   flex-direction: column;
