@@ -19,7 +19,7 @@ import Sidebar from './Sidebar.vue'
 
 <style scoped>
 .app {
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
 }

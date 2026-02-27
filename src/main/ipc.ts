@@ -3,10 +3,13 @@
 // 负责注册主进程的 IPC 事件处理器, 供 preload 暴露给渲染进程调用
 
 import { ipcMain, BrowserWindow } from 'electron'
-import { addGame, deleteGame, getAllGames } from './database/game.repo'
+import { GameRepository } from './database/game.repo'
 import * as fs from 'fs'
 import * as path from 'path'
 import { spawn } from 'child_process'
+import { NewGame } from '@/shared/types'
+
+import { fetchGameFromBangumi } from './scraper/manager'
 
 
 export function registerWindowIPC(win: BrowserWindow) {
@@ -22,10 +25,16 @@ export function registerWindowIPC(win: BrowserWindow) {
 }
 
 
-export function registerDBIPC() {
-  ipcMain.handle('getAllGames', () => getAllGames())
-  ipcMain.handle('addGame', (_, game) => addGame(game))
-  ipcMain.handle('deleteGame', (_, id: string) => deleteGame(id))
+export function registerDBIPC(gameRepo: GameRepository) {
+  ipcMain.handle('addGame', (_, newgame: NewGame) => {
+    return gameRepo.add(newgame)
+  })
+  ipcMain.handle('deleteGame', (_, id: string) => {
+    return gameRepo.delete(id)
+  })
+  ipcMain.handle('getAllGames', () => {
+    return gameRepo.getAll()
+  })
 }
 
 export function registerLaunchIPC() {
@@ -33,13 +42,18 @@ export function registerLaunchIPC() {
     if (!fs.existsSync(exePath)) {
       throw new Error('游戏可执行文件不存在')
     }
-
     spawn(exePath, [], {
       cwd: path.dirname(exePath),
       detached: true,
       stdio: 'ignore',
     }).unref()
-
     return { success: true }
+  })
+}
+
+
+export function registerScraperIPC() {
+  ipcMain.handle('fetchFromBangumi', async (_, subjectId) => {
+      return await fetchGameFromBangumi(subjectId)
   })
 }

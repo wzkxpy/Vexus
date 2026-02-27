@@ -2,14 +2,14 @@
 
 export interface Game {
   // 基础
-  id: string
-  originalTitle: string
-  localizedTitle?: string
-  sortNum?: number
+  id: string               // UUID v4
+  originalTitle: string    // 原始标题
+  localizedTitle?: string  // 本地化标题
+  sortNum?: number         // 排序数字, 整数
 
-  description?: string // 游戏简介
-  tags?: string[]      // 游戏标签
-  guide?: string       // 游戏攻略
+  description?: string   // 游戏简介
+  tags?: string[]        // 游戏标签
+  guide?: string         // 游戏攻略
 
   // 基本信息
   basicInfo: {
@@ -17,11 +17,15 @@ export interface Game {
     publisher?: string             // 发行商
     releaseDate?: string           // 发行时间 yyyy-mm-dd
     estimatedTime?: string         // 预计游戏时长，-h-m
-    externalScore?: ExternalScore  // 三站评分
+    externalScore?: {
+      erogame?: number   // 0 – 100
+      bgm?: number       // 0 – 10
+      vndb?: number      // 0 – 10
+    }
   }
 
   // 外部信息源 ID
-  externalIds?: {
+  externalIds: {
     bgmId?: string
     vndbId?: string
     steamId?: string
@@ -32,13 +36,13 @@ export interface Game {
   exePath?: string
 
   // 媒体资源路径
-  media?: {
+  media: {
     coverPath?: string
     bannerPath?: string
     iconPath?: string
   }
   // staff信息
-  staff?: {
+  staff: {
     planner?: string[]
     scenario?: string[]
     artist?: string[]
@@ -48,7 +52,7 @@ export interface Game {
   cast?: CastItem[]
 
   // 个人记录
-  record: {
+  record?: {
     addTime: string           // ISO datetime
     lastRunDate?: string      // ISO datetime
     extraPlaytime: number     // 额外的游玩时间记录
@@ -67,6 +71,7 @@ export interface Game {
 // 新建游戏时的类型
 export interface NewGame {
   // 基础
+  id: string
   originalTitle: string
   localizedTitle?: string
   description?: string
@@ -77,23 +82,27 @@ export interface NewGame {
     publisher?: string
     releaseDate?: string
     estimatedTime?: string
-    externalScore?: ExternalScore
+    externalScore?: {
+      erogame?: number
+      bgm?: number
+      vndb?: number
+    }
   }
   // 外部信息源 ID
-  externalIds?: {
+  externalIds: {
     bgmId?: string
     vndbId?: string
     steamId?: string
     ymgalId?: string
   }
   // 媒体资源路径
-  media?: {
+  media: {
     coverPath?: string
     bannerPath?: string
     iconPath?: string
   }
   // staff信息
-  staff?: {
+  staff: {
     planner?: string[]
     scenario?: string[]
     artist?: string[]
@@ -101,6 +110,10 @@ export interface NewGame {
   }
   // Cast 信息
   cast?: CastItem[]
+  // 设置项
+  settings: {
+    nsfw?: boolean  // 已知 bgm.tv 数据源具有此标签
+  }
 }
 
 

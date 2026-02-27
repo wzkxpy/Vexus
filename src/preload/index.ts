@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('windowAPI', {
 })
 
 // 数据库相关 API
-contextBridge.exposeInMainWorld('gameAPI', {
+contextBridge.exposeInMainWorld('databaseAPI', {
   getAllGames: (): Promise<Game[]> => ipcRenderer.invoke('getAllGames'),
   addGame: (game: NewGame): Promise<string> => ipcRenderer.invoke('addGame', game),
   deleteGame: (id: string): Promise<boolean> => ipcRenderer.invoke('deleteGame', id),
@@ -20,4 +20,14 @@ contextBridge.exposeInMainWorld('gameAPI', {
 // 启动游戏 API
 contextBridge.exposeInMainWorld('launchAPI', {
   launchGame: (exePath: string) => ipcRenderer.invoke('launchGame', exePath)
+})
+
+
+// 获取游戏数据 API
+contextBridge.exposeInMainWorld('scraperAPI', {
+  fetchGameFromBangumi: (id: string) =>
+    ipcRenderer.invoke('fetchFromBangumi', id)
+
+  // addGameToDatabase: (game: NewGame) =>
+  //   ipcRenderer.invoke('addGame', game)
 })

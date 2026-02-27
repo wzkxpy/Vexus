@@ -11,7 +11,7 @@ declare global {
       close: () => void
     },
 
-    gameAPI: {
+    databaseAPI: {
       getAllGames: () => Promise<Game[]>
       addGame: (game: NewGame) => Promise<string>
       deleteGame: (id: string) => Promise<boolean>
@@ -19,6 +19,11 @@ declare global {
 
     launchAPI: {
       launchGame: (exePath: string) => Promise<{success: boolean}>
+    },
+    
+    scraperAPI: {
+      fetchGameFromBangumi: (id: string) => Promise<any>
+      // addGameToDatabase: (game: Game) => Promise<string>
     }
   }
 }

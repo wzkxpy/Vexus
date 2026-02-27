@@ -1,23 +1,39 @@
 <template>
   <aside class="sidebar">
-
     <nav class="menu">
       <div class="item" @click="go('/library')">🎮</div>
       <div class="item" @click="go('/categories')">📂</div>
       <div class="item" @click="go('/stats')">📊</div>
     </nav>
 
+    <!-- 添加按钮 -->
+    <div class="add" @click="openAddGame">➕</div>
+
+    <!-- 设置按钮 -->
     <div class="settings" @click="go('/settings')">⚙️</div>
+
+    <!-- 添加游戏弹窗 -->
+    <AddGameModal
+      v-if="showAddGame"
+      @close="showAddGame = false"
+    />
   </aside>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import AddGameModal from '@/renderer/components/AddGameModal.vue'
 
 const router = useRouter()
+const showAddGame = ref(false)
 
 function go(path: string) {
   router.push(path)
+}
+
+function openAddGame() {
+  showAddGame.value = true
 }
 </script>
 
@@ -28,14 +44,7 @@ function go(path: string) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  user-select: none; /* 禁止选中文本 */
-}
-
-.logo {
-  height: 72px;
-  display: flex;
-  align-items: center;
-  font-weight: bold;
+  user-select: none;
 }
 
 .menu {
@@ -47,6 +56,7 @@ function go(path: string) {
 }
 
 .item,
+.add,
 .settings {
   cursor: pointer;
   opacity: 0.7;
@@ -54,8 +64,13 @@ function go(path: string) {
 }
 
 .item:hover,
+.add:hover,
 .settings:hover {
   opacity: 1;
+}
+
+.add {
+  margin-bottom: 12px;
 }
 
 .settings {

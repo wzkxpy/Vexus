@@ -1,3 +1,4 @@
+// src/renderer/pages/Library.vue
 <template>
   <div class="library-layout">
     <!-- 左侧侧边栏 -->
@@ -94,7 +95,7 @@ const launchGame = async (game: Game) => {
 /* ===== 全局布局 ===== */
 .library-layout {
   display: flex;
-  height: 100vh;
+  height: 100%;
   background: #f3f4f6;
   color: #111827;
   font-family: system-ui, -apple-system, BlinkMacSystemFont;

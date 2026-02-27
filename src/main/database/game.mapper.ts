@@ -1,4 +1,52 @@
-import { Game } from '@/shared/types'
+// src/main/database/game.mapper.ts
+import { Game, NewGame } from '@/shared/types'
+
+export function newGameToRow(game: NewGame) {
+  return {
+    id: game.id as string,
+    // 名称 & 简介
+    original_title: game.originalTitle,
+    localized_title: game.localizedTitle ?? null,
+    description: game.description ?? null,
+    tags: game.tags ? JSON.stringify(game.tags) : null,
+
+    // 基本信息
+    developer: game.basicInfo.developer ?? null,
+    publisher: game.basicInfo.publisher ?? null,
+    release_date: game.basicInfo.releaseDate ?? null,
+    estimated_time: game.basicInfo.estimatedTime ?? null,
+
+    erogame_score: game.basicInfo.externalScore?.erogame ?? null,
+    bgm_score: game.basicInfo.externalScore?.bgm ?? null,
+    vndb_score: game.basicInfo.externalScore?.vndb ?? null,
+
+    // 外部 ID
+    bgm_id: game.externalIds.bgmId ?? null,
+    vndb_id: game.externalIds.vndbId ?? null,
+    steam_id: game.externalIds.steamId ?? null,
+    ymgal_id: game.externalIds.ymgalId ?? null,
+
+    // 媒体路径
+    cover_path: game.media.coverPath ?? null,
+    banner_path: game.media.bannerPath ?? null,
+    icon_path: game.media.iconPath ?? null,
+
+    // Staff
+    planner: game.staff.planner ? game.staff.planner : null,
+    scenario: game.staff.scenario ? game.staff.scenario : null,
+    artist: game.staff.artist ? game.staff.artist : null,
+    music: game.staff.music ? game.staff.music : null,
+
+    // Cast
+    cast: game.cast ? JSON.stringify(game.cast) : null,
+
+    // 设置项
+    nsfw: game.settings?.nsfw ? 1 : 0
+  }
+}
+
+
+
 
 export function rowToGame(row: any): Game {
   return {
@@ -16,7 +64,7 @@ export function rowToGame(row: any): Game {
       developer: row.developer,
       publisher: row.publisher,
       releaseDate: row.release_date,
-      estimatedTime: row.estimated_time_minutes,
+      estimatedTime: row.estimated_time,
       externalScore: {
         erogame: row.erogame_score,
         bgm: row.bgm_score,
