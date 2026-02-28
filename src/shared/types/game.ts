@@ -43,10 +43,10 @@ export interface Game {
   }
   // staff信息
   staff: {
-    planner?: string[]
-    scenario?: string[]
-    artist?: string[]
-    music?: string[]
+    planner?: string
+    scenario?: string
+    artist?: string
+    music?: string
   }
   // Cast 信息
   cast?: CastItem[]
@@ -97,16 +97,16 @@ export interface NewGame {
   }
   // 媒体资源路径
   media: {
-    coverPath?: string
-    bannerPath?: string
-    iconPath?: string
+    coverUrl?: string
+    bannerUrl?: string
+    iconUrl?: string
   }
   // staff信息
   staff: {
-    planner?: string[]
-    scenario?: string[]
-    artist?: string[]
-    music?: string[]
+    planner?: string
+    scenario?: string
+    artist?: string
+    music?: string
   }
   // Cast 信息
   cast?: CastItem[]

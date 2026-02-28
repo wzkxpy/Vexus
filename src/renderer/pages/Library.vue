@@ -25,18 +25,28 @@
       <!-- 没选中游戏：显示卡片 -->
       <div v-if="!selectedGameId" class="game-grid">
         <div
-        v-for="game in gameStore.games"
-        :key="game.id"
-        class="game-card"
-        @click="selectedGameId = game.id"
+          v-for="game in gameStore.games"
+          :key="game.id"
+          class="game-card"
+          @click="selectedGameId = game.id"
         >
-          <div class="cover-placeholder">
-            🎮
+          <div class="cover">
+            <img
+              v-if="game.media.coverPath"
+              :src="game.media.coverPath"
+              class="cover-img"
+              
+            />
+            
+            <div v-else class="cover-placeholder">
+              🎮
+            </div>
           </div>
 
           <div class="game-info">
-            <div class="game-name">{{ game.originalTitle }}</div>
-            <div class="game-data">{{ game.description }}</div>
+            <div class="game-name">
+              {{ game.originalTitle }}
+            </div>
           </div>
         </div>
       </div>
@@ -176,6 +186,19 @@ const launchGame = async (game: Game) => {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
 }
 
+.cover {
+  width: 160px;
+  height: 220px;
+  background: #2a2a2a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 /* 封面占位 */
 .cover-placeholder {
   height: 220px;

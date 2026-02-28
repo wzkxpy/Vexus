@@ -1,3 +1,4 @@
+// src/main/scraper/manager.ts
 import { BangumiClient } from "./bangumi/client";
 import { NewGame } from "@/shared/types";
 import { bangumiToNewGame } from "./bangumi/mapper";

@@ -1,12 +1,8 @@
 // src/main/database/index.ts
 import Database from 'better-sqlite3'
-import * as path from 'path'
-import { app } from 'electron'
 
-const dbPath = path.join(app.getPath('userData'), 'vexus.db')
-export const db = new Database(dbPath)
 
-export function initializeDatabase() {
+export function initDatabase(db: Database) {
   db.pragma('foreign_keys = ON');
 
   // 初始化 game 表

@@ -3,7 +3,7 @@
 // 负责注册主进程的 IPC 事件处理器, 供 preload 暴露给渲染进程调用
 
 import { ipcMain, BrowserWindow } from 'electron'
-import { GameRepository } from './database/game.repo'
+import { GameService } from './database/game.service'
 import * as fs from 'fs'
 import * as path from 'path'
 import { spawn } from 'child_process'
@@ -25,15 +25,15 @@ export function registerWindowIPC(win: BrowserWindow) {
 }
 
 
-export function registerDBIPC(gameRepo: GameRepository) {
+export function registerDBIPC(gameService: GameService) {
   ipcMain.handle('addGame', (_, newgame: NewGame) => {
-    return gameRepo.add(newgame)
+    return gameService.addGame(newgame)
   })
   ipcMain.handle('deleteGame', (_, id: string) => {
-    return gameRepo.delete(id)
+    return gameService.deleteGame(id)
   })
   ipcMain.handle('getAllGames', () => {
-    return gameRepo.getAll()
+    return gameService.getAllGames()
   })
 }
 

@@ -27,9 +27,9 @@ export function newGameToRow(game: NewGame) {
     ymgal_id: game.externalIds.ymgalId ?? null,
 
     // 媒体路径
-    cover_path: game.media.coverPath ?? null,
-    banner_path: game.media.bannerPath ?? null,
-    icon_path: game.media.iconPath ?? null,
+    cover_path: game.media.coverUrl ? `${game.id}_cover.jpg` : null,
+    banner_path: game.media.bannerUrl ? `${game.id}_banner.jpg` : null,
+    icon_path: game.media.iconUrl ? `${game.id}_icon.jpg` : null,
 
     // Staff
     planner: game.staff.planner ? game.staff.planner : null,
@@ -88,10 +88,10 @@ export function rowToGame(row: any): Game {
     },
 
     staff: {
-      planner: safeParse(row.planner, []),
-      scenario: safeParse(row.scenario, []),
-      artist: safeParse(row.artist, []),
-      music: safeParse(row.music, []),
+      planner: safeParse(row.planner, ""),
+      scenario: safeParse(row.scenario, ""),
+      artist: safeParse(row.artist, ""),
+      music: safeParse(row.music, ""),
     },
 
     cast: safeParse(row.cast, []),

@@ -52,8 +52,8 @@
           <template v-else-if="result">
             <div class="result-card">
               <img
-                v-if="result.media?.coverPath"
-                :src="result.media.coverPath"
+                v-if="result.media?.coverUrl"
+                :src="result.media.coverUrl"
                 class="cover"
               />
 

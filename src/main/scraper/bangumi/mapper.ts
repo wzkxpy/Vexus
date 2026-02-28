@@ -32,7 +32,7 @@ export function bangumiToNewGame(
     },
 
     media: {
-      coverPath: subject.images?.large || undefined,
+      coverUrl: subject.images?.large || undefined,
     },
 
     staff: {
