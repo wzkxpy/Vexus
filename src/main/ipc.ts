@@ -35,6 +35,9 @@ export function registerDBIPC(gameService: GameService) {
   ipcMain.handle('getAllGames', () => {
     return gameService.getAllGames()
   })
+  ipcMain.handle('updateGame', (_, game) => {
+    return gameService.updateGame(game)
+  })
 }
 
 export function registerLaunchIPC() {

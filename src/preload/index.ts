@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('databaseAPI', {
   getAllGames: (): Promise<Game[]> => ipcRenderer.invoke('getAllGames'),
   addGame: (game: NewGame): Promise<string> => ipcRenderer.invoke('addGame', game),
   deleteGame: (id: string): Promise<boolean> => ipcRenderer.invoke('deleteGame', id),
+  updateGame: (game: Game): Promise<void> => ipcRenderer.invoke('updateGame', game)
 //属性值: (参数: 参数类型): Promise<返回值类型> => ipcRenderer.invoke('IPC通道', 参数)
 })
 

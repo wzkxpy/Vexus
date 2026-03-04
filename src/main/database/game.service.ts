@@ -38,6 +38,21 @@ export class GameService {
     return this.repo.delete(id)
   }
 
+  // 更新游戏
+  async updateGame(game: Game) {
+    // const adaptedGame = {
+    //   ...game,
+    //   media: {
+    //     ...game.media,
+    //     coverPath: game.media.coverPath ? game.media.coverPath.replace('vexus-media://game/', '') : undefined,
+    //     bannerPath: game.media.bannerPath ? game.media.bannerPath.replace('vexus-media://game/', '') : undefined,
+    //     iconPath: game.media.iconPath ? game.media.iconPath.replace('vexus-media://game/', '') : undefined,
+    //   }
+    // }
+    // this.repo.update(adaptedGame)
+    this.repo.update(game)
+  }
+
   getAllGames(): Game[] {
     const games = this.repo.getAll()
 
@@ -58,3 +73,8 @@ export class GameService {
     }))
   }
 }
+
+// function stripMediaPrefix(path?: string) {
+//   if (!path) return undefined
+//   return path.replace('vexus-media://game/', '')
+// }

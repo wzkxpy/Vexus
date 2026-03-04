@@ -5,16 +5,15 @@
     <aside class="sidebar">
 
       <div class="sidebar-header">
-        <!-- <div class="app-title">Vexus</div> -->
         <input class="search" placeholder="搜索游戏…" />
       </div>
-
+      <!-- 侧边列表的每项游戏 -->
       <div
         v-for="game in gameStore.games"
         :key="game.id"
         class="sidebar-item"
-        :class="{ active: game.id === selectedGameId }"
-        @click="selectedGameId = game.id"
+        :class="{ active: game.id === gameStore.selectedId }"
+        @click="gameStore.selectGame(game.id)"
       >
         {{ game.originalTitle }}
       </div>
@@ -23,83 +22,50 @@
     <!-- 右侧主内容 -->
     <main class="main-content">
       <!-- 没选中游戏：显示卡片 -->
-      <div v-if="!selectedGameId" class="game-grid">
+      <div v-if="!gameStore.selectedGame" class="game-grid">
         <div
           v-for="game in gameStore.games"
           :key="game.id"
           class="game-card"
-          @click="selectedGameId = game.id"
         >
-          <div class="cover">
+          <div class="cover" @click="gameStore.selectGame(game.id)">
             <img
               v-if="game.media.coverPath"
               :src="game.media.coverPath"
               class="cover-img"
-              
             />
-            
             <div v-else class="cover-placeholder">
               🎮
             </div>
           </div>
-
-          <div class="game-info">
-            <div class="game-name">
-              {{ game.originalTitle }}
-            </div>
-          </div>
+          <div class="game-title"> {{ game.originalTitle }} </div>
         </div>
       </div>
 
       <!-- 选中游戏：显示详情 -->
       <GameDetail
-      v-else-if="selectedGame"
-      :game="selectedGame"
-      @back="selectedGameId = null"
-      @launch="launchGame"
-      @delete="handleDelete"
+        v-else
+        @back="gameStore.selectGame(null)"
       />
     </main>
   </div>
 </template>
 
+
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useGameStore } from '@/renderer/stores/game.store'
 import type { Game } from '@/shared/types'
 import GameDetail from '@/renderer/components/GameDetail.vue'
 
-// load game store
 const gameStore = useGameStore()
-// 当前选中的游戏 ID，初始为 null
-const selectedGameId = ref<string | null>(null)
-// 根据 游戏ID 从游戏列表中找到对应的游戏对象
-const selectedGame = computed(() =>
-  gameStore.games.find(g => g.id === selectedGameId.value) || null
-)
-// 删除游戏的处理函数
-const handleDelete = async (game: Game) => {
-  await gameStore.deleteGame(game.id)
-  selectedGameId.value = null
-}
+
 // 组件挂载时，初始化游戏列表
 onMounted(() => {
   gameStore.initGames()
 })
-// 启动游戏的处理函数
-const launchGame = async (game: Game) => {
-  console.log('launch game:', game)
-  if (!game.exePath) {
-    alert('该游戏尚未配置启动程序')
-    return
-  }
-  try {
-    await window.launchAPI.launchGame(game.exePath)
-  } catch (err: any) {
-    alert(err.message || '启动失败')
-  }
-}
 </script>
+
 
 <style scoped>
 /* ===== 全局布局 ===== */
@@ -167,33 +133,29 @@ const launchGame = async (game: Game) => {
 /* ===== Game Grid ===== */
 .game-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 20px;
 }
 
 /* ===== Game Card ===== */
 .game-card {
-  background: #ffffff;
   border-radius: 14px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
-  cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
   overflow: hidden;
 }
 
-.game-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-}
-
 .cover {
-  width: 160px;
-  height: 220px;
+  width: 100%;
+  aspect-ratio: 3 / 4;
   background: #2a2a2a;
+  cursor: pointer;
   border-radius: 8px;
   overflow: hidden;
 }
-
+.cover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
 .cover-img {
   width: 100%;
   height: 100%;
@@ -201,7 +163,8 @@ const launchGame = async (game: Game) => {
 }
 /* 封面占位 */
 .cover-placeholder {
-  height: 220px;
+  width: 100%;
+  aspect-ratio: 3 / 4;
   background: linear-gradient(135deg, #c7d2fe, #e0e7ff);
   display: flex;
   align-items: center;
@@ -209,23 +172,13 @@ const launchGame = async (game: Game) => {
   font-size: 40px;
 }
 
-/* 信息区 */
-.game-info {
-  padding: 12px;
+.game-title {
+  margin-top: 8px;
+  font-size: 14px; 
+  font-weight: 550; 
+  text-align: center; 
+  color: #2d2d2d; 
 }
-
-.game-name {
-  font-weight: 600;
-  margin-bottom: 6px;
-  font-size: 14px;
-}
-
-.game-data {
-  font-size: 12px;
-  color: #6b7280;
-  line-height: 1.4;
-}
-
 /* ===== Game Detail 容器 ===== */
 .game-detail {
   max-width: 720px;

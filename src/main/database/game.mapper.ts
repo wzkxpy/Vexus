@@ -1,7 +1,7 @@
 // src/main/database/game.mapper.ts
 import { Game, NewGame } from '@/shared/types'
 
-export function newGameToRow(game: NewGame) {
+export function newGameToRow(game: NewGame) { // add
   return {
     id: game.id as string,
     // 名称 & 简介
@@ -32,10 +32,10 @@ export function newGameToRow(game: NewGame) {
     icon_path: game.media.iconUrl ? `${game.id}_icon.jpg` : null,
 
     // Staff
-    planner: game.staff.planner ? game.staff.planner : null,
-    scenario: game.staff.scenario ? game.staff.scenario : null,
-    artist: game.staff.artist ? game.staff.artist : null,
-    music: game.staff.music ? game.staff.music : null,
+    planner: game.staff.planner ?? null,
+    scenario: game.staff.scenario ?? null,
+    artist: game.staff.artist ?? null,
+    music: game.staff.music ?? null,
 
     // Cast
     cast: game.cast ? JSON.stringify(game.cast) : null,
@@ -45,10 +45,65 @@ export function newGameToRow(game: NewGame) {
   }
 }
 
+export function gameToRow(game: Game) { // update
+  return {
+    id: game.id as string,
+    // 名称 & 简介
+    original_title: game.originalTitle,
+    localized_title: game.localizedTitle ?? null,
+    sort_num: game.sortNum ?? null,
+    description: game.description ?? null,
+    tags: game.tags ? JSON.stringify(game.tags) : null,
+    guide: game.guide ?? null,
+
+    // 基本信息
+    developer: game.basicInfo.developer ?? null,
+    publisher: game.basicInfo.publisher ?? null,
+    release_date: game.basicInfo.releaseDate ?? null,
+    estimated_time: game.basicInfo.estimatedTime ?? null,
+
+    erogame_score: game.basicInfo.externalScore?.erogame ?? null,
+    bgm_score: game.basicInfo.externalScore?.bgm ?? null,
+    vndb_score: game.basicInfo.externalScore?.vndb ?? null,
+
+    // 外部 ID
+    bgm_id: game.externalIds.bgmId ?? null,
+    vndb_id: game.externalIds.vndbId ?? null,
+    steam_id: game.externalIds.steamId ?? null,
+    ymgal_id: game.externalIds.ymgalId ?? null,
+
+    // 安装路径
+    exe_path: game.exePath ?? null,
+    // 媒体路径
+    // cover_path: game.media.coverPath ?? null,
+    // banner_path: game.media.bannerPath ?? null,
+    // icon_path: game.media.iconPath ?? null,
+
+    // Staff
+    planner: game.staff.planner ?? null,
+    scenario: game.staff.scenario ?? null,
+    artist: game.staff.artist ?? null,
+    music: game.staff.music ?? null,
+
+    // Cast
+    cast: game.cast ? JSON.stringify(game.cast) : null,
+
+    // 个人记录
+    // add_time: game.record.addTime,
+    last_run_date: game.record.lastRunDate ?? null,
+    play_status: game.record.playStatus,
+    personal_score: game.record.personalScore ?? null,
+    extra_playtime: game.record.extraPlaytime,
+    total_playtime: game.record.totalPlaytime,
+
+    // 设置项
+    nsfw: game.settings?.nsfw ? 1 : 0,
+    magpie: game.settings?.magpie ? 1 : 0
+  }
+}
 
 
-
-export function rowToGame(row: any): Game {
+export function rowToGame(row: any): Game { // get
   return {
     id: row.id,
 
@@ -88,10 +143,10 @@ export function rowToGame(row: any): Game {
     },
 
     staff: {
-      planner: safeParse(row.planner, ""),
-      scenario: safeParse(row.scenario, ""),
-      artist: safeParse(row.artist, ""),
-      music: safeParse(row.music, ""),
+      planner: row.planner,
+      scenario: row.scenario,
+      artist: row.artist,
+      music: row.music,
     },
 
     cast: safeParse(row.cast, []),

@@ -4,7 +4,6 @@
       <!-- Header -->
       <header class="header">
         <div class="title">
-          <span class="icon">➕</span>
           <h2>添加游戏</h2>
         </div>
         <button class="close" @click="close">✕</button>
@@ -132,9 +131,9 @@ const result = ref<any | null>(null)
 const placeholder = computed(() => {
   switch (source.value) {
     case 'bgm':
-      return '输入 Bangumi 条目 ID'
+      return 'Bangumi Subject ID'
     case 'vndb':
-      return '输入游戏名或 vndb ID'
+      return '输入游戏名或 VNDB ID'
     case 'steam':
       return '输入游戏名或 Steam AppID'
     case 'ymgal':
@@ -174,7 +173,7 @@ async function handleAddGame() {
     // console.log(result.value)
     console.log(JSON.parse(JSON.stringify(result.value)))
     await gameStore.addGame(JSON.parse(JSON.stringify(result.value)))
-    alert('添加成功')
+    // alert('添加成功')
     added.value = true
   } catch (e: any) {
     alert(e.message || '添加失败')

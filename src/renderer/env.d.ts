@@ -15,6 +15,7 @@ declare global {
       getAllGames: () => Promise<Game[]>
       addGame: (game: NewGame) => Promise<string>
       deleteGame: (id: string) => Promise<boolean>
+      updateGame: (game: Game) => Promise<void>
     },
 
     launchAPI: {

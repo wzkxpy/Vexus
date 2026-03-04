@@ -1,7 +1,7 @@
 // src/main/db/game.repo.ts
 import type { Game, NewGame } from '@/shared/types'
 import type { Database } from 'better-sqlite3'
-import { rowToGame, newGameToRow } from './game.mapper'
+import { rowToGame, newGameToRow, gameToRow } from './game.mapper'
 import { get } from 'http'
 
 
@@ -9,52 +9,141 @@ export class GameRepository {
   constructor(private db: Database) {
     this.db = db
   }
-  // 添加一个游戏
+  
   add(game: NewGame): string {
     const row = newGameToRow(game)
     const stmt = this.db.prepare(`
       INSERT INTO games (
-        id,
-        original_title, localized_title, description, tags,
+        id, original_title, localized_title, description, tags,
         developer, publisher, release_date, estimated_time,
         erogame_score, bgm_score, vndb_score,
         bgm_id, vndb_id, steam_id, ymgal_id,
         cover_path, banner_path, icon_path,
-        planner, scenario, artist, music,
-        cast,
+        planner, scenario, artist, music, cast,
         nsfw
       )
       VALUES (
-        @id,
-        @original_title, @localized_title, @description, @tags,
+        @id, @original_title, @localized_title, @description, @tags,
         @developer, @publisher, @release_date, @estimated_time,
         @erogame_score, @bgm_score, @vndb_score,
         @bgm_id, @vndb_id, @steam_id, @ymgal_id,
         @cover_path, @banner_path, @icon_path,
-        @planner, @scenario, @artist, @music,
-        @cast,
+        @planner, @scenario, @artist, @music, @cast,
         @nsfw
       )
     `)
     stmt.run(row)
     return row.id
   }
-  // 删除一个游戏
+  
   delete(id: string): boolean {
     const stmt = this.db.prepare(`DELETE FROM games WHERE id = ?`)
     const result = stmt.run(id)
     return result.changes > 0
   }
-  // 获取一个游戏
+ 
+  update(game: Game) {
+    const row = gameToRow(game)
+    const stmt = this.db.prepare(`
+      UPDATE games SET
+      original_title = @original_title,
+      localized_title = @localized_title,
+      sort_num = @sort_num,
+      description = @description,
+      tags = @tags,
+      guide = @guide,
+
+      developer = @developer,
+      publisher = @publisher,
+      release_date = @release_date,
+      estimated_time = @estimated_time,
+      erogame_score = @erogame_score,
+      bgm_score = @bgm_score,
+      vndb_score = @vndb_score,
+
+      bgm_id = @bgm_id,
+      vndb_id = @vndb_id,
+      steam_id = @steam_id,
+      ymgal_id = @ymgal_id,
+
+      exe_path = @exe_path,
+
+      planner = @planner,
+      scenario = @scenario,
+      artist = @artist,
+      music = @music,
+      cast = @cast,
+
+      last_run_date = @last_run_date,
+      play_status = @play_status,
+      personal_score = @personal_score,
+      extra_playtime = @extra_playtime,
+      total_playtime = @total_playtime,
+      nsfw = @nsfw,
+      magpie = @magpie,
+
+      updated_at = CURRENT_TIMESTAMP
+      WHERE id = @id
+    `)
+    stmt.run(row)
+  }
+
   get(id: string): Game | null {
     const stmt = this.db.prepare(`SELECT * FROM games WHERE id = ?`)
     const row = stmt.get(id)
     return row ? rowToGame(row) : null
   }
-  // 获取全部游戏
+
   getAll(): Game[] {
     const stmt = this.db.prepare(`SELECT * FROM games`)
     const rows = stmt.all()
     return rows.map(rowToGame)
   }
+
+  static readonly GAME_COLUMNS = [
+    'id',
+    'original_title',
+    'localized_title',
+    'sort_num',
+    'description',
+    'tags',
+    'guide',
+
+    'developer',
+    'publisher',
+    'release_date',
+    'estimated_time',
+    'erogame_score',
+    'bgm_score',
+    'vndb_score',
+
+    'bgm_id',
+    'vndb_id',
+    'steam_id',
+    'ymgal_id',
+
+    'exe_path',
+    'cover_path',
+    'banner_path',
+    'icon_path',
+
+    'planner',
+    'scenario',
+    'artist',
+    'music',
+    'cast',
+
+    'add_time',
+    'last_run_date',
+    'play_status',
+    'personal_score',
+    'extra_playtime',
+    'total_playtime',
+    
+    'nsfw',
+    'magpie',
+
+    'created_at',
+    'updated_at'
+  ] as const
 }

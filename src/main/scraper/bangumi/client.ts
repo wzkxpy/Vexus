@@ -1,17 +1,14 @@
 // src/main/services/bangumi/client.ts
 import { BangumiSubject, BangumiCharacter } from "./types"
 
-// 临时直接使用全局变量存储 token
-
 
 export class BangumiClient {
   private static readonly BASE_URL = 'https://api.bgm.tv'
   private accessToken?: string
 
   // 构造函数
-  constructor(token?: string) {
-    this.accessToken = token
-  }
+  constructor(token?: string) {this.accessToken = token}
+  
   // 构建 request
   private async request<T>(path: string): Promise<T> {
     const res = await fetch(`${BangumiClient.BASE_URL}${path}`, {
@@ -33,7 +30,7 @@ export class BangumiClient {
     return this.request<BangumiSubject>(`/v0/subjects/${subject_id}`)
   }
 
-  // 获取 角色信息
+  // 获取角色信息
   async getCharacters(subject_id: string): Promise<BangumiCharacter[]> {
     return this.request<BangumiCharacter[]>(`/v0/subjects/${subject_id}/characters`)
   }

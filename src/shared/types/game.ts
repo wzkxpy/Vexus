@@ -13,10 +13,10 @@ export interface Game {
 
   // 基本信息
   basicInfo: {
-    developer?: string             // 开发商
-    publisher?: string             // 发行商
-    releaseDate?: string           // 发行时间 yyyy-mm-dd
-    estimatedTime?: string         // 预计游戏时长，-h-m
+    developer?: string      // 开发商
+    publisher?: string      // 发行商
+    releaseDate?: string    // 发行时间 yyyy-mm-dd
+    estimatedTime?: string  // 预计游戏时长，-h-m
     externalScore?: {
       erogame?: number   // 0 – 100
       bgm?: number       // 0 – 10
@@ -52,12 +52,12 @@ export interface Game {
   cast?: CastItem[]
 
   // 个人记录
-  record?: {
+  record: {
     addTime: string           // ISO datetime
     lastRunDate?: string      // ISO datetime
-    extraPlaytime: number     // 额外的游玩时间记录
     playStatus: PlayStatus    // 游玩状态
     personalScore?: number    // 个人评分
+    extraPlaytime: number     // 额外的游玩时长
     totalPlaytime: number     // 总游玩时长
   }
 
