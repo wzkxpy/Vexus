@@ -1,5 +1,5 @@
 // src/renderer/env.d.ts
-import type { Game, NewGame } from '@/shared/types'
+// import type { Game, NewGame } from '@/shared/types'
 
 export {}
 
@@ -16,6 +16,11 @@ declare global {
       addGame: (game: NewGame) => Promise<string>
       deleteGame: (id: string) => Promise<boolean>
       updateGame: (game: Game) => Promise<void>
+
+      getGameSessions: (gameid: string) => Promise<Session[]>
+      addSession: (session: Session) => Promise<void>
+      deleteSession: (id: string) => Promise<void>
+      updateSession: (session: Session) => Promise<void>
     },
 
     launchAPI: {

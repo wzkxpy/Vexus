@@ -4,12 +4,14 @@
 
 import { ipcMain, BrowserWindow } from 'electron'
 import { GameService } from './database/game.service'
+import { SessionService } from './database/session.service'
 import * as fs from 'fs'
 import * as path from 'path'
 import { spawn } from 'child_process'
-import { NewGame } from '@/shared/types'
+import { NewGame, Session } from '@/shared/types'
 
 import { fetchGameFromBangumi } from './scraper/manager'
+
 
 
 export function registerWindowIPC(win: BrowserWindow) {
@@ -25,7 +27,8 @@ export function registerWindowIPC(win: BrowserWindow) {
 }
 
 
-export function registerDBIPC(gameService: GameService) {
+export function registerDBIPC(gameService: GameService, sessionService: SessionService) {
+  // Game
   ipcMain.handle('addGame', (_, newgame: NewGame) => {
     return gameService.addGame(newgame)
   })
@@ -37,6 +40,19 @@ export function registerDBIPC(gameService: GameService) {
   })
   ipcMain.handle('updateGame', (_, game) => {
     return gameService.updateGame(game)
+  })
+  // Session
+  ipcMain.handle('getGameSessions', (_, gameid: string) => {
+    return sessionService.getGameSessions(gameid)
+  })
+  ipcMain.handle('addSession', (_, session: Session) => {
+    return sessionService.addSession(session)
+  })
+  ipcMain.handle('deleteSession', (_, id: string) => {
+    return sessionService.deleteSession(id)
+  })
+  ipcMain.handle('updateSession', (_, session: Session) =>{
+    return sessionService.updateSession(session)
   })
 }
 

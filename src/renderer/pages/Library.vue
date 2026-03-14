@@ -79,7 +79,7 @@ onMounted(() => {
 
 /* ===== Sidebar ===== */
 .sidebar {
-  width: 220px;
+  width: 210px;
   background: #ffffff;
   border-right: 1px solid #e5e7eb;
   display: flex;

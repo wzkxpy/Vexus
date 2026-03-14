@@ -17,11 +17,12 @@ export interface Game {
     publisher?: string      // 发行商
     releaseDate?: string    // 发行时间 yyyy-mm-dd
     estimatedTime?: string  // 预计游戏时长，-h-m
-    externalScore?: {
-      erogame?: number   // 0 – 100
-      bgm?: number       // 0 – 10
-      vndb?: number      // 0 – 10
-    }
+  }
+  // 外部评分
+  externalScore: {
+    erogame?: number   // 0 – 100
+    bgm?: number       // 0 – 10
+    vndb?: number      // 0 – 10
   }
 
   // 外部信息源 ID
@@ -82,11 +83,12 @@ export interface NewGame {
     publisher?: string
     releaseDate?: string
     estimatedTime?: string
-    externalScore?: {
-      erogame?: number
-      bgm?: number
-      vndb?: number
-    }
+  }
+  // 外部评分
+  externalScore: {
+    erogame?: number   // 0 – 100
+    bgm?: number       // 0 – 10
+    vndb?: number      // 0 – 10
   }
   // 外部信息源 ID
   externalIds: {

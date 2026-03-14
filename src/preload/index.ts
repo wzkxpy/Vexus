@@ -1,5 +1,5 @@
 // src/preload/index.ts
-import type { Game, NewGame } from '@/shared/types'
+import type { Game, NewGame, Session } from '@/shared/types'
 import { contextBridge, ipcRenderer } from 'electron'
 
 // 窗口控制 API
@@ -14,7 +14,12 @@ contextBridge.exposeInMainWorld('databaseAPI', {
   getAllGames: (): Promise<Game[]> => ipcRenderer.invoke('getAllGames'),
   addGame: (game: NewGame): Promise<string> => ipcRenderer.invoke('addGame', game),
   deleteGame: (id: string): Promise<boolean> => ipcRenderer.invoke('deleteGame', id),
-  updateGame: (game: Game): Promise<void> => ipcRenderer.invoke('updateGame', game)
+  updateGame: (game: Game): Promise<void> => ipcRenderer.invoke('updateGame', game),
+
+  getGameSessions: (gameid: string): Promise<Session[]> => ipcRenderer.invoke('getGameSessions', gameid),
+  addSession: (session: Session): Promise<void> => ipcRenderer.invoke('addSession', session),
+  deleteSession: (id: string): Promise<void> => ipcRenderer.invoke('deleteSession', id),
+  updateSession: (session: Session): Promise<void> => ipcRenderer.invoke('updateSession', session)
 //属性值: (参数: 参数类型): Promise<返回值类型> => ipcRenderer.invoke('IPC通道', 参数)
 })
 

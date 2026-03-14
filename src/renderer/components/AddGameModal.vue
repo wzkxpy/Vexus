@@ -170,7 +170,7 @@ async function handleAddGame() {
   if (added.value) return
   try {
     saving.value = true
-    // console.log(result.value)
+    console.log(result.value)
     console.log(JSON.parse(JSON.stringify(result.value)))
     await gameStore.addGame(JSON.parse(JSON.stringify(result.value)))
     // alert('添加成功')

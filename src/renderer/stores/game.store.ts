@@ -14,8 +14,6 @@ export const useGameStore = defineStore('game', () => {
   )
 
   // actions
-
-  // 初始化加载（只加载一次）
   const initGames = async () => {
     if (loaded.value) return
     games.value = await window.databaseAPI.getAllGames()

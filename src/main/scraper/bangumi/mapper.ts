@@ -21,10 +21,10 @@ export function bangumiToNewGame(
       publisher: getInfoboxValue(subject.infobox, '发行') || undefined,
       releaseDate: subject.date || undefined,
       estimatedTime: undefined,
-      
-      externalScore: {
-        bgm: subject.rating?.score || undefined,
-      },
+    },
+
+    externalScore: {
+      bgm: subject.rating?.score || undefined,
     },
 
     externalIds: {

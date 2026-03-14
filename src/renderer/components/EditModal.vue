@@ -1,3 +1,4 @@
+<!-- src/renderer/components/EditModal.vue -->
 <template>
   <div class="overlay">
     <div class="modal">
@@ -11,7 +12,13 @@
         <template v-if="type === 'description'">
           <textarea v-model="form.description" />
         </template>
-        
+
+        <template v-if="type === 'externalScore'">
+          <input v-model="form.externalScore!.erogame" placeholder="批评空间" />
+          <input v-model="form.externalScore!.bgm" placeholder="Bangumi" />
+          <input v-model="form.externalScore!.vndb" placeholder="VNDB" />
+        </template>
+
         <template v-if="type === 'basicInfo'">
           <input v-model="form.basicInfo!.developer" placeholder="开发商" />
           <input v-model="form.basicInfo!.publisher" placeholder="发行商" />

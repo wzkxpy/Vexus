@@ -42,91 +42,115 @@
 
       <!-- 分割线 -->
       <div class="divider"></div>
-
-      <!-- 游戏简介 -->
-      <div class="description">
-        <h3>游戏简介</h3>
-        <button class="edit-btn" @click="openEdit('description')">编辑</button>
-        <p>{{ game.description || '暂无介绍内容。' }}</p>
-      </div>
-
-      <!-- 标签 -->
-      <div class="section" v-if="game.tags?.length">
-        <h3>标签</h3>
-        <button class="edit-btn" @click="openEdit('tags')">编辑</button>
-        <div class="tags">
-          <span v-for="tag in game.tags" :key="tag" class="tag">
-            {{ tag }}
-          </span>
-        </div>
-      </div>
-
-      <!-- 基础信息 -->
-      <div class="section">
-        <h3>基础信息</h3>
-        <button class="edit-btn" @click="openEdit('basicInfo')">编辑</button>
-        <div class="info-grid">
-          <div v-if="game.basicInfo?.developer">
-            <span class="label">开发商：</span>{{ game.basicInfo.developer }}
-          </div>
-          <div v-if="game.basicInfo?.publisher">
-            <span class="label">发行商：</span>{{ game.basicInfo.publisher }}
-          </div>
-          <div v-if="game.basicInfo?.releaseDate">
-            <span class="label">发售日期：</span>{{ game.basicInfo.releaseDate }}
-          </div>
-          <div v-if="game.basicInfo?.estimatedTime">
-            <span class="label">游戏时长：</span>{{ game.basicInfo.estimatedTime }}
-          </div>
-        </div>
-      </div>
-
-      <!-- 评分 -->
-      <div class="section" v-if="game.basicInfo?.externalScore">
-        <h3>评分</h3>
-        <!-- <button class="edit-btn" @click="openEdit('score')">编辑</button> -->
-        <div class="score-grid">
-          <div v-if="game.basicInfo.externalScore.erogame">
-            Erogame: {{ game.basicInfo.externalScore.erogame }}
-          </div>
-          <div v-if="game.basicInfo.externalScore.bgm">
-            Bangumi: {{ game.basicInfo.externalScore.bgm }}
-          </div>
-          <div v-if="game.basicInfo.externalScore.vndb">
-            VNDB: {{ game.basicInfo.externalScore.vndb }}
-          </div>
-        </div>
-      </div>
-
-      <!-- Staff -->
-      <div class="section" v-if="game.staff">
-        <h3>制作人员</h3>
-        <button class="edit-btn" @click="openEdit('staff')">编辑</button>
-        <div class="info-grid">
-          <div v-if="game.staff.planner"><span class="label">企划：</span>{{ game.staff.planner }}</div>
-          <div v-if="game.staff.scenario"><span class="label">剧本：</span>{{ game.staff.scenario }}</div>
-          <div v-if="game.staff.artist"><span class="label">原画：</span>{{ game.staff.artist }}</div>
-          <div v-if="game.staff.music"><span class="label">音乐：</span>{{ game.staff.music }}</div>
-        </div>
-      </div>
-
-      <!-- Cast -->
-      <div class="section" v-if="game.cast?.length">
-        <h3>角色</h3>
-        <div class="cast-list">
-          <div v-for="c in game.cast" :key="c.character">
-            {{ c.character }} - {{ c.voiceActor }}
-          </div>
-        </div>
-      </div>
-
       <!-- 游玩数据 -->
       <div class="section">
-        <h3>游玩数据</h3>
         <div class="info-grid">
           <div><span class="label">游玩状态：</span>{{ game.record.playStatus }}</div>
           <div><span class="label">总时长：</span>{{ game.record.totalPlaytime }} 小时</div>
         </div>
+      </div>
+      <div class="divider"></div>
+
+      <!--      Tab      -->
+      <div class="tabs">
+        <button
+          :class="{ active: activeTab === 'overview' }"
+          @click="activeTab = 'overview'">概览</button>
+
+        <button
+          :class="{ active: activeTab === 'stats' }"
+          @click="activeTab = 'stats'">统计</button>
+
+        <button
+          :class="{ active: activeTab === 'guide' }"
+          @click="activeTab = 'guide'">攻略</button>
+      </div>
+
+
+      <div v-if="activeTab === 'overview'">
+        <!-- 游戏简介 -->
+        <div class="description">
+          <h3>游戏简介</h3>
+          <button class="edit-btn" @click="openEdit('description')">编辑</button>
+          <p>{{ game.description || '暂无介绍内容。' }}</p>
+        </div>
+
+        <!-- 标签 -->
+        <div class="section" v-if="game.tags?.length">
+          <h3>标签</h3>
+          <button class="edit-btn" @click="openEdit('tags')">编辑</button>
+          <div class="tags">
+            <span v-for="tag in game.tags" :key="tag" class="tag">
+              {{ tag }}
+            </span>
+          </div>
+        </div>
+
+        <!-- 基础信息 -->
+        <div class="section">
+          <h3>基础信息</h3>
+          <button class="edit-btn" @click="openEdit('basicInfo')">编辑</button>
+          <div class="info-grid">
+            <div v-if="game.basicInfo?.developer">
+              <span class="label">开发商：</span>{{ game.basicInfo.developer }}
+            </div>
+            <div v-if="game.basicInfo?.publisher">
+              <span class="label">发行商：</span>{{ game.basicInfo.publisher }}
+            </div>
+            <div v-if="game.basicInfo?.releaseDate">
+              <span class="label">发售日期：</span>{{ game.basicInfo.releaseDate }}
+            </div>
+            <div v-if="game.basicInfo?.estimatedTime">
+              <span class="label">游戏时长：</span>{{ game.basicInfo.estimatedTime }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 评分 -->
+        <div class="section" v-if="game.externalScore">
+          <h3>评分</h3>
+          <button class="edit-btn" @click="openEdit('externalScore')">编辑</button>
+          <div class="score-grid">
+            <div v-if="game.externalScore.erogame">
+              <span class="label">Erogame: </span>
+              {{ game.externalScore.erogame }}
+            </div>
+            <div v-if="game.externalScore.bgm">
+              <span class="label">Bangumi: </span>
+              {{ game.externalScore.bgm }}
+            </div>
+            <div v-if="game.externalScore.vndb">
+              <span class="label">VNDB: </span>
+              {{ game.externalScore.vndb }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Staff -->
+        <div class="section" v-if="game.staff">
+          <h3>制作人员</h3>
+          <button class="edit-btn" @click="openEdit('staff')">编辑</button>
+          <div class="info-grid">
+            <div v-if="game.staff.planner"><span class="label">企划：</span>{{ game.staff.planner }}</div>
+            <div v-if="game.staff.scenario"><span class="label">剧本：</span>{{ game.staff.scenario }}</div>
+            <div v-if="game.staff.artist"><span class="label">原画：</span>{{ game.staff.artist }}</div>
+            <div v-if="game.staff.music"><span class="label">音乐：</span>{{ game.staff.music }}</div>
+          </div>
+        </div>
+
+        <!-- Cast -->
+        <div class="section" v-if="game.cast?.length">
+          <h3>角色</h3>
+          <div class="cast-list">
+            <div v-for="c in game.cast" :key="c.character">
+              {{ c.character }} - {{ c.voiceActor }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="activeTab === 'stats'">
+        <GameStats/>
       </div>
 
     </div>
@@ -140,12 +164,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { Game } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
-import EditModal from '@/renderer/components/EditModel.vue'
+import { useSessionStore } from '@/renderer/stores/session.store'
+import EditModal from '@/renderer/components/EditModal.vue'
+import GameStats from '@/renderer/components/GameStats.vue'
+
+const activeTab = ref<'overview' | 'stats' | 'guide'>('overview')
 
 const gameStore = useGameStore()
+const sessionStore = useSessionStore()
 const game = computed(() => gameStore.selectedGame)
 
 const emit = defineEmits<{
@@ -181,41 +210,37 @@ const openEdit = (type: keyof Game) => {
 const closeEdit = () => {
   editType.value = null
 }
-
+// 装载 sessions
+watch(
+  () => game.value?.id,
+  (id) => { if (id) {
+    sessionStore.loadGameSessions(id);
+    // console.log(sessionStore.sessionsByGame[id]);
+   }},
+  { immediate: true }
+)
 </script>
-
 
 
 <style scoped>
 .game-detail {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  /* gap: 24px; */
   color: #1f2937;
   background: #f5f7fa;
-  padding: 0px;
+  /* padding: 0px; */
   min-height: 100%;
 }
 
 /* ===== 主卡片 ===== */
 .detail-body {
-  background: #ffffff;
+  /* background: #ffffff; */
   border-radius: 18px;
-  padding: 40px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  /* padding: 40px; */
+  /* box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06); */
 }
 
-/* .back-btn {
-  align-self: flex-start;
-  background: transparent;
-  border: none;
-  font-size: 14px;
-  font-weight: 500;
-  color: #2563eb;
-  cursor: pointer;
-  margin-bottom: -10px;
-  transition: all 0.2s ease;
-} */
 .back-btn {
   width: 80px;
   background: white;
@@ -226,8 +251,7 @@ const closeEdit = () => {
 }
 
 .back-btn:hover {
-  color: #5066ab;
-  transform: translateX(-2px);
+  background: #f3f4f6;
 }
 /* ===== 顶部区域 ===== */
 .top-section {
@@ -284,7 +308,7 @@ const closeEdit = () => {
 
 /* 封面 */
 .right {
-  width: 260px;
+  width: 200px;
 }
 
 .cover-img {
@@ -307,7 +331,7 @@ const closeEdit = () => {
 
 /* 分割线 */
 .divider {
-  margin: 40px 0;
+  margin: 20px 0;
   height: 1px;
   background: #e5e7eb;
 }

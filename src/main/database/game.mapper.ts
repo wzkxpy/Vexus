@@ -16,9 +16,9 @@ export function newGameToRow(game: NewGame) { // add
     release_date: game.basicInfo.releaseDate ?? null,
     estimated_time: game.basicInfo.estimatedTime ?? null,
 
-    erogame_score: game.basicInfo.externalScore?.erogame ?? null,
-    bgm_score: game.basicInfo.externalScore?.bgm ?? null,
-    vndb_score: game.basicInfo.externalScore?.vndb ?? null,
+    erogame_score: game.externalScore.erogame ?? null,
+    bgm_score: game.externalScore.bgm ?? null,
+    vndb_score: game.externalScore.vndb ?? null,
 
     // 外部 ID
     bgm_id: game.externalIds.bgmId ?? null,
@@ -62,9 +62,9 @@ export function gameToRow(game: Game) { // update
     release_date: game.basicInfo.releaseDate ?? null,
     estimated_time: game.basicInfo.estimatedTime ?? null,
 
-    erogame_score: game.basicInfo.externalScore?.erogame ?? null,
-    bgm_score: game.basicInfo.externalScore?.bgm ?? null,
-    vndb_score: game.basicInfo.externalScore?.vndb ?? null,
+    erogame_score: game.externalScore.erogame ?? null,
+    bgm_score: game.externalScore.bgm ?? null,
+    vndb_score: game.externalScore.vndb ?? null,
 
     // 外部 ID
     bgm_id: game.externalIds.bgmId ?? null,
@@ -120,11 +120,12 @@ export function rowToGame(row: any): Game { // get
       publisher: row.publisher,
       releaseDate: row.release_date,
       estimatedTime: row.estimated_time,
-      externalScore: {
-        erogame: row.erogame_score,
-        bgm: row.bgm_score,
-        vndb: row.vndb_score,
-      },
+    },
+
+    externalScore: {
+      erogame: row.erogame_score,
+      bgm: row.bgm_score,
+      vndb: row.vndb_score,
     },
 
     externalIds: {

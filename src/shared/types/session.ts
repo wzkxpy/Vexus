@@ -10,17 +10,25 @@ type SessionBase = {
 }
 
 interface RangeSession extends SessionBase {
-  kind: 'range'
-
   startTime: string
   endTime: string
 }
 
 interface DateSession extends SessionBase {
-  kind: 'date'
-
   startTime: null
   endTime: null
 }
 
-export type Session = RangeSession | DateSession
+// export type Session = RangeSession | DateSession
+
+export interface Session {
+  id: string
+  gameId: string
+  routeId: string | null
+
+  playDate: string
+  startTime: string | null
+  endTime: string | null
+  duration: number
+  autoRecord: boolean
+}

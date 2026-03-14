@@ -12,10 +12,8 @@ export class GameService {
 
   private mediaDir = path.join(app.getPath('userData'), 'media', 'game')
 
-  // 添加游戏
   async addGame(newGame: NewGame): Promise<string> {
     if (!fs.existsSync(this.mediaDir)) fs.mkdirSync(this.mediaDir, { recursive: true })
-        
     for (const media of ['cover', 'banner', 'icon'] as const) {
       if (newGame.media[`${media}Url`]) {
         const filename = `${newGame.id}_${media}.jpg`
@@ -26,6 +24,7 @@ export class GameService {
     return this.repo.add(newGame)
   }
 
+  
   deleteGame(id: string): boolean {
     const game = this.repo.get(id)
     if (game && game.media) {
@@ -73,8 +72,3 @@ export class GameService {
     }))
   }
 }
-
-// function stripMediaPrefix(path?: string) {
-//   if (!path) return undefined
-//   return path.replace('vexus-media://game/', '')
-// }
