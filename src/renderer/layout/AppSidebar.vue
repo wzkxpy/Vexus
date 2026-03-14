@@ -23,7 +23,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import AddGameModal from '@/renderer/components/AddGameModal.vue'
+import AddGameModal from '@/renderer/pages/Library/modals/AddGameModal.vue'
 
 const router = useRouter()
 const showAddGame = ref(false)

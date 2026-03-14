@@ -13,8 +13,8 @@
 </template>
 
 <script setup lang="ts">
-import TitleBar from './Titlebar.vue'
-import Sidebar from './Sidebar.vue'
+import TitleBar from './AppTitlebar.vue'
+import Sidebar from './AppSidebar.vue'
 </script>
 
 <style scoped>

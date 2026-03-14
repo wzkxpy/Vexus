@@ -10,7 +10,7 @@ import * as path from 'path'
 import { spawn } from 'child_process'
 import { NewGame, Session } from '@/shared/types'
 
-import { fetchGameFromBangumi } from './scraper/manager'
+import { fetchGameFromBangumi } from './providers/manager'
 
 
 

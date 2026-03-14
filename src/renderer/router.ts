@@ -1,9 +1,9 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
-import Library from './pages/Library.vue'
-import Categories from './pages/Categories.vue'
-import Stats from './pages/Stats.vue'
-import Settings from './pages/Settings.vue'
+import Library from './pages/Library/LibraryPage.vue'
+import Categories from './pages/Categories/CategoriesPage.vue'
+import Stats from './pages/Stats/StatsPage.vue'
+import Settings from './pages/Settings/SettingsPage.vue'
 
 const router = createRouter({
   history: createWebHashHistory(), // Electron 推荐 hash 模式

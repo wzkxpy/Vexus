@@ -1,6 +1,7 @@
-// src/renderer/pages/Library.vue
+<!-- src/renderer/pages/Library/LibraryPage.vue -->
 <template>
   <div class="library-layout">
+
     <!-- 左侧侧边栏 -->
     <aside class="sidebar">
 
@@ -21,25 +22,14 @@
 
     <!-- 右侧主内容 -->
     <main class="main-content">
-      <!-- 没选中游戏：显示卡片 -->
+
+      <!-- 没选中游戏：显示 Grid -->
       <div v-if="!gameStore.selectedGame" class="game-grid">
-        <div
+        <GameCard
           v-for="game in gameStore.games"
           :key="game.id"
-          class="game-card"
-        >
-          <div class="cover" @click="gameStore.selectGame(game.id)">
-            <img
-              v-if="game.media.coverPath"
-              :src="game.media.coverPath"
-              class="cover-img"
-            />
-            <div v-else class="cover-placeholder">
-              🎮
-            </div>
-          </div>
-          <div class="game-title"> {{ game.originalTitle }} </div>
-        </div>
+          :game="game"
+        />
       </div>
 
       <!-- 选中游戏：显示详情 -->
@@ -47,20 +37,20 @@
         v-else
         @back="gameStore.selectGame(null)"
       />
+
     </main>
   </div>
 </template>
 
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useGameStore } from '@/renderer/stores/game.store'
-import type { Game } from '@/shared/types'
-import GameDetail from '@/renderer/components/GameDetail.vue'
+import GameDetail from './GameDetail.vue'
+import GameCard from '@/renderer/components/GameCard.vue'
 
 const gameStore = useGameStore()
 
-// 组件挂载时，初始化游戏列表
 onMounted(() => {
   gameStore.initGames()
 })
@@ -137,48 +127,6 @@ onMounted(() => {
   gap: 20px;
 }
 
-/* ===== Game Card ===== */
-.game-card {
-  border-radius: 14px;
-  transition: transform 0.15s, box-shadow 0.15s;
-  overflow: hidden;
-}
-
-.cover {
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  background: #2a2a2a;
-  cursor: pointer;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.cover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-}
-.cover-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-/* 封面占位 */
-.cover-placeholder {
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  background: linear-gradient(135deg, #c7d2fe, #e0e7ff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 40px;
-}
-
-.game-title {
-  margin-top: 8px;
-  font-size: 14px; 
-  font-weight: 550; 
-  text-align: center; 
-  color: #2d2d2d; 
-}
 /* ===== Game Detail 容器 ===== */
 .game-detail {
   max-width: 720px;

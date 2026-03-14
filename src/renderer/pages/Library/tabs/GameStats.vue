@@ -32,7 +32,7 @@
 
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Bar } from 'vue-chartjs'
 import {
   Chart,
@@ -45,7 +45,7 @@ import {
 
 import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameStore } from '@/renderer/stores/game.store'
-import SessionModal from './SessionModal.vue'
+import SessionModal from '../modals/SessionModal.vue'
 
 const showSessions = ref(false)
 
