@@ -25,6 +25,8 @@ declare global {
 
     launchAPI: {
       launchGame: (exePath: string) => Promise<{success: boolean}>
+      stopGame: (exePath: string) => Promise<{success: boolean}>
+      openFolder: (exePath: string) => Promise<{success: boolean}>
     },
     
     scraperAPI: {

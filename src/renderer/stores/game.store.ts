@@ -43,9 +43,10 @@ export const useGameStore = defineStore('game', () => {
     selectedId.value = id
   }
 
-  function updateSelectedGame(payload: Partial<Game>) {  // Partial: Game 里的所有字段都变成“可选” 
+  const updateSelectedGame = async (payload: Partial<Game>) => {  // Partial: Game 里的所有字段都变成“可选” 
     if (!selectedGame.value) return
     Object.assign(selectedGame.value, payload)
+    await window.databaseAPI.updateGame(JSON.parse(JSON.stringify(selectedGame.value)))
   }
 
   // const deleteSelectedGame = async () => {

@@ -16,104 +16,105 @@
       <div v-else class="banner-placeholder"></div>
     </div> -->
 
-    <!-- 主体内容 -->
-    <div class="detail-body">
-
-      <!-- 标题 + 封面 -->
-      <div class="top-section">
-        <div class="left">
-          <h1 class="title">{{ game.originalTitle }}</h1>
-
-          <button class="launch-btn" @click="launchGame(game)">
-            ▶ 启动游戏
+    <!-- 标题 + 封面 -->
+    <div class="top-section">
+      <div class="left">
+        <h3 class="title">{{ game.originalTitle }}</h3>
+        
+        <div class="action-row">
+          <button class="launch-btn" @click="isRunning ? handleStop() : handleLaunch()">
+            {{ isRunning ? '■ 停止游戏' : '▶ 启动游戏' }}
           </button>
-          <button class="edit-btn" @click="openEdit('exePath')">编辑</button>
+          
+          <SettingsMenu :items="menuItems" :context="game">
+            <template #button>
+              <!-- 设置按钮 -->
+              <button class="settings-btn">⚙</button>
+            </template>
+          </SettingsMenu>
         </div>
 
-        <div class="right">
-          <img
-            v-if="game.media?.coverPath"
-            :src="game.media.coverPath"
-            class="cover-img"
-          />
-          <div v-else class="cover-placeholder">🎮</div>
-        </div>
-      </div>
-
-      <!-- 分割线 -->
-      <div class="divider"></div>
-
-      <!--      Tab      -->
-      <div class="tabs">
-        <button
-          :class="{ active: activeTab === 'overview' }"
-          @click="activeTab = 'overview'">概览</button>
-
-        <button
-          :class="{ active: activeTab === 'stats' }"
-          @click="activeTab = 'stats'">统计</button>
-
-        <button
-          :class="{ active: activeTab === 'guide' }"
-          @click="activeTab = 'guide'">攻略</button>
       </div>
       
-      <div class="divider"></div>
-
-      <div v-if="activeTab === 'overview'">
-        <GameOverview/>
+      <!-- 封面 -->
+      <div class="right">
+        <img
+          v-if="game.media?.coverPath"
+          :src="game.media.coverPath"
+          class="cover-img"
+        />
+        <div v-else class="cover-placeholder">🎮</div>
       </div>
-
-      <div v-if="activeTab === 'stats'">
-        <GameStats/>
-      </div>
-
+      
     </div>
+
+    <!-- 分割线 -->
+    <div class="divider"></div>
+
+    <!--  Tab   -->
+    <div class="tabs">
+      <button :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">概览</button>
+      <button :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">统计</button>
+      <button :class="{ active: activeTab === 'guide' }" @click="activeTab = 'guide'">攻略</button>
+    </div>
+
+    <div v-if="activeTab === 'overview'"><GameOverview/></div>
+    <div v-if="activeTab === 'stats'"><GameStats/></div>
+    <div v-if="activeTab === 'guide'"><GameGuide/></div>
+
   </div>
 
+  <EditModal
+    v-if="editType"
+    :type="editType"
+    @close="closeEdit"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { Game } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
 import { useSessionStore } from '@/renderer/stores/session.store'
+import { useGameActions } from '@/renderer/composables/useGameActions'
+
+import SettingsMenu from '@/renderer/components/OptionsMenu.vue'
+import EditModal from './modals/EditModal.vue'
 
 import GameStats from './tabs/GameStats.vue'
 import GameOverview from './tabs/GameOverview.vue'
-
-const activeTab = ref<'overview' | 'stats' | 'guide'>('overview')
+import GameGuide from './tabs/GameGuide.vue'
+import { Game } from '@/shared/types'
 
 const gameStore = useGameStore()
 const sessionStore = useSessionStore()
 const game = computed(() => gameStore.selectedGame)
+const gameActions = useGameActions()
 
-const emit = defineEmits<{
-  (e: 'back'): void
-}>()
+const activeTab = ref<'overview' | 'stats' | 'guide'>('overview')
 
-// 启动游戏的处理函数
-const launchGame = async (game: Game) => {
-  console.log('launch game:', game)
-  if (!game.exePath) {
-    alert('该游戏尚未配置启动程序')
-    return
-  }
-  try {
-    await window.launchAPI.launchGame(game.exePath)
-  } catch (err: any) {
-    alert(err.message || '启动失败')
-  }
-}
-// 删除游戏的处理函数
-const handleDelete = async (game: Game) => {
-  const ok = confirm(`确定删除游戏「${game.originalTitle}」吗？`)
-  if (!ok) return
-  await gameStore.deleteGame(game.id)
-  emit('back')
-}
+const emit = defineEmits<{ (e: 'back'): void }>()
 
-// 编辑模式
+// 游戏启动 / 停止
+const isRunning = ref(false)
+const handleLaunch = async () => {
+  await gameActions.launchGame(game.value!)
+  isRunning.value = true
+} 
+const handleStop = async () => {
+  await gameActions.stopGame(game.value!)
+  isRunning.value = false
+} 
+// 定义菜单项
+const menuItems = [
+  { label: '配置游戏路径', action: () =>  openEdit('exePath') },
+  { label: '浏览本地文件', action: () =>  gameActions.browseFolder(game.value!) },
+  // { label: '更新游戏信息', action: () =>  gameActions.updateGameInfo(game.value!) },
+  { label: '标记 NSFW', action: () => gameActions.toggleNSFW(game.value!) },
+  { label: '启用 Magpie', action: () =>  gameActions.toggleMagpie(game.value!) },
+  // { label: '媒体文件设置', action: () =>  gameActions.openMediaSettings(game.value!) },
+  { label: '移除游戏', action: () =>  gameActions.removeGame(game.value!), danger: true }
+]
+// 编辑框
 const editType = ref<keyof Game | null>(null)
 const openEdit = (type: keyof Game) => {
   editType.value = type
@@ -144,14 +145,6 @@ watch(
   min-height: 100%;
 }
 
-/* ===== 主卡片 ===== */
-.detail-body {
-  /* background: #ffffff; */
-  border-radius: 18px;
-  /* padding: 40px; */
-  /* box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06); */
-}
-
 .back-btn {
   width: 80px;
   background: white;
@@ -162,8 +155,9 @@ watch(
 }
 
 .back-btn:hover {
-  background: #f5f6f8;
+  background: #e5e7eb;
 }
+
 /* ===== 顶部区域 ===== */
 .top-section {
   display: flex;
@@ -177,11 +171,17 @@ watch(
 }
 
 .title {
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 700;
   margin-bottom: 18px;
   color: #111827;
   letter-spacing: -0.5px;
+}
+
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* 按钮组 */
@@ -203,27 +203,28 @@ watch(
   transform: translateY(-2px);
 }
 
-.edit-btn {
+.settings-btn {
   background: #f3f4f6;
   border: 1px solid #e5e7eb;
-  padding: 4px 6px;
-  border-radius: 8px;
-  font-size: 13px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.edit-btn:hover {
+.settings-btn:hover {
   background: #e5e7eb;
 }
 
 /* 封面 */
 .right {
-  width: 200px;
+  /* width: 200px; */
+  height: 200px;
 }
 
 .cover-img {
-  width: 100%;
+  /* width: 100%; */
+  height: 100%;
   border-radius: 14px;
   object-fit: cover;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
@@ -247,5 +248,32 @@ watch(
   background: #e5e7eb;
 }
 
+/* ===== Tab 样式 ===== */
+.tabs {
+  display: flex;
+  gap: 12px; /* tab 之间的间距 */
+  margin-bottom: 16px;
+}
 
+.tabs button {
+  padding: 8px 20px;          /* 内边距 */
+  border-radius: 10px;        /* 圆角 */
+  border: none;               /* 去掉默认边框 */
+  background: #f3f4f6;        /* 默认背景色 */
+  color: #374151;             /* 默认文字颜色 */
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;  /* hover 动画 */
+}
+
+.tabs button:hover {
+  background: #e5e7eb;       /* hover 背景色 */
+}
+
+.tabs button.active {
+  background: #2563eb;       /* 激活背景色 */
+  color: #ffffff;            /* 激活文字颜色 */
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25); /* 激活的轻微阴影 */
+}
 </style>

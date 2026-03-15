@@ -91,10 +91,9 @@ const title = computed(() => {
   return map[props.type] || ''
 })
 
-const handleSave = () => {
-  console.log(props.type, form)
-  gameStore.updateSelectedGame(form as Partial<Game>)
-  window.databaseAPI.updateGame(JSON.parse(JSON.stringify(gameStore.selectedGame)))
+const handleSave = async () => {
+  // console.log(props.type, form)
+  await gameStore.updateSelectedGame(form as Partial<Game>)
   emit('close')
 }
 </script>
@@ -111,7 +110,7 @@ const handleSave = () => {
 }
 
 .modal {
-  width: 420px;
+  width: 460px;
   background: #1f2937;
   padding: 20px;
   border-radius: 12px;

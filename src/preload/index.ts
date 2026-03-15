@@ -25,7 +25,9 @@ contextBridge.exposeInMainWorld('databaseAPI', {
 
 // 启动游戏 API
 contextBridge.exposeInMainWorld('launchAPI', {
-  launchGame: (exePath: string) => ipcRenderer.invoke('launchGame', exePath)
+  launchGame: (exePath: string) => ipcRenderer.invoke('launchGame', exePath),
+  stopGame: (exePath: string) => ipcRenderer.invoke('stopGame', exePath),
+  openFolder: (exePath: string) => ipcRenderer.invoke('openFolder', exePath)
 })
 
 
