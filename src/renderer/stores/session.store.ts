@@ -23,32 +23,24 @@ export const useSessionStore = defineStore('session', {
     },
 
     async refreshGameSessions(gameId: string) {
+      if (!this.loadedGames.has(gameId)) return
       const sessions = await window.databaseAPI.getGameSessions(gameId)
       this.sessionsByGame[gameId] = sessions
     },
-
-    // createSession(gameId: string, playDate: string, duration: number,
-    //   routeId?: string, startTime?: string | null, endTime?: string | null
-    // ) {
-    //   const session: Session = {
-    //     id: crypto.randomUUID(),
-    //     gameId: gameId,
-    //     routeId: routeId ?? null,
-    //     playDate: playDate,
-    //     duration: duration,
-    //     startTime: startTime ?? null,
-    //     endTime: endTime ?? null
-    //   }
-    //   return session
-    // },
 
     async addSession(session: Session) {
       await window.databaseAPI.addSession(session)
       if (!this.sessionsByGame[session.gameId]) {
         this.sessionsByGame[session.gameId] = []
       }
-      this.sessionsByGame[session.gameId].push(session)
-      // this.sessionsByGame[session.gameId].sort((a, b) => new Date(a.playDate).getTime() - new Date(b.playDate).getTime())
+      // 寻找插入位置
+      const list = this.sessionsByGame[session.gameId]
+      const index = list.findIndex(s => compareSession(session, s) < 0)
+      if (index === -1) {
+        list.push(session)
+      } else {
+        list.splice(index, 0, session)
+      }
     },
 
     async deleteSession(id: string, gameId: string) {
@@ -73,6 +65,18 @@ export const useSessionStore = defineStore('session', {
 
   }
 })
+
+function compareSession(a: Session, b: Session): number {
+  if (a.playDate !== b.playDate) {
+    return a.playDate.localeCompare(b.playDate)
+  }
+  if (a.startTime && b.startTime) {
+    return a.startTime.localeCompare(b.startTime)
+  }
+  if (a.startTime) return -1
+  if (b.startTime) return 1
+  return b.duration - a.duration
+}
 
 // getTotalPlaytime: (state) => (gameId: string) => {
 //   const sessions = state.sessionsByGame[gameId] || []

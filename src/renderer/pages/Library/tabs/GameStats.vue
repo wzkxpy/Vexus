@@ -57,18 +57,14 @@ Chart.register(
   Legend
 )
 
-const sessionStore = useSessionStore()
 const gameStore = useGameStore()
-
+const sessionStore = useSessionStore()
 const game = computed(() => gameStore.selectedGame)
-
-const sessions = computed(() =>
-  sessionStore.getGameSessions(game.value!.id)
-)
+const sessions = computed(() => sessionStore.getGameSessions(game.value!.id))
 
 const dailyPlaytime = computed(() => {
   const map: Record<string, number> = {}
-  // console.log(sessions.value);
+  console.log(sessions.value);
   
   for (const s of sessions.value) {
     const date = s.playDate

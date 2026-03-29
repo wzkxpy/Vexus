@@ -10,7 +10,7 @@ export class SessionRepository {
     const stmt = this.db.prepare(`
       INSERT INTO sessions (
         id, game_id, route_id,
-        play_date,
+        local_date,
         start_time, end_time, duration,
         auto_record
       )
@@ -40,7 +40,7 @@ export class SessionRepository {
     const stmt = this.db.prepare(`
       UPDATE sessions SET
         route_id = ?,
-        play_date = ?,
+        local_date = ?,
         duration = ?,
         start_time = ?,
         end_time = ?,
@@ -63,14 +63,14 @@ export class SessionRepository {
     const stmt = this.db.prepare(`
       SELECT * FROM sessions
       WHERE game_id = ?
-      ORDER BY play_date ASC, start_time ASC
+      ORDER BY local_date ASC, start_time ASC
     `)
     const rows = stmt.all(gameId)
     return rows.map((row: any): Session => ({
       id: row.id,
       gameId: row.game_id,
       routeId: row.route_id,
-      playDate: row.play_date,
+      playDate: row.local_date,
       startTime: row.start_time,
       endTime: row.end_time,
       duration: row.duration,

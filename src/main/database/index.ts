@@ -98,12 +98,12 @@ export function initDatabase(db: Database) {
       game_id TEXT NOT NULL,        -- 游戏 ID
       route_id TEXT,                -- 线路 ID
 
-      play_date TEXT NOT NULL,    -- 游玩日期 yyyy-mm-dd
-      start_time TEXT,            -- 开始时间 hh:mm:ss
-      end_time TEXT,              -- 结束时间 hh:mm:ss
+      local_date TEXT NOT NULL,   -- 游玩日期 yyyy-mm-dd
+      start_time TEXT,            -- 开始时间 ISO datetime
+      end_time TEXT,              -- 结束时间 ISO datetime
       duration INTEGER NOT NULL,  -- 游玩时长 INT seconds
 
-      auto_record INTEGER,        -- 是否自动记录
+      auto_record INTEGER,        -- 是否为自动记录
 
       created_at TEXT DEFAULT CURRENT_TIMESTAMP, -- 记录创建时间
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP, -- 记录更新时间

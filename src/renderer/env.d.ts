@@ -24,14 +24,18 @@ declare global {
     },
 
     launchAPI: {
-      launchGame: (exePath: string) => Promise<{success: boolean}>
-      stopGame: (exePath: string) => Promise<{success: boolean}>
+      launchGame: (gameId: string, exePath: string) => Promise<{success: boolean}>
+      stopGame: (gameId: string, exePath: string) => Promise<{success: boolean}>
       openFolder: (exePath: string) => Promise<{success: boolean}>
     },
     
     scraperAPI: {
       fetchGameFromBangumi: (id: string) => Promise<any>
       // addGameToDatabase: (game: Game) => Promise<string>
+    },
+
+    callbackAPI: {
+      onGameStopped: (callback: (data: any) => void) => void
     }
   }
 }

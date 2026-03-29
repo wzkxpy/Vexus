@@ -76,6 +76,7 @@ import { computed, ref, watch } from 'vue'
 import { useGameStore } from '@/renderer/stores/game.store'
 import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameActions } from '@/renderer/composables/useGameActions'
+import { useRuntimeStore } from '@/renderer/stores/runtime.store'
 
 import SettingsMenu from '@/renderer/components/OptionsMenu.vue'
 import EditModal from './modals/EditModal.vue'
@@ -87,6 +88,7 @@ import { Game } from '@/shared/types'
 
 const gameStore = useGameStore()
 const sessionStore = useSessionStore()
+const runtimeStore = useRuntimeStore()
 const game = computed(() => gameStore.selectedGame)
 const gameActions = useGameActions()
 
@@ -95,14 +97,12 @@ const activeTab = ref<'overview' | 'stats' | 'guide'>('overview')
 const emit = defineEmits<{ (e: 'back'): void }>()
 
 // 游戏启动 / 停止
-const isRunning = ref(false)
+const isRunning = computed(() => runtimeStore.isGameRunning(game.value?.id || ''))
 const handleLaunch = async () => {
   await gameActions.launchGame(game.value!)
-  isRunning.value = true
 } 
 const handleStop = async () => {
   await gameActions.stopGame(game.value!)
-  isRunning.value = false
 } 
 // 定义菜单项
 const menuItems = [

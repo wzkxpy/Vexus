@@ -25,17 +25,22 @@ contextBridge.exposeInMainWorld('databaseAPI', {
 
 // 启动游戏 API
 contextBridge.exposeInMainWorld('launchAPI', {
-  launchGame: (exePath: string) => ipcRenderer.invoke('launchGame', exePath),
-  stopGame: (exePath: string) => ipcRenderer.invoke('stopGame', exePath),
+  launchGame: (gameId: string, exePath: string) => ipcRenderer.invoke('launchGame', gameId, exePath),
+  stopGame: (gameId: string, exePath: string) => ipcRenderer.invoke('stopGame', gameId, exePath),
   openFolder: (exePath: string) => ipcRenderer.invoke('openFolder', exePath)
 })
 
 
 // 获取游戏数据 API
 contextBridge.exposeInMainWorld('scraperAPI', {
-  fetchGameFromBangumi: (id: string) =>
-    ipcRenderer.invoke('fetchFromBangumi', id)
+  fetchGameFromBangumi: (id: string) => ipcRenderer.invoke('fetchFromBangumi', id)
 
   // addGameToDatabase: (game: NewGame) =>
   //   ipcRenderer.invoke('addGame', game)
+})
+
+contextBridge.exposeInMainWorld('callbackAPI', {
+  onGameStopped: (callback: (data: any) => void) => {
+    ipcRenderer.on('game:stopped', (_event, data) => callback(data))
+  }
 })

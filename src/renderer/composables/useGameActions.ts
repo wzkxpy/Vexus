@@ -1,21 +1,30 @@
-import { useGameStore } from '@/renderer/stores/game.store'
 import type { Game } from '@/shared/types'
+import { useGameStore } from '@/renderer/stores/game.store'
+import { useRuntimeStore } from '@/renderer/stores/runtime.store'
+
 
 export function useGameActions() {
-
   const gameStore = useGameStore()
+  const runtimeStore = useRuntimeStore()
 
   // 启动游戏
-  const launchGame = async (game: Game) => {
-    console.log('launch game:', game)
+  const launchGame = async (game: Game): Promise<boolean> => {
     if (!game.exePath) {
       alert('该游戏尚未配置启动程序')
-      return
+      return false
     }
+    if (runtimeStore.isRunning) {
+      alert('已有游戏在运行中')
+      return false
+    }
+    console.log('launch game:', game)
     try {
-      await window.launchAPI.launchGame(game.exePath)
+      await window.launchAPI.launchGame(game.id, game.exePath)
+      runtimeStore.start(game.id) // 记录运行状态
+      return true
     } catch (err: any) {
       alert(err.message || '启动失败')
+      return false
     }
   }
 
@@ -23,13 +32,15 @@ export function useGameActions() {
   const stopGame = async (game: Game) => {
     console.log('stop game:', game)
     if (!game.exePath) {
-        alert('该游戏尚未配置启动程序')
-        return
+      alert('该游戏尚未配置启动程序')
+      return
     }
     try {
-        await window.launchAPI.stopGame(game.exePath)
+      await window.launchAPI.stopGame(game.id, game.exePath)
     } catch (err: any) {
-        alert(err.message || '停止失败')
+      alert(err.message || '停止失败')
+    } finally {
+      runtimeStore.stop() // 记录运行状态
     }
   }
 

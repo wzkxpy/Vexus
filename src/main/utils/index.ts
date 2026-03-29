@@ -1,8 +1,10 @@
 // src/main/utils/index.ts
 import * as fs from 'fs';
 import * as https from 'https';
+// import * as psTree from 'ps-tree'
 
 
+// 下载文件
 export async function downloadFile(fileUrl: string, savePath: string) {
   return new Promise<string>((resolve, reject) => {
     const file = fs.createWriteStream(savePath)

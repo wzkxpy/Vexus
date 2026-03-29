@@ -1,6 +1,6 @@
 import { app, protocol } from 'electron';
 import { createWindow } from './window';
-import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerScraperIPC } from './ipc';
+import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC } from './ipc';
 import Database from 'better-sqlite3'
 import { initDatabase } from './database/index'
 import { GameRepository } from './database/game.repo'
@@ -8,7 +8,7 @@ import { GameService } from './database/game.service'
 import * as path from 'path'
 import { SessionService } from './database/session.service';
 import { SessionRepository } from './database/session.repo';
-
+import { container } from './container';
 
 app.whenReady().then(() => {
   // 初始化数据库和服务
@@ -19,6 +19,7 @@ app.whenReady().then(() => {
   const gameService = new GameService(gameRepo)
   const sessionRepo = new SessionRepository(db)
   const sessionService = new SessionService(sessionRepo)
+  container.register('sessionService', sessionService)
   // 注册自定义协议用于加载媒体文件
   protocol.handle('vexus-media', (request) => {
     const url = request.url.replace('vexus-media://', '')
@@ -34,7 +35,7 @@ app.whenReady().then(() => {
   registerWindowIPC(win)  // Register IPC handlers for the window
   registerDBIPC(gameService, sessionService) // Register database-related IPC handlers
   registerLaunchIPC() // Register IPC handlers for launching games
-  registerScraperIPC() // Register IPC handlers for Bangumi API interactions
+  registerProviderIPC() // Register IPC handlers for Bangumi API interactions
 });
 
 

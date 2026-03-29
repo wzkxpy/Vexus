@@ -2,17 +2,16 @@
 // Electron IPC 
 // 负责注册主进程的 IPC 事件处理器, 供 preload 暴露给渲染进程调用
 
-import { ipcMain, BrowserWindow, shell } from 'electron'
-import { GameService } from './database/game.service'
-import { SessionService } from './database/session.service'
-import * as fs from 'fs'
-import * as path from 'path'
-import { spawn } from 'child_process'
+import { ipcMain, BrowserWindow } from 'electron'
+import { GameService } from '../database/game.service'
+import { SessionService } from '../database/session.service'
 import { NewGame, Session } from '@/shared/types'
+import { fetchGameFromBangumi } from '../providers/manager'
+import { launchGame, stopGame, openFolder } from '../services/launch'
 
-import { fetchGameFromBangumi } from './providers/manager'
-
-
+// export function registerAllIPC() {
+  
+// }
 
 export function registerWindowIPC(win: BrowserWindow) {
   ipcMain.on('window:minimize', () => {
@@ -57,51 +56,21 @@ export function registerDBIPC(gameService: GameService, sessionService: SessionS
 }
 
 
-export function registerLaunchIPC() {
-  const runningGames = new Map<string, number>() // 用 Map 保存游戏 exePath -> PID
-  
-  ipcMain.handle('launchGame', async (_, exePath: string) => {
-    if (!fs.existsSync(exePath)) {
-      throw new Error('Exe file is not exist')
-    }
-    // 启动游戏进程
-    const child = spawn(exePath, [], {
-      cwd: path.dirname(exePath),
-      detached: true,
-      stdio: 'ignore',
-    })
-    child.unref()
-    // 保存 PID
-    runningGames.set(exePath, child.pid!)
-    return { success: true, pid: child.pid }
+export function registerLaunchIPC() {  
+  ipcMain.handle('launchGame', async (_, gameId: string, exePath: string) => {
+    return launchGame(gameId, exePath)
   })
 
-  ipcMain.handle('stopGame', async (_, exePath: string) => {
-    const pid = runningGames.get(exePath)
-    if (!pid) {
-      throw new Error('The game is not launching')
-    }
-    try {
-      process.kill(pid) // 尝试结束进程
-      runningGames.delete(exePath)
-      return { success: true }
-    } catch (err: any) {
-      throw new Error(err.message || '停止游戏失败')
-    }
+  ipcMain.handle('stopGame', async (_, gameId: string, exePath: string) => {
+    return stopGame(gameId, exePath)
   })
-  // 打开 exe 所在文件夹
   ipcMain.handle('openFolder', async (_, exePath: string) => {
-    if (!fs.existsSync(exePath)) {
-      throw new Error('文件不存在')
-    }
-    const folderPath = path.dirname(exePath)
-    await shell.openPath(folderPath)
-    return { success: true }
+    return openFolder(exePath)
   })
 }
 
 
-export function registerScraperIPC() {
+export function registerProviderIPC() {
   ipcMain.handle('fetchFromBangumi', async (_, subjectId) => {
       return await fetchGameFromBangumi(subjectId)
   })

@@ -4,7 +4,7 @@ import { NewGame } from "@/shared/types";
 import { bangumiToNewGame } from "./bangumi/mapper";
 
 // 临时直接使用全局变量存储 token
-let bangumiToken: string = 'Lce5a5a1wIisb2SAtpve2xvXuJxaHoUUTPPG4cjA'
+let bangumiToken: string = '6o1H3zRciYAqsERmtEDUP6lrcPnnsIV29xH9QaYp'
 
 
 
