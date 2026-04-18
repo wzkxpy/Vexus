@@ -9,32 +9,17 @@ export class GameRepository {
     this.db = db
   }
   
-  add(game: NewGame): string {
-    const row = newGameToRow(game)
-    const stmt = this.db.prepare(`
-      INSERT INTO games (
-        id, original_title, localized_title, description, tags,
-        developer, publisher, release_date, estimated_time,
-        erogame_score, bgm_score, vndb_score,
-        bgm_id, vndb_id, steam_id, ymgal_id,
-        cover_path, banner_path, icon_path,
-        planner, scenario, artist, music, cast,
-        nsfw
-      )
-      VALUES (
-        @id, @original_title, @localized_title, @description, @tags,
-        @developer, @publisher, @release_date, @estimated_time,
-        @erogame_score, @bgm_score, @vndb_score,
-        @bgm_id, @vndb_id, @steam_id, @ymgal_id,
-        @cover_path, @banner_path, @icon_path,
-        @planner, @scenario, @artist, @music, @cast,
-        @nsfw
-      )
-    `)
-    stmt.run(row)
-    return row.id
-  }
-  
+add(game: NewGame): string {
+  const row = newGameToRow(game);
+  const keys = Object.keys(row); // 动态提取键名
+  const columns = keys.join(', '); // 生成列名部分: "id, original_title, ..."
+  const placeholders = keys.map(key => `@${key}`).join(', '); // 生成参数占位符"@id, @original_title, ..."
+  const sql = `INSERT INTO games (${columns}) VALUES (${placeholders})`;
+  const stmt = this.db.prepare(sql);
+  stmt.run(row);
+  return row.id;
+}
+
   delete(id: string): boolean {
     const stmt = this.db.prepare(`DELETE FROM games WHERE id = ?`)
     const result = stmt.run(id)
@@ -100,7 +85,7 @@ export class GameRepository {
     'scenario',
     'artist',
     'music',
-    'cast',
+    'characters',
 
     'add_time',
     'last_run_date',

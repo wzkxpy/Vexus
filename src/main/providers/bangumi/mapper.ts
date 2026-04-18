@@ -1,5 +1,5 @@
 // src/main/services/bangumi/transform.ts
-import { NewGame, CastItem } from "@/shared/types"
+import { NewGame } from "@/shared/types"
 import { BangumiCharacter, BangumiSubject } from "./types"
 import { randomUUID } from "crypto";
 
@@ -42,12 +42,14 @@ export function bangumiToNewGame(
       music: getInfoboxValue(subject.infobox, '音乐') || undefined,
     },
 
-    cast: characters
-    // .filter(character => character.relation !== '客串')
+    characters: characters
+    .filter(character => character.relation !== '客串')
     .map(c => ({
-      character: c.name,
-      voiceActor: c.actors?.[0]?.name || '未知'
-    })) as CastItem[] || [],
+      uuid: randomUUID(),
+      name: c.name,
+      voiceActor: c.actors?.[0]?.name || '未知',
+      avatarUrl: c.images?.grid || undefined
+    })) || [],
 
     settings: {
       nsfw: subject.nsfw || false

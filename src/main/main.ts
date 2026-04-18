@@ -1,3 +1,5 @@
+// src/main/main.ts
+import 'dotenv/config' // 创建环境变量
 import { app, protocol } from 'electron';
 import { createWindow } from './window';
 import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC } from './ipc';
@@ -9,6 +11,7 @@ import * as path from 'path'
 import { SessionService } from './database/session.service';
 import { SessionRepository } from './database/session.repo';
 import { container } from './container';
+
 
 app.whenReady().then(() => {
   // 初始化数据库和服务

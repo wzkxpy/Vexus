@@ -1,12 +1,27 @@
 <template>
   <div v-if="game" class="game-overview">
 
-    <!-- Cast -->
-    <div class="section" v-if="game.cast?.length">
+    <!-- 角色 -->
+    <div class="section" v-if="game.characters?.length">
       <h3>角色</h3>
-      <div class="cast-list">
-        <div v-for="c in game.cast" :key="c.character">
-          {{ c.character }} - {{ c.voiceActor }}
+      <div class="character-grid">
+        <div
+          class="character-card"
+          v-for="c in game.characters"
+          :key="c.name"
+        >
+          <img
+            v-if="c.avatarPath"
+            :src="c.avatarPath"
+            :alt="c.name"
+            class="character-avatar"
+          />
+
+          <div class="character-info">
+            <div class="character-name">{{ c.name }}</div>
+            <div class="character-va">{{ c.voiceActor }}</div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -119,6 +134,50 @@ const closeEdit = () => {
   margin-bottom: 16px;
   color: #111827;
 }
+/* 角色列表 */
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.character-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.character-avatar {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 12px; /* 圆角头像 */
+  flex-shrink: 0;
+}
+
+.character-info {
+  display: flex;
+  flex-direction: column; /* 竖排 */
+  justify-content: center;
+  min-width: 0;
+}
+
+.character-name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.character-va {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #999;
+  line-height: 1.4;
+}
 
 /* 描述 */
 .description p {
@@ -166,12 +225,5 @@ const closeEdit = () => {
   color: #1f2937;
 }
 
-/* Cast */
-.cast-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 14px;
-  color: #374151;
-}
+
 </style>

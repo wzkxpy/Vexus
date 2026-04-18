@@ -22,6 +22,7 @@
   "dependencies": {
     "better-sqlite3": "^12.6.2",
     "chart.js": "^4.5.1",
+    "dotenv": "^17.4.2",
     "pinia": "^3.0.4",
     "ps-tree": "^1.2.0",
     "tree-kill": "^1.2.2",

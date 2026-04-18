@@ -49,8 +49,8 @@ export function initDatabase(db: Database) {
       artist TEXT,     -- 原画
       music TEXT,      -- 音乐
 
-      -- Cast 信息
-      cast TEXT,       -- [ { character: '', voiceActor: '' } ]
+      -- 角色信息
+      characters TEXT, -- [ { name: '', voiceActor: '', avatar: '' } ]
 
       -- 个人记录 record
       add_time TEXT DEFAULT CURRENT_TIMESTAMP,  -- 添加时间 ISO datetime

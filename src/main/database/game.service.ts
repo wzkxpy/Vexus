@@ -10,79 +10,55 @@ import { app } from 'electron'
 export class GameService {
   constructor(private repo: GameRepository) {}
 
-  private mediaDir = path.join(app.getPath('userData'), 'media', 'game')
+  private mediaBaseDir = path.join(app.getPath('userData'), 'media')
 
   async addGame(newGame: NewGame): Promise<string> {
-    if (!fs.existsSync(this.mediaDir)) fs.mkdirSync(this.mediaDir, { recursive: true })
-    for (const media of ['cover', 'banner', 'icon'] as const) {
-      if (newGame.media[`${media}Url`]) {
-        const filename = `${newGame.id}_${media}.jpg`
-        const localPath = path.join(this.mediaDir, filename)
-        await downloadFile(newGame.media[`${media}Url`]!, localPath)
-      }
-    }
-    return this.repo.add(newGame)
+    const { id, media, characters } = newGame;
+    await this.mediaService(id, media, characters);
+    return this.repo.add(newGame);
   }
 
-  
-  deleteGame(id: string): boolean {
-    const game = this.repo.get(id)
-    if (game && game.media) {
-      for (const media of ['cover', 'banner', 'icon'] as const) {
-        if (game.media[`${media}Path`]) {
-          deleteFile(path.join(this.mediaDir, game.media[`${media}Path`]!))
-        }
+  // 处理媒体文件 下载到本地
+  private async mediaService(gameId: string, media: NewGame['media'], characters: NewGame['characters']) {
+    const gameDir = path.join(this.mediaBaseDir, gameId);
+    if (!fs.existsSync(gameDir)) fs.mkdirSync(gameDir, { recursive: true })
+    const downloadTasks: Promise<string | void>[] = [];
+    for (const type of ['cover', 'banner', 'icon'] as const) {
+      if (media[`${type}Url`]) {
+        const localPath = path.join(gameDir, `${type}.jpg`);
+        downloadTasks.push(downloadFile(media[`${type}Url`]!, localPath));
       }
     }
+    if (characters && characters.length > 0) {
+      characters.forEach((char) => {
+        if (char.avatarUrl) {
+          const charFileName = `${char.uuid}_avatar.jpg`; 
+          const localPath = path.join(gameDir, charFileName);          
+          downloadTasks.push(downloadFile(char.avatarUrl, localPath));
+        }
+      });
+    }
+    await Promise.all(downloadTasks); // 并行下载
+  }
+  
+  deleteGame(id: string): boolean {
+    deleteFile(path.join(this.mediaBaseDir, id))
     return this.repo.delete(id)
   }
 
-  // 更新游戏
-  async updateGame(game: Game) {
-    // const adaptedGame = {
-    //   ...game,
-    //   media: {
-    //     ...game.media,
-    //     coverPath: game.media.coverPath ? game.media.coverPath.replace('vexus-media://game/', '') : undefined,
-    //     bannerPath: game.media.bannerPath ? game.media.bannerPath.replace('vexus-media://game/', '') : undefined,
-    //     iconPath: game.media.iconPath ? game.media.iconPath.replace('vexus-media://game/', '') : undefined,
-    //   }
-    // }
-    // this.repo.update(adaptedGame)
+  updateGame(game: Game) {
     this.repo.update(game)
   }
 
   getGame(id: string): Game | null {
     const game = this.repo.get(id)
     if (!game) return null
-    return {
-      ...game,
-      media: {
-        ...game.media,
-        coverPath: game.media.coverPath ? `vexus-media://game/${game.media.coverPath}` : undefined,
-        bannerPath: game.media.bannerPath ? `vexus-media://game/${game.media.bannerPath}` : undefined,
-        iconPath: game.media.iconPath ? `vexus-media://game/${game.media.iconPath}` : undefined,
-      }
-    }
+    return game
   }
   
   getAllGames(): Game[] {
     const games = this.repo.getAll()
-
-    return games.map(game => ({
-      ...game,
-      media: {
-        ...game.media,
-        coverPath: game.media.coverPath
-          ? `vexus-media://game/${game.media.coverPath}`
-          : undefined,
-        bannerPath: game.media.bannerPath
-          ? `vexus-media://game/${game.media.bannerPath}`
-          : undefined,
-        iconPath: game.media.iconPath
-          ? `vexus-media://game/${game.media.iconPath}`
-          : undefined,
-      }
-    }))
+    return games
   }
+
 }

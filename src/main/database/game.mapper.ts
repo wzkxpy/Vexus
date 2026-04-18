@@ -27,9 +27,9 @@ export function newGameToRow(game: NewGame) { // add
     ymgal_id: game.externalIds.ymgalId ?? null,
 
     // 媒体路径
-    cover_path: game.media.coverUrl ? `${game.id}_cover.jpg` : null,
-    banner_path: game.media.bannerUrl ? `${game.id}_banner.jpg` : null,
-    icon_path: game.media.iconUrl ? `${game.id}_icon.jpg` : null,
+    cover_path: game.media.coverUrl ? `vexus-media://${game.id}/cover.jpg` : null,
+    banner_path: game.media.bannerUrl ? `vexus-media://${game.id}/banner.jpg` : null,
+    icon_path: game.media.iconUrl ? `vexus-media://${game.id}/icon.jpg` : null,
 
     // Staff
     planner: game.staff.planner ?? null,
@@ -37,8 +37,18 @@ export function newGameToRow(game: NewGame) { // add
     artist: game.staff.artist ?? null,
     music: game.staff.music ?? null,
 
-    // Cast
-    cast: game.cast ? JSON.stringify(game.cast) : null,
+    // 角色信息
+    characters: game.characters
+      ? JSON.stringify(
+          game.characters.map(c => ({
+            name: c.name,
+            voiceActor: c.voiceActor,
+            avatarPath: c.avatarUrl
+              ? `vexus-media://${game.id}/${c.uuid}_avatar.jpg`
+              : undefined
+          }))
+        )
+      : null,
 
     // 设置项
     nsfw: game.settings?.nsfw ? 1 : 0
@@ -74,7 +84,7 @@ export function gameToRow(game: Game) { // update
 
     // 安装路径
     exe_path: game.exePath ?? null,
-    // 媒体路径
+    // 不更新媒体路径 规则固定
     // cover_path: game.media.coverPath ?? null,
     // banner_path: game.media.bannerPath ?? null,
     // icon_path: game.media.iconPath ?? null,
@@ -85,8 +95,8 @@ export function gameToRow(game: Game) { // update
     artist: game.staff.artist ?? null,
     music: game.staff.music ?? null,
 
-    // Cast
-    cast: game.cast ? JSON.stringify(game.cast) : null,
+    // 角色信息
+    characters: game.characters ? JSON.stringify(game.characters) : null,
 
     // 个人记录
     // add_time: game.record.addTime,
@@ -138,9 +148,9 @@ export function rowToGame(row: any): Game { // get
     exePath: row.exe_path,
 
     media: {
-      coverPath: row.cover_path,
-      bannerPath: row.banner_path,
-      iconPath: row.icon_path,
+      coverPath: row.cover_path ?? undefined,
+      bannerPath: row.banner_path ?? undefined,
+      iconPath: row.icon_path ?? undefined,
     },
 
     staff: {
@@ -150,7 +160,7 @@ export function rowToGame(row: any): Game { // get
       music: row.music,
     },
 
-    cast: safeParse(row.cast, []),
+    characters: safeParse(row.characters, []),
 
     record: {
       addTime: row.add_time,
