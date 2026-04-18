@@ -57,8 +57,9 @@ export function initDatabase(db: Database) {
       last_run_date TEXT,                       -- 最后运行日期 ISO datetime
       play_status TEXT DEFAULT 'NotStarted',    -- 游玩状态 NotStarted Playing OnHold Completed
       personal_score FLOAT,                     -- 个人评分 1-10
-      extra_playtime INTEGER DEFAULT 0,         -- 额外的游玩时间记录 / minutes
-      total_playtime INTEGER DEFAULT 0,         -- 总游玩时长 / minutes
+      session_playtime INTEGER DEFAULT 0,       -- 计时游玩时长 / seconds
+      extra_playtime INTEGER DEFAULT 0,         -- 额外的游玩时间记录 / seconds
+      session_count INTEGER DEFAULT 0,          -- 游玩次数
 
       -- 设置项
       nsfw BOOLEAN DEFAULT FALSE,
@@ -135,4 +136,45 @@ export function initDatabase(db: Database) {
     ON sessions(route_id, start_time DESC);
   `);
 
+  // 创建触发器
+  db.exec(`
+    -- 1. 当插入新的 Session 时
+    CREATE TRIGGER IF NOT EXISTS update_game_time_after_insert
+    AFTER INSERT ON sessions
+    BEGIN
+        UPDATE games 
+        SET session_playtime = (
+            SELECT COALESCE(SUM(duration), 0)
+            FROM sessions 
+            WHERE game_id = NEW.game_id
+        )
+        WHERE id = NEW.game_id;
+    END;
+
+    -- 2. 当 Session 的时长 duration 被更新时
+    CREATE TRIGGER IF NOT EXISTS update_game_time_after_update
+    AFTER UPDATE OF duration ON sessions
+    BEGIN
+        UPDATE games 
+        SET session_playtime = (
+            SELECT COALESCE(SUM(duration), 0)
+            FROM sessions 
+            WHERE game_id = NEW.game_id
+        )
+        WHERE id = NEW.game_id;
+    END;
+
+    -- 3. 当 Session 被删除时
+    CREATE TRIGGER IF NOT EXISTS update_game_time_after_delete
+    AFTER DELETE ON sessions
+    BEGIN
+        UPDATE games 
+        SET session_playtime = (
+            SELECT COALESCE(SUM(duration), 0)
+            FROM sessions 
+            WHERE game_id = OLD.game_id
+        )
+        WHERE id = OLD.game_id;
+    END;
+  `)
 }

@@ -1,6 +1,6 @@
 // src/renderer/env.d.ts
-// import type { Game, NewGame } from '@/shared/types'
 
+/// <reference types="vite/client" />
 export {}
 
 declare global {
@@ -12,6 +12,7 @@ declare global {
     },
 
     databaseAPI: {
+      getGame: (id: string) => Promise<Game | null>
       getAllGames: () => Promise<Game[]>
       addGame: (game: NewGame) => Promise<string>
       deleteGame: (id: string) => Promise<boolean>

@@ -94,7 +94,7 @@ export function gameToRow(game: Game) { // update
     play_status: game.record.playStatus,
     personal_score: game.record.personalScore ?? null,
     extra_playtime: game.record.extraPlaytime,
-    total_playtime: game.record.totalPlaytime,
+    session_playtime: game.record.sessionPlaytime,
 
     // 设置项
     nsfw: game.settings?.nsfw ? 1 : 0,
@@ -158,7 +158,7 @@ export function rowToGame(row: any): Game { // get
       extraPlaytime: row.extra_playtime,
       playStatus: row.play_status,
       personalScore: row.personal_score,
-      totalPlaytime: row.total_playtime,
+      sessionPlaytime: row.session_playtime,
     },
 
     settings: {

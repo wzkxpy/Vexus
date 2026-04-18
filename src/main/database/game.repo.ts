@@ -2,7 +2,6 @@
 import type { Game, NewGame } from '@/shared/types'
 import type { Database } from 'better-sqlite3'
 import { rowToGame, newGameToRow, gameToRow } from './game.mapper'
-import { get } from 'http'
 
 
 export class GameRepository {
@@ -41,48 +40,18 @@ export class GameRepository {
     const result = stmt.run(id)
     return result.changes > 0
   }
- 
+
   update(game: Game) {
     const row = gameToRow(game)
+    const fields = Object.keys(row)
+      .filter(k => k !== 'id')
+      .map(k => `${k} = @${k}`)
+      .join(',\n')
     const stmt = this.db.prepare(`
-      UPDATE games SET
-      original_title = @original_title,
-      localized_title = @localized_title,
-      sort_num = @sort_num,
-      description = @description,
-      tags = @tags,
-      guide = @guide,
-
-      developer = @developer,
-      publisher = @publisher,
-      release_date = @release_date,
-      estimated_time = @estimated_time,
-      erogame_score = @erogame_score,
-      bgm_score = @bgm_score,
-      vndb_score = @vndb_score,
-
-      bgm_id = @bgm_id,
-      vndb_id = @vndb_id,
-      steam_id = @steam_id,
-      ymgal_id = @ymgal_id,
-
-      exe_path = @exe_path,
-
-      planner = @planner,
-      scenario = @scenario,
-      artist = @artist,
-      music = @music,
-      cast = @cast,
-
-      last_run_date = @last_run_date,
-      play_status = @play_status,
-      personal_score = @personal_score,
-      extra_playtime = @extra_playtime,
-      total_playtime = @total_playtime,
-      nsfw = @nsfw,
-      magpie = @magpie,
-
-      updated_at = CURRENT_TIMESTAMP
+      UPDATE games
+      SET
+        ${fields},
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = @id
     `)
     stmt.run(row)
@@ -137,8 +106,9 @@ export class GameRepository {
     'last_run_date',
     'play_status',
     'personal_score',
+    'session_playtime',
     'extra_playtime',
-    'total_playtime',
+    'session_count',
     
     'nsfw',
     'magpie',

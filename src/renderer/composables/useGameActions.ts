@@ -1,6 +1,7 @@
 import type { Game } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
 import { useRuntimeStore } from '@/renderer/stores/runtime.store'
+import router from '../router'
 
 
 export function useGameActions() {
@@ -48,11 +49,11 @@ export function useGameActions() {
   const removeGame = async (game: Game) => {
     const ok = confirm(`确定删除游戏「${game.originalTitle}」吗？`)
     if (!ok) return
-
     await gameStore.deleteGame(game.id)
-
-    if (gameStore.selectedId === game.id) {
-      gameStore.selectGame(null)
+    if (window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/library')
     }
   }
 
@@ -66,10 +67,20 @@ export function useGameActions() {
     }
   }
 
+  // 切换游玩状态
+  const updatePlayStatus = async (game: Game, status: Game['record']['playStatus']) => {
+    await gameStore.updateGame(game.id, {
+      record: {
+        ...game.record,
+        playStatus: status
+      }
+    })
+  }
+
   // 切换 NSFW
   const toggleNSFW = async (game: Game) => {
     const newValue = !game.settings.nsfw
-    await gameStore.updateSelectedGame({
+    await gameStore.updateGame(game.id, {
       settings: {
         ...game.settings,
         nsfw: newValue
@@ -80,7 +91,7 @@ export function useGameActions() {
   // 开关 Magpie
   const toggleMagpie = async (game: Game) => {
     const newValue = !game.settings.magpie
-    await gameStore.updateSelectedGame({
+    await gameStore.updateGame(game.id, {
       settings: {
         ...game.settings,
         magpie: newValue
@@ -93,6 +104,7 @@ export function useGameActions() {
     stopGame,
     removeGame,
     browseFolder,
+    updatePlayStatus,
     toggleNSFW,
     toggleMagpie
   }

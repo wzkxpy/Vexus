@@ -34,6 +34,9 @@ export function registerDBIPC(gameService: GameService, sessionService: SessionS
   ipcMain.handle('deleteGame', (_, id: string) => {
     return gameService.deleteGame(id)
   })
+  ipcMain.handle('getGame', (_, id: string) => {
+    return gameService.getGame(id)
+  })
   ipcMain.handle('getAllGames', () => {
     return gameService.getAllGames()
   })

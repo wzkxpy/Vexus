@@ -78,14 +78,18 @@ import { computed, reactive, ref } from 'vue'
 import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameStore } from '@/renderer/stores/game.store'
 import type { Session } from '@/shared/types'
+import { useRoute } from 'vue-router'
 import { formatLocalDate, formatLocalTime } from '@/shared/utils'
 
 defineEmits(['close'])
 
 const sessionStore = useSessionStore()
 const gameStore = useGameStore()
-
-const game = computed(() => gameStore.selectedGame)
+const route = useRoute()
+const game = computed(() => {
+  const id = route.params.id as string
+  return gameStore.getGameById(id)
+})
 
 /* draft session (未保存) */
 const draftSession = ref<Session | null>(null)
@@ -251,6 +255,7 @@ const save = async () => {
   else  // 修改时
     await sessionStore.updateSession(session)
 
+  gameStore.refreshGame(game.value!.id)  // 刷新游戏数据以更新总游玩时长等信息
   draftSession.value = null
   editingId.value = null
 }
@@ -259,10 +264,8 @@ const save = async () => {
 const removeSession = async (s: Session) => {
   const ok = confirm('确定删除吗？')
   if (!ok) return
-  await sessionStore.deleteSession(
-    s.id,
-    s.gameId
-  )
+  await sessionStore.deleteSession(s.id, s.gameId)
+  gameStore.refreshGame(game.value!.id)  // 刷新游戏数据以更新总游玩时长等信息
 }
 </script>
 

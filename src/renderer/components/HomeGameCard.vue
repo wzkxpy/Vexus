@@ -11,21 +11,18 @@
       />
     </div>
 
-    <!-- 标题 -->
-    <div class="game-title">
-      {{ game.originalTitle }}
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useGameStore } from '@/renderer/stores/game.store'
 import type { Game } from '@/shared/types'
-import router from '../router';
 
 const props = defineProps<{ game: Game }>()
+const gameStore = useGameStore()
 
 function select() {
-  router.push(`/game/${props.game.id}`)
+  gameStore.setFeaturedGame(props.game.id)
 }
 </script>
 
@@ -62,10 +59,10 @@ function select() {
 }
 
 
-.cover:hover .cover-img {
-  transform: scale(1.08); /* 放大但不会溢出 */
-  filter: blur(0.9px); /* 轻微模糊 */
-}
+/* .cover:hover .cover-img { */
+  /* transform: scale(1.08); 放大但不会溢出 */
+  /* filter: blur(0.9px); 轻微模糊 */
+/* } */
 
 /* 标题 */
 .game-title {

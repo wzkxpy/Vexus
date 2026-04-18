@@ -42,11 +42,12 @@ import {
   Tooltip,
   Legend
 } from 'chart.js'
-
+import { useRoute } from 'vue-router'
 import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameStore } from '@/renderer/stores/game.store'
-import SessionModal from '../modals/SessionModal.vue'
+import SessionModal from '../SessionModal.vue'
 
+const route = useRoute()
 const showSessions = ref(false)
 
 Chart.register(
@@ -59,7 +60,10 @@ Chart.register(
 
 const gameStore = useGameStore()
 const sessionStore = useSessionStore()
-const game = computed(() => gameStore.selectedGame)
+const game = computed(() => {
+  const id = route.params.id as string
+  return gameStore.getGameById(id)
+})
 const sessions = computed(() => sessionStore.getGameSessions(game.value!.id))
 
 const dailyPlaytime = computed(() => {

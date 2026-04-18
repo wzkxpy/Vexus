@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('windowAPI', {
 
 // 数据库相关 API
 contextBridge.exposeInMainWorld('databaseAPI', {
+  getGame: (id: string): Promise<Game | null> => ipcRenderer.invoke('getGame', id),
   getAllGames: (): Promise<Game[]> => ipcRenderer.invoke('getAllGames'),
   addGame: (game: NewGame): Promise<string> => ipcRenderer.invoke('addGame', game),
   deleteGame: (id: string): Promise<boolean> => ipcRenderer.invoke('deleteGame', id),

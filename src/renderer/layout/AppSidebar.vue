@@ -1,6 +1,7 @@
 <template>
   <aside class="sidebar">
     <nav class="menu">
+      <div class="item" @click="go('/home')">🏠</div>
       <div class="item" @click="go('/library')">🎮</div>
       <div class="item" @click="go('/categories')">📂</div>
       <div class="item" @click="go('/stats')">📊</div>
@@ -23,7 +24,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import AddGameModal from '@/renderer/pages/Library/modals/AddGameModal.vue'
+import AddGameModal from '@/renderer/pages/Library/AddGameModal.vue'
 
 const router = useRouter()
 const showAddGame = ref(false)
@@ -40,7 +41,7 @@ function openAddGame() {
 <style scoped>
 .sidebar {
   width: 52px;
-  background: var(--color-primary);
+  background: white;
   display: flex;
   flex-direction: column;
   align-items: center;

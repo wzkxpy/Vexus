@@ -58,8 +58,8 @@ export interface Game {
     lastRunDate?: string      // ISO datetime
     playStatus: PlayStatus    // 游玩状态
     personalScore?: number    // 个人评分
+    sessionPlaytime: number   // 计时游玩时长
     extraPlaytime: number     // 额外的游玩时长
-    totalPlaytime: number     // 总游玩时长
   }
 
   settings: {

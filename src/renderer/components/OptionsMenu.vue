@@ -1,6 +1,5 @@
 <template>
-  <div class="dropdown-wrapper">
-    <!-- 按钮插槽，自由定制样式 -->
+  <div class="dropdown-wrapper" ref="dropdownRef">
     <div @click="toggleMenu">
       <slot name="button">
         <!-- 默认按钮样式 -->
@@ -38,6 +37,8 @@ const props = defineProps<{
 
 const showMenu = ref(false)
 
+const dropdownRef = ref<HTMLElement | null>(null) // 定义一个用于绑定根元素的 ref
+
 const toggleMenu = () => (showMenu.value = !showMenu.value)
 const closeMenu = () => (showMenu.value = false)
 
@@ -48,11 +49,13 @@ const handleClick = async (item: MenuItem) => {
 
 const handleClickOutside = (e: MouseEvent) => {
   const target = e.target as HTMLElement
-  if (!target.closest('.dropdown-wrapper')) closeMenu()
+  if (dropdownRef.value && !dropdownRef.value.contains(target)) {
+    closeMenu()
+  }
 }
 
-onMounted(() => document.addEventListener('click', handleClickOutside))
-onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
+onMounted(() => document.addEventListener('mousedown', handleClickOutside))
+onBeforeUnmount(() => document.removeEventListener('mousedown', handleClickOutside))
 </script>
 
 <style scoped>

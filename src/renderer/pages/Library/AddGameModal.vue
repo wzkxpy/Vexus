@@ -56,33 +56,28 @@
                 class="cover"
               />
 
-              <h3>{{ result.originalTitle }}</h3>
-
-              <p v-if="result.localizedTitle">
-                {{ result.localizedTitle }}
-              </p>
-
-              <p v-if="result.basicInfo?.releaseDate">
-                发售日：{{ result.basicInfo.releaseDate }}
-              </p>
-
-              <p v-if="result.basicInfo?.developer">
-                开发：{{ result.basicInfo.developer }}
-              </p>
-
-              <p v-if="result.basicInfo?.externalScore">
-                评分：{{ result.basicInfo.externalScore.bgm ?? 'N/A' }}
-              </p>
-              <!-- ✅ 新增按钮区域 -->
-              <div class="action">
-                <button
-                  class="add-btn"
-                  :disabled="saving"
-                  @click="handleAddGame"
-                >
-                  {{ added ? '已添加' : saving ? '添加中...' : '确认添加游戏' }}
-                </button>
+              <div class="result-message">
+                <h3>{{ result.originalTitle }}</h3>
+                <p v-if="result.localizedTitle">
+                  {{ result.localizedTitle }}
+                </p>
+                <p v-if="result.basicInfo?.releaseDate">
+                  发售日：{{ result.basicInfo.releaseDate }}
+                </p>
+                <p v-if="result.basicInfo?.developer">
+                  开发：{{ result.basicInfo.developer }}
+                </p>
               </div>
+
+              <!-- 新增按钮 -->
+              <button
+                class="add-btn"
+                :disabled="saving"
+                @click="handleAddGame"
+              >
+                {{ added ? '已添加' : saving ? '添加中...' : '添加' }}
+              </button>
+
             </div>
           </template>
 
@@ -206,6 +201,7 @@ function close() {
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  user-select: none;
 }
 
 /* Header */
@@ -213,7 +209,7 @@ function close() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 18px;
+  padding: 2px 18px;
   border-bottom: 1px solid #e5e7eb;
 }
 
@@ -306,7 +302,7 @@ function close() {
 /* Result Placeholder */
 .result-placeholder {
   margin-top: 4px;
-  padding: 24px;
+  padding: 18px 0;
   border: 1px dashed #d1d5db;
   border-radius: 8px;
   font-size: 13px;
@@ -334,8 +330,12 @@ function close() {
 .cancel:hover {
   background: #f9fafb;
 }
+
 .result-card {
-  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0 30px;
 }
 
 .cover {
@@ -344,19 +344,17 @@ function close() {
   margin-bottom: 8px;
 }
 
-.result-card {
-  text-align: center;
-}
-
 .action {
-  margin-top: 20px;
   display: flex;
   justify-content: center;
 }
 
 .add-btn {
-  padding: 8px 20px;
-  font-size: 14px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  background: #4c8bf5;
+  color: white;
   cursor: pointer;
 }
 </style>

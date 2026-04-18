@@ -1,20 +1,10 @@
-<!-- src/renderer/components/GameDetail.vue -->
+<!-- src/renderer/pages/Game/GamePage.vue -->
 <template>
-  <div v-if="game" class="game-detail">
+  <div v-if="game" class="game-page">
     
-    <button class="back-btn" @click="emit('back')">
+    <button class="back-btn" @click="handleBack()">
       ← 返回
     </button>
-
-    <!-- 顶部横幅 -->
-    <!-- <div class="banner">
-      <img
-        v-if="game.media?.bannerPath"
-        :src="game.media.bannerPath"
-        class="banner-img"
-      />
-      <div v-else class="banner-placeholder"></div>
-    </div> -->
 
     <!-- 标题 + 封面 -->
     <div class="top-section">
@@ -28,10 +18,50 @@
           
           <SettingsMenu :items="menuItems" :context="game">
             <template #button>
-              <!-- 设置按钮 -->
               <button class="settings-btn">⚙</button>
             </template>
           </SettingsMenu>
+        </div>
+
+        <!-- 评分 -->
+        <div class="section" v-if="game.externalScore">
+          <span>评分</span>
+          <button class="edit-btn" @click="openEdit('externalScore')">编辑</button>
+          <div class="score-grid">
+            <div v-if="game.externalScore.erogame">
+              <span class="label">Erogame: </span>
+              {{ game.externalScore.erogame }}
+            </div>
+            <div v-if="game.externalScore.bgm">
+              <span class="label">Bangumi: </span>
+              {{ game.externalScore.bgm }}
+            </div>
+            <div v-if="game.externalScore.vndb">
+              <span class="label">VNDB: </span>
+              {{ game.externalScore.vndb }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 游玩数据 -->
+        <div class="stats-row">
+          <div><span>游玩状态：</span>
+            <SettingsMenu :items="statusItems" :context="game">
+            <template #button>
+              <button> {{ currentStatus }} </button>
+            </template>
+          </SettingsMenu>
+          </div>
+          <div>
+            <span>游玩时长：</span>
+            <span
+              class="playtime"
+              @contextmenu.prevent="togglePlaytimeFormat"
+            >
+              {{ formattedPlaytime }}
+            </span>
+          </div>
+          <!-- <div><span>游玩时长：</span>{{ (game.record.sessionPlaytime + game.record.extraPlaytime) / 3600 }} 小时</div> -->
         </div>
 
       </div>
@@ -62,13 +92,12 @@
     <div v-if="activeTab === 'stats'"><GameStats/></div>
     <div v-if="activeTab === 'guide'"><GameGuide/></div>
 
+    <EditModal
+      v-if="editType"
+      :type="editType"
+      @close="closeEdit"
+    />
   </div>
-
-  <EditModal
-    v-if="editType"
-    :type="editType"
-    @close="closeEdit"
-  />
 </template>
 
 <script setup lang="ts">
@@ -77,25 +106,33 @@ import { useGameStore } from '@/renderer/stores/game.store'
 import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameActions } from '@/renderer/composables/useGameActions'
 import { useRuntimeStore } from '@/renderer/stores/runtime.store'
-
 import SettingsMenu from '@/renderer/components/OptionsMenu.vue'
-import EditModal from './modals/EditModal.vue'
-
+import EditModal from './EditModal.vue'
 import GameStats from './tabs/GameStats.vue'
 import GameOverview from './tabs/GameOverview.vue'
 import GameGuide from './tabs/GameGuide.vue'
 import { Game } from '@/shared/types'
+import { useRoute } from 'vue-router'
+import router from '@/renderer/router'
 
+const route = useRoute()
 const gameStore = useGameStore()
 const sessionStore = useSessionStore()
 const runtimeStore = useRuntimeStore()
-const game = computed(() => gameStore.selectedGame)
 const gameActions = useGameActions()
+const game = computed(() => {
+  const id = route.params.id as string
+  return gameStore.getGameById(id)
+})
 
-const activeTab = ref<'overview' | 'stats' | 'guide'>('overview')
-
-const emit = defineEmits<{ (e: 'back'): void }>()
-
+// 返回
+const handleBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push('/library')
+  }
+}
 // 游戏启动 / 停止
 const isRunning = computed(() => runtimeStore.isGameRunning(game.value?.id || ''))
 const handleLaunch = async () => {
@@ -104,7 +141,8 @@ const handleLaunch = async () => {
 const handleStop = async () => {
   await gameActions.stopGame(game.value!)
 } 
-// 定义菜单项
+
+// 设置菜单项
 const menuItems = [
   { label: '配置游戏路径', action: () =>  openEdit('exePath') },
   { label: '浏览本地文件', action: () =>  gameActions.browseFolder(game.value!) },
@@ -114,6 +152,54 @@ const menuItems = [
   // { label: '媒体文件设置', action: () =>  gameActions.openMediaSettings(game.value!) },
   { label: '移除游戏', action: () =>  gameActions.removeGame(game.value!), danger: true }
 ]
+
+// 游玩状态
+const statusMap = {
+  'NotStarted': '未开始',
+  'Playing':    '游玩中',
+  'OnHold':     '搁置中',
+  'Completed':  '已完成'
+} as const;
+const statusItems = [
+  { label: '未开始', action: () => gameActions.updatePlayStatus(game.value!, 'NotStarted') },
+  { label: '游玩中', action: () => gameActions.updatePlayStatus(game.value!, 'Playing') },
+  { label: '搁置中', action: () => gameActions.updatePlayStatus(game.value!, 'OnHold') },
+  { label: '已完成', action: () => gameActions.updatePlayStatus(game.value!, 'Completed') }
+]
+const currentStatus = computed(() => {
+  const status = game.value?.record.playStatus as keyof typeof statusMap;
+  return statusMap[status] || { label: '未知', class: '' };
+});
+
+// 游玩时长
+const playtimeFormat = ref<'detail' | 'decimal'>('detail')
+const totalPlaytime = computed(() =>
+  game.value
+    ? game.value.record.sessionPlaytime +
+      game.value.record.extraPlaytime
+    : 0
+)
+const formattedPlaytime = computed(() => {
+  const sec = totalPlaytime.value
+  if (playtimeFormat.value === 'decimal') {
+    return `${(sec / 3600).toFixed(1)}h`
+  }
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  if (h > 0) return `${h}h${m}m`
+  if (m > 0) return `${m}m`
+  return `${sec}s`
+})
+const togglePlaytimeFormat = () => {
+  playtimeFormat.value =
+    playtimeFormat.value === 'detail'
+      ? 'decimal'
+      : 'detail'
+}
+
+// Tab 切换
+const activeTab = ref<'overview' | 'stats' | 'guide'>('overview')
+
 // 编辑框
 const editType = ref<keyof Game | null>(null)
 const openEdit = (type: keyof Game) => {
@@ -135,14 +221,25 @@ watch(
 
 
 <style scoped>
-.game-detail {
+.game-page {
   display: flex;
   flex-direction: column;
-  /* gap: 24px; */
   color: #1f2937;
   background: #f5f7fa;
-  /* padding: 0px; */
-  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 30px;
+  box-sizing: border-box;
+}
+
+/* 滚动条 */
+.game-page::-webkit-scrollbar {
+  width: 6px;
+}
+.game-page::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.2);
+  border-radius: 999px;
 }
 
 .back-btn {
@@ -151,7 +248,7 @@ watch(
   border: 1px solid #e5e7eb;
   padding: 8px 12px;
   border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 10px rgba(0,0,0,.05);
 }
 
 .back-btn:hover {
@@ -184,6 +281,17 @@ watch(
   gap: 10px;
 }
 
+.stats-row {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 30px;
+}
+.playtime {
+  /* font-weight: 600; */
+  color: #2563eb;
+  cursor: context-menu;
+  transition: color 0.2s ease;
+}
 /* 按钮组 */
 .launch-btn {
   background: #2563eb;
@@ -227,6 +335,7 @@ watch(
   height: 100%;
   border-radius: 14px;
   object-fit: cover;
+  -webkit-user-drag: none; /* 禁止拖动图片 */
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 

@@ -1,14 +1,13 @@
 <!-- src/renderer/pages/Library/LibraryPage.vue -->
 <template>
   <div class="library-layout">
+    <div class="title-block"></div>
 
     <!-- 左侧侧边栏 -->
-    <aside class="sidebar">
-
+    <!-- <aside class="sidebar">
       <div class="sidebar-header">
         <input class="search" placeholder="搜索游戏…" />
       </div>
-      <!-- 侧边列表的每项游戏 -->
       <div
         v-for="game in gameStore.games"
         :key="game.id"
@@ -18,42 +17,42 @@
       >
         {{ game.originalTitle }}
       </div>
-    </aside>
+    </aside> -->
 
     <!-- 右侧主内容 -->
     <main class="main-content">
 
-      <!-- 没选中游戏：显示 Grid -->
-      <div v-if="!gameStore.selectedGame" class="game-grid">
+      <!-- Grid -->
+      <div class="game-grid">
         <GameCard
           v-for="game in gameStore.games"
           :key="game.id"
           :game="game"
+          :route-on-click="true"
         />
       </div>
 
-      <!-- 选中游戏：显示详情 -->
-      <GameDetail
-        v-else
-        @back="gameStore.selectGame(null)"
-      />
-
     </main>
+
+    <!-- 添加游戏弹窗 -->
+    <div class="add-button" @click="showAddGame = true">+</div>
+    <AddGameModal
+      v-if="showAddGame"
+      @close="showAddGame = false"
+    />
+    
   </div>
 </template>
 
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref } from 'vue'
 import { useGameStore } from '@/renderer/stores/game.store'
-import GameDetail from './GameDetail.vue'
 import GameCard from '@/renderer/components/GameCard.vue'
+import AddGameModal from './AddGameModal.vue'
 
 const gameStore = useGameStore()
-
-onMounted(() => {
-  gameStore.initGames()
-})
+const showAddGame = ref(false)
 </script>
 
 
@@ -61,12 +60,18 @@ onMounted(() => {
 /* ===== 全局布局 ===== */
 .library-layout {
   display: flex;
+  flex-direction: column;
   height: 100%;
   background: #f3f4f6;
   color: #111827;
   font-family: system-ui, -apple-system, BlinkMacSystemFont;
 }
 
+/* ===== 空白占位 ===== */
+.title-block{
+  height: 10px;
+  width: 100%;
+}
 /* ===== Sidebar ===== */
 .sidebar {
   width: 210px;
@@ -85,14 +90,6 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 12px;
-}
-
-.search {
-  width: 100%;
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
-  font-size: 13px;
 }
 
 /* Sidebar Item */
@@ -125,6 +122,22 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 20px;
+}
+.add-button {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  background: #4c8bf5;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  user-select: none;
 }
 
 /* ===== Game Detail 容器 ===== */

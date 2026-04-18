@@ -50,9 +50,14 @@
 import { reactive, computed } from 'vue'
 import type { Game } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
 const gameStore = useGameStore()
-const game = computed(() => gameStore.selectedGame)
+const game = computed(() => {
+  const id = route.params.id as string
+  return gameStore.getGameById(id)
+})
 
 const props = defineProps<{ type: keyof Game }>()
 const emit = defineEmits(['close'])
@@ -93,7 +98,7 @@ const title = computed(() => {
 
 const handleSave = async () => {
   // console.log(props.type, form)
-  await gameStore.updateSelectedGame(form as Partial<Game>)
+  await gameStore.updateGame(game.value!.id, form as Partial<Game>)
   emit('close')
 }
 </script>

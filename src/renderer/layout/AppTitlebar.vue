@@ -1,14 +1,7 @@
+<!-- /src/renderer/layout/AppTitlebar.vue -->
 <template>
   <div class="titlebar">
-    <div class="drag-area">
-      <span class="title">Vexus</span>
-
-      <!-- 头像：紧贴标题 -->
-      <div class="avatar">
-        <img src="../assets/images/avatar.png" alt="avatar" />
-      </div>
-    </div>
-
+    <div class="drag-area"></div>
     <div class="window-controls">
       <button @click="minimize">—</button>
       <button @click="maximize">▢</button>
@@ -26,70 +19,56 @@ const close = () => window.windowAPI.close()
 
 <style scoped>
 .titlebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 36px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background: var(--color-primary);
-  color: #fff;
-  user-select: none;
+  justify-content: flex-end;
+  /* background-color: rgb(255, 153, 0); */
+  z-index: 9999;
 }
+
 
 /* 可拖动区域 */
 .drag-area {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-left: 12px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: 130px;
+  /* background-color: aqua; */
   -webkit-app-region: drag;
 }
 
-/* 标题 */
-.title {
-  font-weight: 600;
-  margin-left: 6px;
-  margin-right: 4px;
-}
 
-/* 头像（在 drag-area 里，但不可拖拽） */
-.avatar {
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* -webkit-app-region: no-drag; */
-}
-
-.avatar img {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-/* 右侧按钮 */
+/* 右侧按钮容器 */
 .window-controls {
   display: flex;
+  align-items: center;
   -webkit-app-region: no-drag;
 }
 
+/* 按钮样式 */
 button {
-  width: 46px;
+  width: 36px;
   height: 36px;
   border: none;
   background: transparent;
-  color: #fff;
+  color: #000;
+  font-size: 10px;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 button:hover {
-  background: #333;
+  background: rgba(0, 0, 0, 0.08);
 }
-
 button.close:hover {
-  background: #e81123;
+  background: #e34451;
+  color: white;
 }
 
 </style>

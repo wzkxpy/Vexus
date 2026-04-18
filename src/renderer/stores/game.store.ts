@@ -7,10 +7,13 @@ export const useGameStore = defineStore('game', () => {
   
   // state
   const games = ref<Game[]>([])
+  const gameMap = computed(() => {
+    return new Map(games.value.map(g => [g.id, g]))
+  })
   const loaded = ref(false)
-  const selectedId = ref<string | null>(null)
-  const selectedGame = computed(() =>
-    games.value.find(g => g.id === selectedId.value) || null
+  const featuredGameId = ref<string | null>(null) // 首页展示游戏
+  const featuredGame = computed(() =>
+    games.value.find(g => g.id === featuredGameId.value) || null
   )
 
   // actions
@@ -20,14 +23,38 @@ export const useGameStore = defineStore('game', () => {
     loaded.value = true
   }
 
-  const refreshGames = async () => {
-    games.value = await window.databaseAPI.getAllGames()
-    loaded.value = true
+  // const refreshGames = async () => {
+  //   games.value = await window.databaseAPI.getAllGames()
+  //   loaded.value = true
+  // }
+
+  const refreshGame = async (id: string) => {
+    const fresh = await window.databaseAPI.getGame(id)
+    if (!fresh) return
+    const index = games.value.findIndex(g => g.id === id)
+    if (index !== -1) {
+      games.value[index] = fresh
+    } else {
+      games.value.push(fresh)
+    }
+  }
+
+  // const patchGame = async (id: string, patch: Partial<Game>) => {
+  //   const game = games.value.find(g => g.id === id)
+  //   if (!game) return
+  //   Object.assign(game, patch)
+  // }
+  const setFeaturedGame = (id: string | null) => {
+    featuredGameId.value = id
+  }
+  
+  const getGameById = (id: string) => {
+    return gameMap.value.get(id) || null
   }
 
   const addGame = async (game: NewGame) => {
     const id = await window.databaseAPI.addGame(game)
-    await refreshGames()
+    await refreshGame(id)
     return id
   }
 
@@ -35,39 +62,33 @@ export const useGameStore = defineStore('game', () => {
     const ok = await window.databaseAPI.deleteGame(id)
     if (ok) {
       games.value = games.value.filter(g => g.id !== id)
+
+      if (featuredGameId.value === id) {
+        featuredGameId.value = games.value[0]?.id ?? null
+      }
     }
     return ok
   }
 
-  const selectGame = (id: string | null) => {
-    selectedId.value = id
+  const updateGame = async (id: string, payload: Partial<Game>) => {
+    const g = gameMap.value.get(id) || null // 直接修改原对象，保持响应式
+    if (!g) return
+    Object.assign(g, payload)
+    await window.databaseAPI.updateGame(JSON.parse(JSON.stringify(g)))
   }
-
-  const updateSelectedGame = async (payload: Partial<Game>) => {  // Partial: Game 里的所有字段都变成“可选” 
-    if (!selectedGame.value) return
-    Object.assign(selectedGame.value, payload)
-    await window.databaseAPI.updateGame(JSON.parse(JSON.stringify(selectedGame.value)))
-  }
-
-  // const deleteSelectedGame = async () => {
-  //   if (!selectedId.value) return false
-  //   const ok = await deleteGame(selectedId.value)
-  //   if (ok) selectedId.value = null
-  //   return ok
-  // }
-
 
   return {
     games,
-    selectedGame,
-    selectedId,
+    featuredGameId,
+    featuredGame,
     
+    getGameById,
     initGames,
-    refreshGames,
+    refreshGame,
     addGame,
     deleteGame,
-    selectGame,
-    updateSelectedGame,
+    updateGame,
+    setFeaturedGame
     // deleteSelectedGame
   }
 })

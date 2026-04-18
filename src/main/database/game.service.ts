@@ -52,6 +52,20 @@ export class GameService {
     this.repo.update(game)
   }
 
+  getGame(id: string): Game | null {
+    const game = this.repo.get(id)
+    if (!game) return null
+    return {
+      ...game,
+      media: {
+        ...game.media,
+        coverPath: game.media.coverPath ? `vexus-media://game/${game.media.coverPath}` : undefined,
+        bannerPath: game.media.bannerPath ? `vexus-media://game/${game.media.bannerPath}` : undefined,
+        iconPath: game.media.iconPath ? `vexus-media://game/${game.media.iconPath}` : undefined,
+      }
+    }
+  }
+  
   getAllGames(): Game[] {
     const games = this.repo.getAll()
 
