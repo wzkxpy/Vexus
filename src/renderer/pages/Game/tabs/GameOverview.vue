@@ -152,8 +152,8 @@ const closeEdit = () => {
 }
 
 .character-avatar {
-  width: 72px;
-  height: 72px;
+  width: 68px;
+  height: 68px;
   object-fit: cover;
   border-radius: 12px; /* 圆角头像 */
   flex-shrink: 0;

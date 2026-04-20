@@ -17,6 +17,7 @@ declare global {
       addGame: (game: NewGame) => Promise<string>
       deleteGame: (id: string) => Promise<boolean>
       updateGame: (game: Game) => Promise<void>
+      updateMedia: (gameId: string, type: 'cover' | 'banner' | 'icon', sourcePath: string) => Promise<string>
 
       getGameSessions: (gameid: string) => Promise<Session[]>
       addSession: (session: Session) => Promise<void>
@@ -24,10 +25,14 @@ declare global {
       updateSession: (session: Session) => Promise<void>
     },
 
+    fileAPI: {
+      getFilePath: (file: File) => Promise<string>
+      openFolder: (exePath: string) => Promise<{success: boolean}>
+    },
+
     launchAPI: {
       launchGame: (gameId: string, exePath: string) => Promise<{success: boolean}>
       stopGame: (gameId: string, exePath: string) => Promise<{success: boolean}>
-      openFolder: (exePath: string) => Promise<{success: boolean}>
     },
     
     scraperAPI: {

@@ -77,11 +77,21 @@ export const useGameStore = defineStore('game', () => {
     await window.databaseAPI.updateGame(JSON.parse(JSON.stringify(g)))
   }
 
+  const updateMedia = async (gameId: string, type: 'cover' | 'banner', sourcePath: string) => {    
+    const savedpath = await window.databaseAPI.updateMedia(gameId, type, sourcePath)
+    const game = gameMap.value.get(gameId)
+    if (!game) return
+    const field = `${type}Path` as keyof Game['media']
+    if (!game.media) game.media = {}
+    game.media[field] = savedpath
+  }
+
   return {
     games,
     featuredGameId,
     featuredGame,
-    
+    updateMedia,
+
     getGameById,
     initGames,
     refreshGame,

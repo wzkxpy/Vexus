@@ -1,6 +1,6 @@
 // src/preload/index.ts
 import type { Game, NewGame, Session } from '@/shared/types'
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // 窗口控制 API
 contextBridge.exposeInMainWorld('windowAPI', {
@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('databaseAPI', {
   addGame: (game: NewGame): Promise<string> => ipcRenderer.invoke('addGame', game),
   deleteGame: (id: string): Promise<boolean> => ipcRenderer.invoke('deleteGame', id),
   updateGame: (game: Game): Promise<void> => ipcRenderer.invoke('updateGame', game),
+  updateMedia: (gameId: string, type: 'cover' | 'banner' | 'icon', sourcePath: string):
+   Promise<void> => ipcRenderer.invoke('updateMedia', gameId, type, sourcePath),
 
   getGameSessions: (gameid: string): Promise<Session[]> => ipcRenderer.invoke('getGameSessions', gameid),
   addSession: (session: Session): Promise<void> => ipcRenderer.invoke('addSession', session),
@@ -28,6 +30,11 @@ contextBridge.exposeInMainWorld('databaseAPI', {
 contextBridge.exposeInMainWorld('launchAPI', {
   launchGame: (gameId: string, exePath: string) => ipcRenderer.invoke('launchGame', gameId, exePath),
   stopGame: (gameId: string, exePath: string) => ipcRenderer.invoke('stopGame', gameId, exePath),
+})
+
+// 文件路径 API
+contextBridge.exposeInMainWorld('fileAPI', {
+  getFilePath: (file: File) => { return webUtils.getPathForFile(file) },
   openFolder: (exePath: string) => ipcRenderer.invoke('openFolder', exePath)
 })
 

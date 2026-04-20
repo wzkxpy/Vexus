@@ -2,11 +2,12 @@
 import 'dotenv/config' // 创建环境变量
 import { app, protocol } from 'electron';
 import { createWindow } from './window';
-import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC } from './ipc';
+import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerFileIPC } from './ipc';
 import Database from 'better-sqlite3'
 import { initDatabase } from './database/index'
 import { GameRepository } from './database/game.repo'
 import { GameService } from './database/game.service'
+import { MediaService } from './services/media'
 import * as path from 'path'
 import { SessionService } from './database/session.service';
 import { SessionRepository } from './database/session.repo';
@@ -18,8 +19,9 @@ app.whenReady().then(() => {
   const dbPath = path.join(app.getPath('userData'), 'vexus.db')
   const db = new Database(dbPath)
   initDatabase(db)
+  const mediaService = new MediaService()
   const gameRepo = new GameRepository(db)
-  const gameService = new GameService(gameRepo)
+  const gameService = new GameService(gameRepo, mediaService)
   const sessionRepo = new SessionRepository(db)
   const sessionService = new SessionService(sessionRepo)
   container.register('sessionService', sessionService)
@@ -37,6 +39,7 @@ app.whenReady().then(() => {
   // 注册 IPC 处理器
   registerWindowIPC(win)  // Register IPC handlers for the window
   registerDBIPC(gameService, sessionService) // Register database-related IPC handlers
+  registerFileIPC()
   registerLaunchIPC() // Register IPC handlers for launching games
   registerProviderIPC() // Register IPC handlers for Bangumi API interactions
 });

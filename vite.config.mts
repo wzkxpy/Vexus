@@ -22,7 +22,7 @@ export default defineConfig({
               formats: ['cjs'],   // ✅ 强制输出 CJS
             },
             rollupOptions: {
-              external: ['fsevents', 'electron','better-sqlite3','fs', 'path'],
+              external: ['fsevents', 'electron','better-sqlite3','fs', 'path', 'sharp'],
               output: {
                 entryFileNames: '[name].js',
               },
@@ -41,7 +41,7 @@ export default defineConfig({
               formats: ['cjs'],   // ✅ 强制输出 CJS
             },
             rollupOptions: {
-              external: ['fsevents', 'better-sqlite3', 'path'],
+              external: ['fsevents', 'better-sqlite3', 'path', 'sharp'],
               output: {
                 entryFileNames: '[name].js',
               },

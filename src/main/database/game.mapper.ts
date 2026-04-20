@@ -27,9 +27,9 @@ export function newGameToRow(game: NewGame) { // add
     ymgal_id: game.externalIds.ymgalId ?? null,
 
     // 媒体路径
-    cover_path: game.media.coverUrl ? `vexus-media://${game.id}/cover.jpg` : null,
-    banner_path: game.media.bannerUrl ? `vexus-media://${game.id}/banner.jpg` : null,
-    icon_path: game.media.iconUrl ? `vexus-media://${game.id}/icon.jpg` : null,
+    cover_path: game.media.coverUrl ? `vexus-media://${game.id}/cover.webp` : null,
+    banner_path: game.media.bannerUrl ? `vexus-media://${game.id}/banner.webp` : null,
+    icon_path: game.media.iconUrl ? `vexus-media://${game.id}/icon.webp` : null,
 
     // Staff
     planner: game.staff.planner ?? null,
@@ -44,7 +44,7 @@ export function newGameToRow(game: NewGame) { // add
             name: c.name,
             voiceActor: c.voiceActor,
             avatarPath: c.avatarUrl
-              ? `vexus-media://${game.id}/${c.uuid}_avatar.jpg`
+              ? `vexus-media://${game.id}/${c.uuid}_avatar.webp`
               : undefined
           }))
         )
@@ -84,10 +84,10 @@ export function gameToRow(game: Game) { // update
 
     // 安装路径
     exe_path: game.exePath ?? null,
-    // 不更新媒体路径 规则固定
-    // cover_path: game.media.coverPath ?? null,
-    // banner_path: game.media.bannerPath ?? null,
-    // icon_path: game.media.iconPath ?? null,
+
+    cover_path: game.media.coverPath ?? null,
+    banner_path: game.media.bannerPath ?? null,
+    icon_path: game.media.iconPath ?? null,
 
     // Staff
     planner: game.staff.planner ?? null,

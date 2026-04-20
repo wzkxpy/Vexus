@@ -5,7 +5,7 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { GameService } from '../database/game.service'
 import { SessionService } from '../database/session.service'
-import { NewGame, Session } from '@/shared/types'
+import { Game, NewGame, Session } from '@/shared/types'
 import { fetchGameFromBangumi } from '../providers/manager'
 import { launchGame, stopGame, openFolder } from '../services/launch'
 
@@ -25,6 +25,12 @@ export function registerWindowIPC(win: BrowserWindow) {
   })
 }
 
+export function registerFileIPC() {
+  ipcMain.handle('openFolder', async (_, exePath: string) => {
+    return openFolder(exePath)
+  })
+}
+
 
 export function registerDBIPC(gameService: GameService, sessionService: SessionService) {
   // Game
@@ -40,8 +46,11 @@ export function registerDBIPC(gameService: GameService, sessionService: SessionS
   ipcMain.handle('getAllGames', () => {
     return gameService.getAllGames()
   })
-  ipcMain.handle('updateGame', (_, game) => {
+  ipcMain.handle('updateGame', (_, game: Game) => {
     return gameService.updateGame(game)
+  })
+  ipcMain.handle('updateMedia', (_, gameId: string, type: 'cover' | 'banner' | 'icon', sourcePath: string) => {
+    return gameService.updateMedia(gameId, type, sourcePath)
   })
   // Session
   ipcMain.handle('getGameSessions', (_, gameid: string) => {
@@ -66,9 +75,6 @@ export function registerLaunchIPC() {
 
   ipcMain.handle('stopGame', async (_, gameId: string, exePath: string) => {
     return stopGame(gameId, exePath)
-  })
-  ipcMain.handle('openFolder', async (_, exePath: string) => {
-    return openFolder(exePath)
   })
 }
 

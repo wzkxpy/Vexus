@@ -97,6 +97,10 @@
       :type="editType"
       @close="closeEdit"
     />
+    <MediaModal
+      v-if="editType === 'media'"
+      @close="closeEdit"
+     />
   </div>
 </template>
 
@@ -114,6 +118,7 @@ import GameGuide from './tabs/GameGuide.vue'
 import { Game } from '@/shared/types'
 import { useRoute } from 'vue-router'
 import router from '@/renderer/router'
+import MediaModal from './MediaModal.vue'
 
 const route = useRoute()
 const gameStore = useGameStore()
@@ -149,7 +154,7 @@ const menuItems = [
   // { label: '更新游戏信息', action: () =>  gameActions.updateGameInfo(game.value!) },
   { label: '标记 NSFW', action: () => gameActions.toggleNSFW(game.value!) },
   { label: '启用 Magpie', action: () =>  gameActions.toggleMagpie(game.value!) },
-  // { label: '媒体文件设置', action: () =>  gameActions.openMediaSettings(game.value!) },
+  { label: '配置媒体文件', action: () =>  openEdit('media') },
   { label: '移除游戏', action: () =>  gameActions.removeGame(game.value!), danger: true }
 ]
 

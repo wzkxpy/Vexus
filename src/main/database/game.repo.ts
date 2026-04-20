@@ -42,6 +42,9 @@ add(game: NewGame): string {
     stmt.run(row)
   }
 
+  // patch(id: string, data: Partial<Game>) 
+
+
   get(id: string): Game | null {
     const stmt = this.db.prepare(`SELECT * FROM games WHERE id = ?`)
     const row = stmt.get(id)

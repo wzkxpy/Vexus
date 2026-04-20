@@ -139,7 +139,7 @@ onMounted(async () => {
 
 .bg-image {
   width: 100%;
-  height: 100%;
+  height: 96%;
   background-size: cover;
   background-position: center 20%;
   transition: transform 0.8s ease;
@@ -148,7 +148,6 @@ onMounted(async () => {
 .bg-overlay {
   position: absolute;
   inset: 0;
-  /* 复合渐变：底部深色向上，左侧深色向右 */
   background: linear-gradient(to top, rgba(5, 5, 5, 1) 5%, transparent 60%),
               linear-gradient(to right, rgba(5, 5, 5, 0.8) 0%, transparent 50%);
 }

@@ -61,10 +61,37 @@ export function useGameActions() {
   const browseFolder = async (game: Game) => {
     if (!game.exePath) return alert('尚未配置游戏路径')
     try {
-        await window.launchAPI.openFolder(game.exePath)
+        await window.fileAPI.openFolder(game.exePath)
     } catch (err: any) {
         alert(err.message || '打开文件夹失败')
     }
+  }
+
+  // 本地上传
+  const updateMedia = async (game: Game, type: 'cover' | 'banner', filePath: string) => {
+    // const url = URL.createObjectURL(file)
+    // const field = `${type}Path` as keyof Game['media']
+    // const coverPath = await window.api.copyGameMedia({
+    //   gameId: game.id,
+    //   type,
+    //   sourcePath: file.path
+    // })
+    await gameStore.updateMedia(game.id, type, filePath)
+  }
+
+  // 网络图片 URL
+  // 剪贴板获取
+  // 都要下载到本地特定位置，并更新游戏数据中的路径
+
+  // 移除
+  const removeMedia = async (game: Game, type: 'cover' | 'banner') => {
+    const field = `${type}Path` as keyof Game['media']
+    await gameStore.updateGame(game.id, {
+      media: {
+        ...game.media,
+        [field]: ''
+      }
+    })
   }
 
   // 切换游玩状态
@@ -104,6 +131,8 @@ export function useGameActions() {
     stopGame,
     removeGame,
     browseFolder,
+    updateMedia,
+    removeMedia,
     updatePlayStatus,
     toggleNSFW,
     toggleMagpie
