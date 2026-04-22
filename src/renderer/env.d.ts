@@ -35,9 +35,10 @@ declare global {
       stopGame: (gameId: string, exePath: string) => Promise<{success: boolean}>
     },
     
-    scraperAPI: {
-      fetchGameFromBangumi: (id: string) => Promise<any>
-      // addGameToDatabase: (game: Game) => Promise<string>
+    providerAPI: {
+      searchGames: (source: string, keyword: string) => Promise<GameSearchResult[]>
+      fetchGame: (source: string, subjectId: string) => Promise<GameSearchResult>
+      buildGameFromBangumi: (subject: any) => Promise<NewGame>
     },
 
     callbackAPI: {

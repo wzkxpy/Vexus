@@ -40,11 +40,10 @@ contextBridge.exposeInMainWorld('fileAPI', {
 
 
 // 获取游戏数据 API
-contextBridge.exposeInMainWorld('scraperAPI', {
-  fetchGameFromBangumi: (id: string) => ipcRenderer.invoke('fetchFromBangumi', id)
-
-  // addGameToDatabase: (game: NewGame) =>
-  //   ipcRenderer.invoke('addGame', game)
+contextBridge.exposeInMainWorld('providerAPI', {
+  searchGames: (source: string, keyword: string) => ipcRenderer.invoke('searchGames', source, keyword),
+  fetchGame: (source: string, subjectId: string) => ipcRenderer.invoke('fetchGame', source, subjectId),
+  buildGameFromBangumi: (subject: any) => ipcRenderer.invoke('buildGameFromBangumi', subject)
 })
 
 contextBridge.exposeInMainWorld('callbackAPI', {

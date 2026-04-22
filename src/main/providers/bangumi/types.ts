@@ -57,15 +57,15 @@ export interface BangumiCharacter {
 }
 
 
-export interface BangumiSearchResult {
-  list: Array<{
-    id: number
-    name: string
-    name_cn: string
-    air_date?: string
-    staff?: Array<{
-      name: string
-      role: string
-    }>
-  }>
-}
+// export interface BangumiSearchResult {
+//   list: Array<{
+//     id: number
+//     name: string
+//     name_cn: string
+//     air_date?: string
+//     staff?: Array<{
+//       name: string
+//       role: string
+//     }>
+//   }>
+// }

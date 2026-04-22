@@ -7,8 +7,7 @@
           <div>
             <h3>媒体资源设置</h3>
           </div>
-
-          <button class="icon-btn" @click="close">✕</button>
+          <CloseButton @click="close" />
         </div>
 
         <!-- Body -->
@@ -103,6 +102,7 @@
 </template>
 
 <script setup lang="ts">
+import CloseButton from '@/renderer/components/CloseButton.vue'
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useGameStore } from '@/renderer/stores/game.store'
 import { useGameActions } from '@/renderer/composables/useGameActions'
@@ -206,19 +206,6 @@ onMounted(() => {
   margin: 6px 0 0;
   color: #6b7280;
   font-size: 14px;
-}
-
-.icon-btn {
-  width: 34px;
-  height: 34px;
-  border: none;
-  border-radius: 10px;
-  background: #f3f4f6;
-  cursor: pointer;
-}
-
-.icon-btn:hover {
-  background: #e5e7eb;
 }
 
 .modal-body {

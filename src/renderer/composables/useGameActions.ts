@@ -69,13 +69,6 @@ export function useGameActions() {
 
   // 本地上传
   const updateMedia = async (game: Game, type: 'cover' | 'banner', filePath: string) => {
-    // const url = URL.createObjectURL(file)
-    // const field = `${type}Path` as keyof Game['media']
-    // const coverPath = await window.api.copyGameMedia({
-    //   gameId: game.id,
-    //   type,
-    //   sourcePath: file.path
-    // })
     await gameStore.updateMedia(game.id, type, filePath)
   }
 

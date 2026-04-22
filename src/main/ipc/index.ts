@@ -6,7 +6,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { GameService } from '../database/game.service'
 import { SessionService } from '../database/session.service'
 import { Game, NewGame, Session } from '@/shared/types'
-import { fetchGameFromBangumi } from '../providers/manager'
+import { searchGames, fetchGame, buildGameFromBangumi } from '../providers/manager'
 import { launchGame, stopGame, openFolder } from '../services/launch'
 
 // export function registerAllIPC() {
@@ -80,7 +80,13 @@ export function registerLaunchIPC() {
 
 
 export function registerProviderIPC() {
-  ipcMain.handle('fetchFromBangumi', async (_, subjectId) => {
-      return await fetchGameFromBangumi(subjectId)
+  ipcMain.handle('searchGames', async (_, source: string, keyword: string) => {
+    return await searchGames(source, keyword)
+  })
+  ipcMain.handle('fetchGame', async (_, source, subjectId) => {
+      return await fetchGame(source, subjectId)
+  })
+  ipcMain.handle('buildGameFromBangumi', async (_, subject) => {
+    return await buildGameFromBangumi(subject)
   })
 }

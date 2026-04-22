@@ -1,5 +1,5 @@
-// src/main/services/bangumi/transform.ts
-import { NewGame } from "@/shared/types"
+// src/main/providers/bangumi/mapper.ts
+import { NewGame, GameCandidate } from "@/shared/types"
 import { BangumiCharacter, BangumiSubject } from "./types"
 import { randomUUID } from "crypto";
 
@@ -57,7 +57,23 @@ export function bangumiToNewGame(
   }
 }
 
+export function bangumiToSearchResult(
+    subject: BangumiSubject
+): GameCandidate {
+  return {
+    source: 'bangumi',
+    sourceId: subject.id.toString(),
 
+    originalTitle: subject.name,
+    localizedTitle: subject.name_cn || undefined,
+    coverUrl: subject.images?.large,
+    releaseDate: subject.date,
+    developer: getInfoboxValue(subject.infobox, '开发') || undefined,
+    score: subject.rating?.score,
+
+    raw: subject
+  }
+}
 
 function getInfoboxValue(
   infobox: { key: string; value: any }[] | undefined,
