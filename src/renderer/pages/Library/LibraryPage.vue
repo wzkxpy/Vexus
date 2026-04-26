@@ -28,17 +28,16 @@
           v-for="game in gameStore.games"
           :key="game.id"
           :game="game"
-          :route-on-click="true"
         />
       </div>
 
     </main>
 
     <!-- 添加游戏弹窗 -->
-    <div class="add-button" @click="showAddGame = true">+</div>
+    <div class="add-button" @click="uiStore.activeModal = 'add-game'">+</div>
     <AddGameModal
-      v-if="showAddGame"
-      @close="showAddGame = false"
+      v-if="uiStore.activeModal === 'add-game'"
+      @close="uiStore.activeModal = null"
     />
     
   </div>
@@ -46,13 +45,13 @@
 
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useGameStore } from '@/renderer/stores/game.store'
 import GameCard from '@/renderer/components/GameCard.vue'
 import AddGameModal from './AddGameModal.vue'
+import { useUIStore } from '../../stores/ui.store'
 
 const gameStore = useGameStore()
-const showAddGame = ref(false)
+const uiStore = useUIStore()
 </script>
 
 

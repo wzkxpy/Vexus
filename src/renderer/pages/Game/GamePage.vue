@@ -93,13 +93,13 @@
     <div v-if="activeTab === 'guide'"><GameGuide/></div>
 
     <EditModal
-      v-if="editType"
-      :type="editType"
-      @close="closeEdit"
+      v-if="uiStore.activeModal?.startsWith('edit-')"
+      :type="uiStore.activeModal.replace('edit-', '') as keyof Game"
+      @close="uiStore.activeModal = null"
     />
     <MediaModal
-      v-if="editType === 'media'"
-      @close="closeEdit"
+      v-if="uiStore.activeModal === 'media'"
+      @close="uiStore.activeModal = null"
      />
   </div>
 </template>
@@ -110,6 +110,7 @@ import { useGameStore } from '@/renderer/stores/game.store'
 import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameActions } from '@/renderer/composables/useGameActions'
 import { useRuntimeStore } from '@/renderer/stores/runtime.store'
+import { useUIStore } from '@/renderer/stores/ui.store'
 import SettingsMenu from '@/renderer/components/OptionsMenu.vue'
 import EditModal from './EditModal.vue'
 import GameStats from './tabs/GameStats.vue'
@@ -129,6 +130,7 @@ const game = computed(() => {
   const id = route.params.id as string
   return gameStore.getGameById(id)
 })
+const uiStore = useUIStore()
 
 // 返回
 const handleBack = () => {
@@ -154,7 +156,7 @@ const menuItems = [
   // { label: '更新游戏信息', action: () =>  gameActions.updateGameInfo(game.value!) },
   { label: '标记 NSFW', action: () => gameActions.toggleNSFW(game.value!) },
   { label: '启用 Magpie', action: () =>  gameActions.toggleMagpie(game.value!) },
-  { label: '配置媒体文件', action: () =>  openEdit('media') },
+  { label: '配置媒体文件', action: () =>  uiStore.activeModal = 'media' },
   { label: '移除游戏', action: () =>  gameActions.removeGame(game.value!), danger: true }
 ]
 
@@ -206,19 +208,19 @@ const togglePlaytimeFormat = () => {
 const activeTab = ref<'overview' | 'stats' | 'guide'>('overview')
 
 // 编辑框
-const editType = ref<keyof Game | null>(null)
+// const editType = ref<keyof Game | null>(null)
 const openEdit = (type: keyof Game) => {
-  editType.value = type
+  // editType.value = type
+  uiStore.activeModal = 'edit-' + type
 }
-const closeEdit = () => {
-  editType.value = null
-}
+
 // 装载 sessions
 watch(
   () => game.value?.id,
-  (id) => { if (id) {
-    sessionStore.loadGameSessions(id);
-    // console.log(sessionStore.sessionsByGame[id]);
+  async (id) => { if (id) {
+    await sessionStore.loadGameSessions(id);
+    // console.log(sessionStore.getGameSessions(id));
+    // console.log(uiStore.currentPage);
    }},
   { immediate: true }
 )

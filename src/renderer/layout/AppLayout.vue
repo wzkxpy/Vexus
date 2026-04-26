@@ -2,7 +2,11 @@
 <template>
   <div class="app">
     <router-view v-slot="{ Component, route }">
-      <transition :name="transitionName">
+      <transition
+        :name="transitionName"
+        @before-enter="onTransitionStart"
+        @after-enter="onTransitionEnd"
+      >
         <component
           :is="Component"
           :key="route.path"
@@ -19,10 +23,18 @@
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import TitleBar from './AppTitlebar.vue'
+import { useUIStore } from '../stores/ui.store'
 
 const route = useRoute()
-
+const uiStore = useUIStore()
 const transitionName = ref('slide-down')
+
+const onTransitionStart = () => {
+  uiStore.isTransitioning = true
+}
+const onTransitionEnd = () => {
+  uiStore.isTransitioning = false
+}
 
 watch(
   () => route.path,

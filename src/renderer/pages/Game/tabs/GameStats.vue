@@ -4,7 +4,7 @@
     <div class="stats-header">
       <h3>每日游玩时间</h3>
 
-      <button class="session-btn" @click="showSessions = true">
+      <button class="session-btn" @click="uiStore.activeModal = 'session'">
         查看 / 编辑记录
       </button>
     </div>
@@ -23,8 +23,8 @@
     </div>
 
     <SessionModal
-      v-if="showSessions"
-      @close="showSessions = false"
+      v-if="uiStore.activeModal === 'session'"
+      @close="uiStore.activeModal = null"
     />
 
   </div>
@@ -46,9 +46,7 @@ import { useRoute } from 'vue-router'
 import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameStore } from '@/renderer/stores/game.store'
 import SessionModal from '../SessionModal.vue'
-
-const route = useRoute()
-const showSessions = ref(false)
+import { useUIStore } from '@/renderer/stores/ui.store'
 
 Chart.register(
   BarElement,
@@ -58,6 +56,8 @@ Chart.register(
   Legend
 )
 
+const route = useRoute()
+const uiStore = useUIStore()
 const gameStore = useGameStore()
 const sessionStore = useSessionStore()
 const game = computed(() => {

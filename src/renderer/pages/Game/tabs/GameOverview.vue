@@ -78,18 +78,19 @@
   </div>
 
   <EditModal
-    v-if="editType"
-    :type="editType"
-    @close="closeEdit"
+    v-if="uiStore.activeModal?.startsWith('edit-')"
+    :type="uiStore.activeModal.replace('edit-', '') as keyof Game"
+    @close="uiStore.activeModal = null"
   />
 </template>
 
 <script setup lang="ts">
 import { Game } from '@/shared/types';
 import { useGameStore } from '@/renderer/stores/game.store'
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import EditModal from '../EditModal.vue'
 import { useRoute } from 'vue-router'
+import { useUIStore } from '@/renderer/stores/ui.store';
 
 const route = useRoute()
 const gameStore = useGameStore()
@@ -97,14 +98,12 @@ const game = computed(() => {
   const id = route.params.id as string
   return gameStore.getGameById(id)
 })
+const uiStore = useUIStore()
 
 // 编辑模式
-const editType = ref<keyof Game | null>(null)
 const openEdit = (type: keyof Game) => {
-  editType.value = type
-}
-const closeEdit = () => {
-  editType.value = null
+  uiStore.activeModal = 'edit-' + type
+  // editType.value = type
 }
 
 </script>
