@@ -12,6 +12,7 @@ import * as path from 'path'
 import { SessionService } from './database/session.service';
 import { SessionRepository } from './database/session.repo';
 import { container } from './container';
+import { ProxyAgent } from 'undici';
 
 
 app.whenReady().then(() => {
@@ -19,7 +20,11 @@ app.whenReady().then(() => {
   const dbPath = path.join(app.getPath('userData'), 'vexus.db')
   const db = new Database(dbPath)
   initDatabase(db)
-  const mediaService = new MediaService()
+  
+  const proxy = process.env.HTTPS_PROXY || 'http://127.0.0.1:7890'
+  const agent = new ProxyAgent(proxy)
+  const mediaService = new MediaService(agent)
+
   const gameRepo = new GameRepository(db)
   const gameService = new GameService(gameRepo, mediaService)
   const sessionRepo = new SessionRepository(db)
