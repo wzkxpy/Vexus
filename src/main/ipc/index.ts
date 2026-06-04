@@ -8,7 +8,7 @@ import { SessionService } from '../database/session.service'
 import { Game, NewGame, Session } from '@/shared/types'
 import { searchGames, fetchGame, buildGameFromBangumi } from '../providers/manager'
 import { launchGame, stopGame, openFolder } from '../services/launch'
-
+import { getSettings, getSetting, setSetting, Settings } from '../settings'
 // export function registerAllIPC() {
   
 // }
@@ -78,6 +78,17 @@ export function registerLaunchIPC() {
   })
 }
 
+export function registerSettingsIPC() {
+  ipcMain.handle('getSettings', () => {
+    return getSettings()
+  })
+  ipcMain.handle('getSetting', (_, key: keyof Settings) => {
+    return getSetting(key)
+  })
+  ipcMain.handle('setSetting', (_, key: keyof Settings, value: any) => {
+    return setSetting(key, value)
+  })
+}
 
 export function registerProviderIPC() {
   ipcMain.handle('searchGames', async (_, source: string, keyword: string) => {

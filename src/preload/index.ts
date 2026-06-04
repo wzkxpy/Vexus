@@ -38,8 +38,14 @@ contextBridge.exposeInMainWorld('fileAPI', {
   openFolder: (exePath: string) => ipcRenderer.invoke('openFolder', exePath)
 })
 
+// 读取设置 API
+contextBridge.exposeInMainWorld('settingsAPI', {
+  getSettings: () => ipcRenderer.invoke('getSettings'),
+  getSetting: (key: string) => ipcRenderer.invoke('getSetting', key),
+  setSetting: (key: string, value: any) => ipcRenderer.invoke('setSetting', key, value)
+})
 
-// 获取游戏数据 API
+// 从数据源获取游戏数据 API
 contextBridge.exposeInMainWorld('providerAPI', {
   searchGames: (source: string, keyword: string) => ipcRenderer.invoke('searchGames', source, keyword),
   fetchGame: (source: string, subjectId: string) => ipcRenderer.invoke('fetchGame', source, subjectId),

@@ -24,6 +24,7 @@
     "better-sqlite3": "^12.6.2",
     "chart.js": "^4.5.1",
     "dotenv": "^17.4.2",
+    "electron-store": "^11.0.2",
     "https-proxy-agent": "^9.0.0",
     "pinia": "^3.0.4",
     "ps-tree": "^1.2.0",

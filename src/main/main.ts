@@ -2,7 +2,7 @@
 import 'dotenv/config' // 创建环境变量
 import { app, protocol } from 'electron';
 import { createWindow } from './window';
-import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerFileIPC } from './ipc';
+import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerSettingsIPC, registerFileIPC } from './ipc';
 import Database from 'better-sqlite3'
 import { initDatabase } from './database/index'
 import { GameRepository } from './database/game.repo'
@@ -46,6 +46,7 @@ app.whenReady().then(() => {
   registerDBIPC(gameService, sessionService) // Register database-related IPC handlers
   registerFileIPC()
   registerLaunchIPC() // Register IPC handlers for launching games
+  registerSettingsIPC() // Register IPC handlers for settings management
   registerProviderIPC() // Register IPC handlers for Bangumi API interactions
 });
 

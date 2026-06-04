@@ -34,6 +34,12 @@ declare global {
       launchGame: (gameId: string, exePath: string) => Promise<{success: boolean}>
       stopGame: (gameId: string, exePath: string) => Promise<{success: boolean}>
     },
+
+    settingsAPI: {
+      getSettings: () => Promise<Settings>
+      getSetting: (key: keyof Settings) => Promise<any>
+      setSetting: (key: keyof Settings, value: any) => Promise<void>
+    },
     
     providerAPI: {
       searchGames: (source: string, keyword: string) => Promise<GameSearchResult[]>
