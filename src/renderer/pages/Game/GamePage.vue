@@ -16,11 +16,11 @@
             {{ isRunning ? '■ 停止游戏' : '▶ 启动游戏' }}
           </button>
           
-          <SettingsMenu :items="menuItems" :context="game">
+          <OptionsMenu :items="menuItems" :context="game">
             <template #button>
               <button class="settings-btn">⚙</button>
             </template>
-          </SettingsMenu>
+          </OptionsMenu>
         </div>
 
         <!-- 评分 -->
@@ -46,11 +46,11 @@
         <!-- 游玩数据 -->
         <div class="stats-row">
           <div><span>游玩状态：</span>
-            <SettingsMenu :items="statusItems" :context="game">
-            <template #button>
-              <button> {{ currentStatus }} </button>
-            </template>
-          </SettingsMenu>
+            <OptionsMenu :items="statusItems" :context="game">
+              <template #button>
+                <button> {{ currentStatus }} </button>
+              </template>
+            </OptionsMenu>
           </div>
           <div>
             <span>游玩时长：</span>
@@ -111,7 +111,7 @@ import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameActions } from '@/renderer/composables/useGameActions'
 import { useRuntimeStore } from '@/renderer/stores/runtime.store'
 import { useUIStore } from '@/renderer/stores/ui.store'
-import SettingsMenu from '@/renderer/components/OptionsMenu.vue'
+import OptionsMenu from '@/renderer/components/OptionsMenu.vue'
 import EditModal from './EditModal.vue'
 import GameStats from './tabs/GameStats.vue'
 import GameOverview from './tabs/GameOverview.vue'
@@ -256,6 +256,7 @@ watch(
   padding: 8px 12px;
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0,0,0,.05);
+  z-index: 9999;
 }
 
 .back-btn:hover {

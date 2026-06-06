@@ -1,4 +1,4 @@
-<!-- /src/renderer/layout/AppTitlebar.vue -->
+<!-- /src/renderer/layout/AppHeader.vue -->
 <template>
   <div class="titlebar">
     <div class="drag-area"></div>
@@ -23,46 +23,52 @@ const close = () => window.windowAPI.close()
   top: 0;
   left: 0;
   right: 0;
-  height: 36px;
+  height: 55px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
-  /* background-color: rgb(255, 153, 0); */
-  z-index: 9999;
+  z-index: 999;
 }
 
-
-/* 可拖动区域 */
 .drag-area {
   position: absolute;
-  left: 0;
   top: 0;
-  bottom: 0;
-  right: 130px;
+  left: 0;
+  right: 0;
+  height: 38px;
   /* background-color: aqua; */
   -webkit-app-region: drag;
-}
-
-
+  pointer-events: auto;
+} 
 /* 右侧按钮容器 */
 .window-controls {
   display: flex;
   align-items: center;
+  gap: 2px;
+  /* padding: 6px; */
+  margin-right: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   -webkit-app-region: no-drag;
+  pointer-events: auto;
 }
 
-/* 按钮样式 */
 button {
   width: 36px;
   height: 36px;
   border: none;
+  border-radius: 50%;
   background: transparent;
-  color: #000;
-  font-size: 10px;
+  color: #374151;
+  font-size: 12px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    background 0.15s,
+    transform 0.12s;
 }
-
 button:hover {
   background: rgba(0, 0, 0, 0.08);
 }
@@ -70,6 +76,8 @@ button.close:hover {
   background: #e34451;
   color: white;
 }
-
+button:active {
+  transform: scale(0.9);
+}
 </style>
 

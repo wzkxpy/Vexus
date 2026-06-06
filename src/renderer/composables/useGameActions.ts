@@ -1,3 +1,4 @@
+// src/renderer/composables/useGameActions
 import type { Game } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
 import { useRuntimeStore } from '@/renderer/stores/runtime.store'
@@ -67,11 +68,13 @@ export function useGameActions() {
     }
   }
 
+  // 更新游戏媒体资源
   // 本地上传
   const updateMedia = async (game: Game, type: 'cover' | 'banner', filePath: string) => {
     await gameStore.updateMedia(game.id, type, filePath)
   }
 
+  // 后续可以增加更多媒体资源更新方式：
   // 网络图片 URL
   // 剪贴板获取
   // 都要下载到本地特定位置，并更新游戏数据中的路径

@@ -7,7 +7,7 @@ export const useUIStore = defineStore('ui', () => {
   const activeModal = ref<string | null>(null) // [null, 'add-game', 'session', 'media', 'edit-*']
   const isTransitioning = ref(false) // 页面切换动画中
 
-  const canWheelRoute = computed(() => {
+  const canWheelRoute = computed(() => { // 判断是否允许通过滚轮切换页面
     return (
       !activeModal.value &&
       !isTransitioning.value &&

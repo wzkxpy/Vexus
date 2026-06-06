@@ -16,13 +16,13 @@
     </router-view>
   </div>
 
-  <TitleBar />
+  <AppHeader />
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import TitleBar from './AppTitlebar.vue'
+import AppHeader from './AppHeader.vue'
 import { useUIStore } from '../stores/ui.store'
 
 const route = useRoute()
