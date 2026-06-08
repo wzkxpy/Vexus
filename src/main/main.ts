@@ -1,5 +1,5 @@
 // src/main/main.ts
-import 'dotenv/config' // 创建环境变量
+// import 'dotenv/config' // 创建环境变量
 import { app, protocol } from 'electron';
 import { createWindow } from './window';
 import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerSettingsIPC, registerFileIPC } from './ipc';
@@ -12,7 +12,7 @@ import * as path from 'path'
 import { SessionService } from './database/session.service';
 import { SessionRepository } from './database/session.repo';
 import { container } from './container';
-import { ProxyAgent } from 'undici';
+import { getProxyAgent } from './settings';
 
 
 app.whenReady().then(() => {
@@ -21,9 +21,7 @@ app.whenReady().then(() => {
   const db = new Database(dbPath)
   initDatabase(db)
   
-  const proxy = process.env.HTTPS_PROXY || 'http://127.0.0.1:7890'
-  const agent = new ProxyAgent(proxy)
-  const mediaService = new MediaService(agent)
+  const mediaService = new MediaService(getProxyAgent)
 
   const gameRepo = new GameRepository(db)
   const gameService = new GameService(gameRepo, mediaService)

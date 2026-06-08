@@ -1,20 +1,26 @@
 // src/main/providers/manager.ts
-import { ProxyAgent } from 'undici'
+// import { ProxyAgent } from 'undici'
 import { BangumiClient } from "./bangumi/client";
 import { NewGame, GameCandidate } from "@/shared/types";
 import { bangumiToNewGame, bangumiToSearchResult } from "./bangumi/mapper";
 import { BangumiSubject } from "./bangumi/types";
+import { getSetting, getProxyAgent } from '../settings'
 
-const bangumiToken = process.env.VEXUS_BANGUMI_TOKEN as string;
+// const bangumiToken = process.env.VEXUS_BANGUMI_TOKEN as string;
 
-const proxy = process.env.HTTPS_PROXY || 'http://127.0.0.1:7890'
-const agent = new ProxyAgent(proxy)
-
+function getBangumiToken() {
+  const token = getSetting('bangumiToken')
+  if (!token.trim()) {
+   return undefined
+  }
+  // console.log('Using Bangumi token:', token)
+  return token
+}
 
 // 按名称搜索游戏，返回候选列表
 export async function searchGames(source: string, keyword: string): Promise<GameCandidate[]> {
   if (source == 'bangumi') {
-    const client = new BangumiClient(bangumiToken, agent)
+    const client = new BangumiClient(getBangumiToken(), getProxyAgent())
     const subjects = await client.searchGame(keyword)
     return subjects.map(bangumiToSearchResult)
   }
@@ -24,7 +30,7 @@ export async function searchGames(source: string, keyword: string): Promise<Game
 // 根据 ID 获取游戏，返回单个候选
 export async function fetchGame(source: string, subjectId: string): Promise<GameCandidate> {
   if (source == 'bangumi') {
-    const client = new BangumiClient(bangumiToken, agent)
+    const client = new BangumiClient(getBangumiToken(), getProxyAgent())
     const subject = await client.getSubject(subjectId)
     // const characters = await client.getCharacters(subjectId)
     return bangumiToSearchResult(subject)
@@ -34,7 +40,7 @@ export async function fetchGame(source: string, subjectId: string): Promise<Game
 
 // 
 export async function buildGameFromBangumi(subject: BangumiSubject): Promise<NewGame> {
-  const client = new BangumiClient(bangumiToken, agent)
+  const client = new BangumiClient(getBangumiToken(), getProxyAgent())
   const characters = await client.getCharacters(subject.id.toString())
   return bangumiToNewGame(subject, characters)
 

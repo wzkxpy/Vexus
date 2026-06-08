@@ -5,15 +5,14 @@ import { NewGame } from '@/shared/types';
 import { downloadFile } from './../utils'
 import { app } from 'electron'
 import sharp from 'sharp'
-import { Dispatcher, ProxyAgent } from 'undici';
+import { Dispatcher } from 'undici';
 
 export class MediaService {
   private mediaBaseDir = path.join(app.getPath('userData'), 'media')
-  private agent?: Dispatcher
 
-  constructor(agent?: Dispatcher) {
-    this.agent = agent;
-  }
+  constructor(
+    private getAgent: () => Dispatcher | undefined
+  ) {}
   // 新增游戏时 初始化媒体资源 将游戏/角色图片下载到本地
   async initMedia(gameId: string, media: NewGame['media'], characters: NewGame['characters']) {
     const gameDir = path.join(this.mediaBaseDir, gameId);
@@ -24,7 +23,7 @@ export class MediaService {
     for (const type of ['cover', 'banner', 'icon'] as const) {
       if (media[`${type}Url`]) {
         const localPath = path.join(tempDir, `${type}.jpg`);
-        downloadTasks.push(downloadFile(media[`${type}Url`]!, localPath, this.agent));
+        downloadTasks.push(downloadFile(media[`${type}Url`]!, localPath, this.getAgent()));
       }
     }
     if (characters && characters.length > 0) {
@@ -32,7 +31,7 @@ export class MediaService {
         if (char.avatarUrl) {
           const charFileName = `${char.uuid}_avatar.jpg`; 
           const localPath = path.join(tempDir, charFileName);          
-          downloadTasks.push(downloadFile(char.avatarUrl, localPath, this.agent));
+          downloadTasks.push(downloadFile(char.avatarUrl, localPath, this.getAgent()));
         }
       });
     }
