@@ -25,7 +25,8 @@
           class="menu-item"
           :class="{
             danger: item.danger,
-            selected: item.value === selected
+            selected: item.value != null && selected != null && item.value === selected,
+            checked: item.checked === true
           }"
           type="button"
           role="menuitem"
@@ -44,7 +45,8 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 interface MenuItem<T = any> {
   label: string // 菜单项文本
-  value?: string // 菜单项标识
+  value?: string // 菜单项标识 (单选菜单用)
+  checked?: boolean  // 多选状态用, 是否选中
   action: (context?: T) => void | Promise<void>
   danger?: boolean
 }
@@ -192,7 +194,8 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   opacity: 0;
 }
-.menu-item.selected .indicator {
+.menu-item.selected .indicator,
+.menu-item.checked .indicator {
   opacity: 1;
   background: #6366f1;
 }

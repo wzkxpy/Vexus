@@ -14,6 +14,7 @@
         />
       </transition>
     </router-view>
+    <PageNavigator />
   </div>
 
   <AppHeader />
@@ -24,6 +25,7 @@ import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppHeader from './AppHeader.vue'
 import { useUIStore } from '../stores/ui.store'
+import PageNavigator from './PageNavigator.vue'
 
 const route = useRoute()
 const uiStore = useUIStore()
@@ -36,15 +38,30 @@ const onTransitionEnd = () => {
   uiStore.isTransitioning = false
 }
 
+const pageLevel: Record<string, number> = {
+  '/home': 0,
+  '/library': 1,
+  '/dashboard': 2,
+  '/settings': 3
+}
 watch(
   () => route.path,
   (to, from) => {
-    if (from === '/home' && to === '/library') {
-      console.log('slide-down');
+    const fromLevel = pageLevel[from] ?? -1
+    const toLevel = pageLevel[to] ?? -1
+
+    // 不参与层级动画的页面 (例如 game page)
+    if (fromLevel === -1 || toLevel === -1) {
+      transitionName.value = ''
+      return
+    }
+
+    if (toLevel > fromLevel) {
       transitionName.value = 'slide-down'
-    } else if (from === '/library' && to === '/home') {
-      console.log('slide-up');
+    } else if (toLevel < fromLevel) {
       transitionName.value = 'slide-up'
+    } else {
+      transitionName.value = ''
     }
   }
 )

@@ -1,10 +1,8 @@
 <!-- src/renderer/pages/Game/GamePage.vue -->
 <template>
   <div v-if="game" class="game-page">
-    
-    <button class="back-btn" @click="handleBack()">
-      ← 返回
-    </button>
+    <div class="drag-area"></div>
+    <button class="back-btn" @click="handleBack()">← 返回</button>
 
     <!-- 标题 + 封面 -->
     <div class="top-section">
@@ -150,15 +148,15 @@ const handleStop = async () => {
 } 
 
 // 设置菜单项
-const menuItems = [
-  { label: '配置游戏路径', action: () =>  openEdit('exePath') },
-  { label: '浏览本地文件', action: () =>  gameActions.browseFolder(game.value!) },
+const menuItems = computed(() => [
+  { label: '配置游戏路径', action: () => openEdit('exePath') },
+  { label: '浏览本地文件', action: () => gameActions.browseFolder(game.value!) },
   // { label: '更新游戏信息', action: () =>  gameActions.updateGameInfo(game.value!) },
-  { label: '标记 NSFW', action: () => gameActions.toggleNSFW(game.value!) },
-  { label: '启用 Magpie', action: () =>  gameActions.toggleMagpie(game.value!) },
-  { label: '配置媒体文件', action: () =>  uiStore.activeModal = 'media' },
-  { label: '移除游戏', action: () =>  gameActions.removeGame(game.value!), danger: true }
-]
+  { label: '标记 NSFW', action: () => gameActions.toggleNSFW(game.value!), checked: game.value?.settings?.nsfw },
+  { label: '启用 Magpie', action: () => gameActions.toggleMagpie(game.value!), checked: game.value?.settings?.magpie },
+  { label: '配置媒体文件', action: () => uiStore.activeModal = 'media' },
+  { label: '移除游戏', action: () => gameActions.removeGame(game.value!), danger: true }
+])
 
 // 游玩状态
 const statusMap = {
@@ -239,7 +237,16 @@ watch(
   padding: 30px;
   box-sizing: border-box;
 }
-
+.drag-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 138px; /* 留出窗口控制按钮区域 */
+  height: 52px;
+  -webkit-app-region: drag;
+  z-index: 50;
+  /* background-color: red;  */
+}
 /* 滚动条 */
 .game-page::-webkit-scrollbar {
   width: 6px;
@@ -257,6 +264,7 @@ watch(
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0,0,0,.05);
   z-index: 9999;
+  -webkit-app-region: no-drag;
 }
 
 .back-btn:hover {

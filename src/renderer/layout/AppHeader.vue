@@ -1,12 +1,9 @@
 <!-- /src/renderer/layout/AppHeader.vue -->
 <template>
-  <div class="titlebar">
-    <div class="drag-area"></div>
-    <div class="window-controls">
-      <button @click="minimize">—</button>
-      <button @click="maximize">▢</button>
-      <button class="close" @click="close">✕</button>
-    </div>
+  <div class="window-controls">
+    <button @click="minimize">—</button>
+    <button @click="maximize">▢</button>
+    <button class="close" @click="close">✕</button>
   </div>
 </template>
 
@@ -18,30 +15,12 @@ const close = () => window.windowAPI.close()
 </script>
 
 <style scoped>
-.titlebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 55px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  z-index: 999;
-}
 
-.drag-area {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 38px;
-  /* background-color: aqua; */
-  -webkit-app-region: drag;
-  pointer-events: auto;
-} 
-/* 右侧按钮容器 */
 .window-controls {
+  position: fixed;
+  top: 14px;
+  right: 10px;
+  z-index: 9999;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -52,8 +31,8 @@ const close = () => window.windowAPI.close()
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.5);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  -webkit-app-region: no-drag;
   pointer-events: auto;
+  user-select: none;
 }
 
 button {

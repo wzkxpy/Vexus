@@ -1,5 +1,7 @@
+<!-- src/renderer/pages/Home/HomePage.vue -->
 <template>
   <div class="home-container">
+    <div class="drag-area"></div>
     <transition name="bg-fade">
       <div :key="game?.id" class="background-wrapper">
         <div 
@@ -18,7 +20,7 @@
           <h1 class="game-title">{{ game?.originalTitle || 'Add a Game' }}</h1>
           
           <div class="game-metadata" v-if="game">
-            <span class="meta-item">游玩时长: {{ game.record.lastRunDate || '尚未开始' }}</span>
+            <span class="meta-item">游玩时长: {{ game.record.sessionPlaytime + game.record.extraPlaytime }}</span>
             <span class="meta-divider">|</span>
             <span class="meta-item">{{ game.basicInfo.developer || '未知开发者' }}</span>
           </div>
@@ -129,6 +131,16 @@ onMounted(async () => {
   color: white;
   background-color: #050505;
 }
+.drag-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 140px; /* 留出窗口控制按钮区域 */
+  height: 70px;
+  -webkit-app-region: drag;
+  z-index: 50;
+  /* background-color: red;  */
+}
 
 /* 背景及遮罩 */
 .background-wrapper {
@@ -155,7 +167,7 @@ onMounted(async () => {
 .bg-fallback {
   width: 100%;
   height: 100%;
-  background: #1a1a1a;
+  background: #d7d5d4;
 }
 
 /* 主内容区 */

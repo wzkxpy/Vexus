@@ -1,23 +1,6 @@
 <!-- src/renderer/pages/Library/LibraryPage.vue -->
 <template>
   <div class="library-layout">
-    <!-- <div class="title-block"></div> -->
-
-    <!-- 左侧侧边栏 -->
-    <!-- <aside class="sidebar">
-      <div class="sidebar-header">
-        <input class="search" placeholder="搜索游戏…" />
-      </div>
-      <div
-        v-for="game in gameStore.games"
-        :key="game.id"
-        class="sidebar-item"
-        :class="{ active: game.id === gameStore.selectedId }"
-        @click="gameStore.selectGame(game.id)"
-      >
-        {{ game.originalTitle }}
-      </div>
-    </aside> -->
 
     <!-- ===== 悬浮顶栏 ===== -->
     <div class="floating-topbar">
@@ -26,7 +9,7 @@
       <div class="sort-controls">
         <OptionsMenu :items="sortItems" :selected="gameStore.sortType">
           <template #button>
-            <button class="sort-button"> 排序方式 </button>
+            <button class="sort-button"> ⇅ </button> 
           </template>
         </OptionsMenu>
 
@@ -100,58 +83,20 @@ const sortItems = [
   font-family: system-ui, -apple-system, BlinkMacSystemFont;
 }
 
-/* ===== 空白占位 ===== */
-.title-block{
-  height: 10px;
-  width: 100%;
-}
-/* ===== Sidebar ===== */
-.sidebar {
-  width: 210px;
-  background: #ffffff;
-  border-right: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebar-header {
-  padding: 16px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.app-title {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 12px;
-}
-
-/* Sidebar Item */
-.sidebar-item {
-  padding: 10px 16px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: background 0.15s;
-}
-.sidebar-item:hover {
-  background: #f3f4f6;
-}
-.sidebar-item.active {
-  background: #e0e7ff;
-  color: #1e3a8a;
-  font-weight: 600;
-}
-
 /* ===== 新增：悬浮顶栏样式 ===== */
 .floating-topbar {
   position: fixed;
-  top: 20px;      /* 顶部留白 */
+  top: 15px;      /* 顶部留白 */
   left: 16px;     /* 左侧留白 */
   right: 140px;    /* 右侧留白 */
   z-index: 9999;   /* 确保浮在最上层 */
+
+  -webkit-app-region: drag;
+  user-select: none;
   
   /* 视觉样式 */
   background: #ffffff;
-  padding: 12px 20px;
+  padding: 6px 24px;
   border-radius: 999px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
   
@@ -168,17 +113,11 @@ const sortItems = [
   letter-spacing: -0.2px;
 }
 
-/* .sort-controls {
-  display: flex;
-  gap: 8px;
-  background: #f3f4f6;
-  padding: 4px;
-  border-radius: 10px;
-} */
 .sort-controls {
   display: flex;
   align-items: center;
   gap: 8px;
+  -webkit-app-region: no-drag;
 }
 .sort-button {
   padding: 6px 10px;
@@ -234,9 +173,19 @@ const sortItems = [
   flex: 1;
   padding: 26px;
   overflow-y: auto;
-  margin-top: 58px; /* 避免被悬浮顶栏遮挡 */
+  margin-top: 50px;
+  padding-top: 32px;
+  /* padding: 84px 26px 26px 26px; */
 }
 
+/* 滚动条 */
+.main-content::-webkit-scrollbar {
+  width: 6px;
+}
+.main-content::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.2);
+  border-radius: 999px;
+}
 /* ===== Game Grid ===== */
 .game-grid {
   display: grid;

@@ -63,6 +63,8 @@ watch(
     if (path === '/home') uiStore.currentPage = 'home'
     else if (path === '/library') uiStore.currentPage = 'library'
     else if (path.startsWith('/game/')) uiStore.currentPage = 'game'
+    else if (path === '/dashboard') uiStore.currentPage = 'dashboard'
+    else if (path === '/settings') uiStore.currentPage = 'settings'
   },
   { immediate: true }
 )

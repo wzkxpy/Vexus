@@ -4,7 +4,7 @@ import Home from './pages/Home/HomePage.vue'
 import Library from './pages/Library/LibraryPage.vue'
 import GamePage from './pages/Game/GamePage.vue'
 import Categories from './pages/Categories/CategoriesPage.vue'
-import Stats from './pages/Stats/StatsPage.vue'
+import Dashboard from './pages/Dashboard/DashboardPage.vue'
 import Settings from './pages/Settings/SettingsPage.vue'
 
 const router = createRouter({
@@ -15,7 +15,7 @@ const router = createRouter({
     { path: '/library', component: Library },
     { path: '/game/:id', component: GamePage },
     { path: '/categories', component: Categories },
-    { path: '/stats', component: Stats },
+    { path: '/dashboard', component: Dashboard },
     { path: '/settings', component: Settings },
   ],
 })
