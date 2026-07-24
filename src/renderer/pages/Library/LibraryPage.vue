@@ -89,7 +89,7 @@ const sortItems = [
   top: 15px;      /* 顶部留白 */
   left: 16px;     /* 左侧留白 */
   right: 140px;    /* 右侧留白 */
-  z-index: 9999;   /* 确保浮在最上层 */
+  z-index: 999;   /* 确保浮在最上层 */
 
   -webkit-app-region: drag;
   user-select: none;
@@ -171,11 +171,9 @@ const sortItems = [
 /* ===== Main Content ===== */
 .main-content {
   flex: 1;
-  padding: 26px;
   overflow-y: auto;
   margin-top: 50px;
-  padding-top: 32px;
-  /* padding: 84px 26px 26px 26px; */
+  padding: 40px 50px 40px 50px; /* 上右下左 */
 }
 
 /* 滚动条 */

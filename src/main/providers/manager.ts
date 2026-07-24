@@ -1,9 +1,9 @@
 // src/main/providers/manager.ts
 // import { ProxyAgent } from 'undici'
 import { BangumiClient } from "./bangumi/client";
-import { NewGame, GameCandidate } from "@/shared/types";
+import type { NewGame, GameCandidate } from "@/shared/types";
+import type { BangumiSubject } from "./bangumi/types";
 import { bangumiToNewGame, bangumiToSearchResult } from "./bangumi/mapper";
-import { BangumiSubject } from "./bangumi/types";
 import { getSetting, getProxyAgent } from '../settings'
 
 // const bangumiToken = process.env.VEXUS_BANGUMI_TOKEN as string;

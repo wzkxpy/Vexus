@@ -14,6 +14,11 @@ export default defineConfig({
       {
         entry: resolve(__dirname, 'src/main/main.ts'),
         vite: {
+          resolve: {
+            alias: {
+              '@': resolve(__dirname, 'src')
+            }
+          },
           build: {
             outDir: resolve(__dirname, 'dist/main'),
             emptyOutDir: true,
@@ -33,6 +38,11 @@ export default defineConfig({
       {
         entry: resolve(__dirname, 'src/preload/index.ts'),
         vite: {
+          resolve: {
+            alias: {
+              '@': resolve(__dirname, 'src')
+            }
+          },
           build: {
             outDir: resolve(__dirname, 'dist/preload'),
             emptyOutDir: true,

@@ -2,10 +2,11 @@
 
 export interface Game {
   // 基础
-  id: string               // UUID v4
-  originalTitle: string    // 原始标题
-  localizedTitle?: string  // 本地化标题
-  sortNum?: number         // 排序数字, 整数
+  id: string              // UUID v4
+  originalTitle: string   // 原始标题
+  localizedTitle?: string // 本地化标题
+  sortNum?: number        // 排序数字, 整数
+  titleSplit: TitleSplit    // 切分主副标题的索引 
 
   description?: string   // 游戏简介
   tags?: string[]        // 游戏标签
@@ -79,6 +80,7 @@ export interface NewGame {
   id: string
   originalTitle: string
   localizedTitle?: string
+  titleSplit: TitleSplit
   description?: string
   tags?: string[]
   // 基本信息
@@ -130,6 +132,13 @@ export interface NewGame {
 
 
 // types
+export type TitleSplit = [
+  origMainEnd: number | null,
+  origSubStart: number | null,
+  locMainEnd: number | null,
+  locSubStart: number | null
+]
+
 export type PlayStatus =
   | 'NotStarted'
   | 'Playing'

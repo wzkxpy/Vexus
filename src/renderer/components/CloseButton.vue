@@ -11,6 +11,9 @@
   border-radius: 10px;
   background: #f3f4f6;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .close-btn:hover {
   background: #e5e7eb;

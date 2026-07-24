@@ -196,12 +196,10 @@ onMounted(() => {
   justify-content: space-between;
   align-items: start;
 }
-
 .modal-header h3 {
   margin: 0;
   color: #111827;
 }
-
 .modal-header p {
   margin: 6px 0 0;
   color: #6b7280;

@@ -7,7 +7,15 @@
     <!-- 标题 + 封面 -->
     <div class="top-section">
       <div class="left">
-        <h3 class="title">{{ game.originalTitle }}</h3>
+
+        <div class="title">
+          <span class="title-main">
+            {{ displayTitleParts.main }}
+          </span>
+          <span v-if="displayTitleParts.sub" class="title-sub">
+            {{ displayTitleParts.sub }}
+          </span>
+        </div>
         
         <div class="action-row">
           <button class="launch-btn" @click="isRunning ? handleStop() : handleLaunch()">
@@ -44,7 +52,7 @@
         <!-- 游玩数据 -->
         <div class="stats-row">
           <div><span>游玩状态：</span>
-            <OptionsMenu :items="statusItems" :context="game">
+            <OptionsMenu :items="statusItems" :context="game" :selected="game.record.playStatus">
               <template #button>
                 <button> {{ currentStatus }} </button>
               </template>
@@ -59,7 +67,6 @@
               {{ formattedPlaytime }}
             </span>
           </div>
-          <!-- <div><span>游玩时长：</span>{{ (game.record.sessionPlaytime + game.record.extraPlaytime) / 3600 }} 小时</div> -->
         </div>
 
       </div>
@@ -95,15 +102,25 @@
       :type="uiStore.activeModal.replace('edit-', '') as keyof Game"
       @close="uiStore.activeModal = null"
     />
+
     <MediaModal
       v-if="uiStore.activeModal === 'media'"
       @close="uiStore.activeModal = null"
      />
+
+    <TitleSplitModal
+      v-if="uiStore.activeModal === 'titleSplit'"
+      :original-title="game?.originalTitle || ''"
+      :localized-title="game?.localizedTitle"
+      :initial-split="game?.titleSplit || [null, null, null, null]"
+      @close="uiStore.activeModal = null"
+      @save="handleSaveTitleSplit"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useGameStore } from '@/renderer/stores/game.store'
 import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameActions } from '@/renderer/composables/useGameActions'
@@ -114,10 +131,12 @@ import EditModal from './EditModal.vue'
 import GameStats from './tabs/GameStats.vue'
 import GameOverview from './tabs/GameOverview.vue'
 import GameGuide from './tabs/GameGuide.vue'
-import { Game } from '@/shared/types'
+import { Game, TitleSplit } from '@/shared/types'
 import { useRoute } from 'vue-router'
 import router from '@/renderer/router'
 import MediaModal from './MediaModal.vue'
+import TitleSplitModal from './TitleSplitModal.vue'
+import { splitTitle } from '@/shared/utils/title'
 
 const route = useRoute()
 const gameStore = useGameStore()
@@ -138,6 +157,35 @@ const handleBack = () => {
     router.push('/library')
   }
 }
+
+// 标题设置项
+const gameTitleSetting = ref<'Orig' | 'Local'>('Orig')
+const subTitleSetting = ref(true)
+
+// 标题拆分显示
+const displayTitleParts = computed(() => {
+  if (!game.value) {
+    return { main: '', sub: null }
+  }
+  // 根据设置选择使用原名还是译名
+  const useLocal = gameTitleSetting.value === 'Local' && game.value.localizedTitle
+  const title = useLocal
+      ? game.value.localizedTitle as string
+      : game.value.originalTitle as string
+  // 如果不区分主副标题，直接返回完整标题
+  if (!subTitleSetting.value) {
+    return {
+      main: title,
+      sub: null
+    }
+  }
+
+  const split = game.value.titleSplit
+  const mainEnd = useLocal ? split[2] : split[0]
+  const subStart = useLocal ? split[3] : split[1]
+  return splitTitle(title, mainEnd, subStart)
+})
+
 // 游戏启动 / 停止
 const isRunning = computed(() => runtimeStore.isGameRunning(game.value?.id || ''))
 const handleLaunch = async () => {
@@ -151,6 +199,7 @@ const handleStop = async () => {
 const menuItems = computed(() => [
   { label: '配置游戏路径', action: () => openEdit('exePath') },
   { label: '浏览本地文件', action: () => gameActions.browseFolder(game.value!) },
+  { label: '划分主副标题', action: () => uiStore.activeModal = 'titleSplit' },
   // { label: '更新游戏信息', action: () =>  gameActions.updateGameInfo(game.value!) },
   { label: '标记 NSFW', action: () => gameActions.toggleNSFW(game.value!), checked: game.value?.settings?.nsfw },
   { label: '启用 Magpie', action: () => gameActions.toggleMagpie(game.value!), checked: game.value?.settings?.magpie },
@@ -166,10 +215,10 @@ const statusMap = {
   'Completed':  '已完成'
 } as const;
 const statusItems = [
-  { label: '未开始', action: () => gameActions.updatePlayStatus(game.value!, 'NotStarted') },
-  { label: '游玩中', action: () => gameActions.updatePlayStatus(game.value!, 'Playing') },
-  { label: '搁置中', action: () => gameActions.updatePlayStatus(game.value!, 'OnHold') },
-  { label: '已完成', action: () => gameActions.updatePlayStatus(game.value!, 'Completed') }
+  { label: '未开始', value: 'NotStarted', action: () => gameActions.updatePlayStatus(game.value!, 'NotStarted') },
+  { label: '游玩中', value: 'Playing', action: () => gameActions.updatePlayStatus(game.value!, 'Playing') },
+  { label: '搁置中', value: 'OnHold', action: () => gameActions.updatePlayStatus(game.value!, 'OnHold') },
+  { label: '已完成', value: 'Completed', action: () => gameActions.updatePlayStatus(game.value!, 'Completed') }
 ]
 const currentStatus = computed(() => {
   const status = game.value?.record.playStatus as keyof typeof statusMap;
@@ -202,7 +251,13 @@ const togglePlaytimeFormat = () => {
       : 'detail'
 }
 
-// Tab 切换
+// 用于手动标题划分保存
+const handleSaveTitleSplit = (titleSplit: TitleSplit) => {
+  gameActions.updateTitleSplit(game.value!.id, titleSplit)
+  uiStore.activeModal = null
+}
+
+// Tab栏切换
 const activeTab = ref<'overview' | 'stats' | 'guide'>('overview')
 
 // 编辑框
@@ -212,6 +267,13 @@ const openEdit = (type: keyof Game) => {
   uiStore.activeModal = 'edit-' + type
 }
 
+// 加载设置项
+onMounted(async () => {
+  gameTitleSetting.value =
+    await window.settingsAPI.getSetting('gameTitle')
+  subTitleSetting.value =
+    await window.settingsAPI.getSetting('subTitle')
+})
 // 装载 sessions
 watch(
   () => game.value?.id,
@@ -284,11 +346,21 @@ watch(
 }
 
 .title {
-  font-size: 26px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.title-main {
+  font-size: 28px;
   font-weight: 700;
-  margin-bottom: 18px;
-  color: #111827;
-  letter-spacing: -0.5px;
+}
+
+.title-sub {
+  font-size: 18px;
+  opacity: 0.75;
+  font-weight: 500;
 }
 
 .action-row {

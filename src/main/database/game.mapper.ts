@@ -1,5 +1,5 @@
 // src/main/database/game.mapper.ts
-import { Game, NewGame } from '@/shared/types'
+import type { Game, NewGame } from '@/shared/types'
 
 export function newGameToRow(game: NewGame) { // add
   return {
@@ -7,6 +7,7 @@ export function newGameToRow(game: NewGame) { // add
     // 名称 & 简介
     original_title: game.originalTitle,
     localized_title: game.localizedTitle ?? null,
+    title_split: JSON.stringify(game.titleSplit),
     description: game.description ?? null,
     tags: game.tags ? JSON.stringify(game.tags) : null,
 
@@ -62,6 +63,7 @@ export function gameToRow(game: Game) { // update
     original_title: game.originalTitle,
     localized_title: game.localizedTitle ?? null,
     sort_num: game.sortNum ?? null,
+    title_split: JSON.stringify(game.titleSplit),
     description: game.description ?? null,
     tags: game.tags ? JSON.stringify(game.tags) : null,
     guide: game.guide ?? null,
@@ -120,6 +122,7 @@ export function rowToGame(row: any): Game { // get
     originalTitle: row.original_title,
     localizedTitle: row.localized_title,
     sortNum: row.sort_num,
+    titleSplit: safeParse(row.title_split, [null, null, null, null]),
 
     description: row.description,
     tags: safeParse(row.tags, []),

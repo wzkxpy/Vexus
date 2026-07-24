@@ -1,18 +1,22 @@
 // src/main/providers/bangumi/mapper.ts
-import { NewGame, GameCandidate } from "@/shared/types"
-import { BangumiCharacter, BangumiSubject } from "./types"
+import type { NewGame, GameCandidate } from "@/shared/types"
+import type { BangumiCharacter, BangumiSubject } from "./types"
 import { randomUUID } from "crypto";
-
+import { computeTitleSplit } from '@/shared/utils/title'
 
 export function bangumiToNewGame(
   subject: BangumiSubject,
   characters: BangumiCharacter[]
   ): NewGame {
+  const originalTitle = subject.name
+  const localizedTitle = subject.name_cn || undefined
+
   return {
     id: randomUUID(),
 
-    originalTitle: subject.name,
-    localizedTitle: subject.name_cn || undefined,
+    originalTitle,
+    localizedTitle,
+    titleSplit: computeTitleSplit(originalTitle, localizedTitle),
     description: subject.summary,
     tags: subject.tags?.map((tag: any) => tag.name) || [],
 

@@ -16,6 +16,7 @@ export function initDatabase(db: Database) {
       original_title TEXT NOT NULL, -- 原始标题
       localized_title TEXT,         -- 中文标题
       sort_num INTEGER,             -- 排序编号
+      title_split TEXT,             -- 切分主副标题 [orig_main_end,orig_sub_start,loc_main_end,loc_sub_start]
       description TEXT,             -- 游戏简介
       tags TEXT,                    -- 游戏标签
       guide TEXT,                   -- 游戏攻略
@@ -30,7 +31,7 @@ export function initDatabase(db: Database) {
       vndb_score REAL,       -- 0.0 - 10.0
 
       -- 外部信息源 ID
-      bgm_id TEXT,          -- bangumi.tv
+      bgm_id TEXT UNIQUE,   -- bangumi.tv
       vndb_id TEXT,         -- vndb.org
       steam_id TEXT,        -- steampowered.com
       ymgal_id TEXT,        -- ymgal.games

@@ -7,6 +7,8 @@ export interface Settings {
   // 通用设置
   autoLaunch: boolean  // 开机自启
   theme: 'light' | 'dark' | 'system' // 主题
+  gameTitle: 'Orig' | 'Local' // 游戏标题显示原名 or 译名
+  subTitle: boolean // 是否区分展示主副标题
   // 账号设置
   bangumiToken: string
   // 工具设置
@@ -29,11 +31,13 @@ const store = new Store<Settings>({
   defaults: {
     autoLaunch: false,
     theme: 'system',
+    gameTitle: 'Local',
     bangumiToken: '6o1H3zRciYAqsERmtEDUP6lrcPnnsIV29xH9QaYp',
     magpiePath: '',
     magpieHotkey: '',
+    subTitle: true,
     proxy: {
-      enabled: false,
+      enabled: true,
       protocol: 'http',
       host: '127.0.0.1',
       port: 7890
@@ -66,6 +70,5 @@ export function getProxyAgent() {
     return undefined
   }
   const url = `${proxy.protocol}://${proxy.host}:${proxy.port}`
-  // console.log('using proxy:', url)
   return new ProxyAgent(url)
 }

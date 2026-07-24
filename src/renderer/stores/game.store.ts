@@ -76,6 +76,9 @@ export const useGameStore = defineStore('game', () => {
 
   // 添加游戏到数据库，并刷新到状态
   const addGame = async (game: NewGame) => {
+    if (isDuplicateGame(game)) {
+      throw new Error('Duplicate game found')
+    }
     const id = await window.databaseAPI.addGame(game)
     await refreshGame(id)
     return id
@@ -109,6 +112,17 @@ export const useGameStore = defineStore('game', () => {
     const field = `${type}Path` as keyof Game['media']
     if (!game.media) game.media = {}
     game.media[field] = savedpath
+  }
+
+  // 添加新游戏时进行重复检测
+  const isDuplicateGame = (newGame: NewGame) => {
+    return games.value.some(g =>
+      g.externalIds.bgmId === newGame.externalIds.bgmId
+      // vndb会合并版本，其余待定
+      // || g.externalIds.vndbId === newGame.externalIds.vndbId
+      // || g.externalIds.steamId === newGame.externalIds.steamId
+      // || g.externalIds.ymgalId === newGame.externalIds.ymgalId
+    )
   }
 
   // 修改排序方式，并保存到全局设置

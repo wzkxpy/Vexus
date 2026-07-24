@@ -1,5 +1,5 @@
 // src/renderer/composables/useGameActions
-import type { Game } from '@/shared/types'
+import type { Game, TitleSplit } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
 import { useRuntimeStore } from '@/renderer/stores/runtime.store'
 import router from '../router'
@@ -90,6 +90,13 @@ export function useGameActions() {
     })
   }
 
+  // 修改 split index
+  const updateTitleSplit = async (gameId: string, titleSplit: TitleSplit) => {
+    await gameStore.updateGame(gameId, {
+      titleSplit: titleSplit
+    })
+  }
+
   // 切换游玩状态
   const updatePlayStatus = async (game: Game, status: Game['record']['playStatus']) => {
     await gameStore.updateGame(game.id, {
@@ -129,6 +136,7 @@ export function useGameActions() {
     browseFolder,
     updateMedia,
     removeMedia,
+    updateTitleSplit,
     updatePlayStatus,
     toggleNSFW,
     toggleMagpie

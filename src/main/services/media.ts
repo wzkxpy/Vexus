@@ -2,7 +2,7 @@
 import * as path from 'path'
 import * as fs from 'fs'
 import { NewGame } from '@/shared/types';
-import { downloadFile } from './../utils'
+import { downloadFile } from '../utils/file'
 import { app } from 'electron'
 import sharp from 'sharp'
 import { Dispatcher } from 'undici';

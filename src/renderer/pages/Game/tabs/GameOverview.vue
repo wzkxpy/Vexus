@@ -32,13 +32,13 @@
       <button class="edit-btn" @click="openEdit('basicInfo')">编辑</button>
       <div class="info-grid">
         <div v-if="game.basicInfo?.developer">
-          <span class="label">开发商：</span>{{ game.basicInfo.developer }}
+          <span class="label">开发：</span>{{ game.basicInfo.developer }}
         </div>
         <div v-if="game.basicInfo?.publisher">
-          <span class="label">发行商：</span>{{ game.basicInfo.publisher }}
+          <span class="label">发行：</span>{{ game.basicInfo.publisher }}
         </div>
         <div v-if="game.basicInfo?.releaseDate">
-          <span class="label">发售日期：</span>{{ game.basicInfo.releaseDate }}
+          <span class="label">发售日：</span>{{ game.basicInfo.releaseDate }}
         </div>
         <div v-if="game.basicInfo?.estimatedTime">
           <span class="label">游戏时长：</span>{{ game.basicInfo.estimatedTime }}
@@ -81,11 +81,11 @@
     v-if="uiStore.activeModal?.startsWith('edit-')"
     :type="uiStore.activeModal.replace('edit-', '') as keyof Game"
     @close="uiStore.activeModal = null"
-  />
+/>
 </template>
 
 <script setup lang="ts">
-import { Game } from '@/shared/types';
+import type { Game } from '@/shared/types';
 import { useGameStore } from '@/renderer/stores/game.store'
 import { computed } from 'vue';
 import EditModal from '../EditModal.vue'
