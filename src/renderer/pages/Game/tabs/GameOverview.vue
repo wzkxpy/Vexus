@@ -4,6 +4,7 @@
     <!-- 角色 -->
     <div class="section characters-section" v-if="game.characters?.length">
       <h3>角色</h3>
+      <button class="edit-btn" aria-label="调整角色顺序" title="调整角色顺序" @click="uiStore.activeModal = 'character-sort'">✎</button>
       <div class="character-grid">
         <div
           class="character-card"
@@ -82,6 +83,13 @@
     :type="uiStore.activeModal.replace('edit-', '') as keyof Game"
     @close="uiStore.activeModal = null"
   />
+
+  <CharacterSortModal
+    v-if="uiStore.activeModal === 'character-sort' && game?.characters"
+    :game-id="game.id"
+    :characters="game.characters"
+    @close="uiStore.activeModal = null"
+  />
 </template>
 
 <script setup lang="ts">
@@ -89,6 +97,7 @@ import type { Game } from '@/shared/types';
 import { useGameStore } from '@/renderer/stores/game.store'
 import { computed } from 'vue';
 import EditModal from '../EditModal.vue'
+import CharacterSortModal from '../CharacterSortModal.vue'
 import { useRoute } from 'vue-router'
 import { useUIStore } from '@/renderer/stores/ui.store';
 import defaultCharacterAvatar from '@/renderer/assets/images/akarin.webp'

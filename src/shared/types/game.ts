@@ -51,11 +51,7 @@ export interface Game {
     music?: string
   }
   // 角色信息
-  characters?:{
-    name: string
-    voiceActor: string
-    avatarPath?: string
-  }[]
+  characters?: Character[]
 
   // 个人记录
   record: {
@@ -117,12 +113,7 @@ export interface NewGame {
     music?: string
   }
   // 角色信息
-  characters?: {
-    uuid: string
-    name: string
-    voiceActor: string
-    avatarUrl?: string
-  }[]
+  characters?: NewGameCharacter[]
   // 设置项
   settings: {
     nsfw?: boolean  // 已知 bgm.tv 数据源具有此标签
@@ -145,11 +136,18 @@ export type PlayStatus =
   | 'OnHold'
   | 'Completed'
 
-// export interface Character {
-//   name: string
-//   voiceActor: string
-//   avatarUrl?: string
-// }
+export interface Character {
+  name: string
+  voiceActor: string
+  avatarPath?: string
+}
+
+export interface NewGameCharacter {
+  uuid: string
+  name: string
+  voiceActor: string
+  avatarUrl?: string
+}
 
 export interface ExternalScore {
   erogame?: number   // 0 – 100

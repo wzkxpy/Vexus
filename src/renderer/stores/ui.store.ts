@@ -5,7 +5,7 @@ import { computed, ref } from 'vue'
 
 export const useUIStore = defineStore('ui', () => {
   const currentPage = ref<'home' | 'library' | 'game' | 'dashboard' | 'settings'>('home')
-  const activeModal = ref<string | null>(null) // [null, 'add-game', 'session', 'media', 'edit-*', 'titleSplit']
+  const activeModal = ref<string | null>(null) // [null, 'add-game', 'session', 'media', 'character-sort', 'edit-*', 'titleSplit']
   const isTransitioning = ref(false) // 页面切换动画中
 
   const canWheelRoute = computed(() => { // 判断是否允许通过滚轮切换页面
