@@ -140,7 +140,11 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# VSCode settings
 .vscode/
 
-# my personal files
+# Personal files
 about/
+
+# Agent files
+AGENTS.md

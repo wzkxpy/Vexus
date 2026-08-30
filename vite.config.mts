@@ -22,10 +22,6 @@ export default defineConfig({
           build: {
             outDir: resolve(__dirname, 'dist/main'),
             emptyOutDir: true,
-            lib: {
-              entry: resolve(__dirname, 'src/main/main.ts'),
-              formats: ['cjs'],   // ✅ 强制输出 CJS
-            },
             rollupOptions: {
               external: ['fsevents', 'electron','better-sqlite3','fs', 'path', 'sharp'],
               output: {
@@ -46,10 +42,6 @@ export default defineConfig({
           build: {
             outDir: resolve(__dirname, 'dist/preload'),
             emptyOutDir: true,
-            lib: {
-              entry: resolve(__dirname, 'src/preload/index.ts'),
-              formats: ['cjs'],   // ✅ 强制输出 CJS
-            },
             rollupOptions: {
               external: ['fsevents', 'better-sqlite3', 'path', 'sharp'],
               output: {

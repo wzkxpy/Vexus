@@ -2,7 +2,7 @@
   <div v-if="game" class="game-overview">
 
     <!-- 角色 -->
-    <div class="section" v-if="game.characters?.length">
+    <div class="section characters-section" v-if="game.characters?.length">
       <h3>角色</h3>
       <div class="character-grid">
         <div
@@ -11,10 +11,10 @@
           :key="c.name"
         >
           <img
-            v-if="c.avatarPath"
-            :src="c.avatarPath"
+            :src="c.avatarPath || defaultCharacterAvatar"
             :alt="c.name"
             class="character-avatar"
+            @error="handleAvatarError"
           />
 
           <div class="character-info">
@@ -27,9 +27,9 @@
     </div>
     
     <!-- 基础信息 -->
-    <div class="section">
+    <div class="section basic-section">
       <h3>基础信息</h3>
-      <button class="edit-btn" @click="openEdit('basicInfo')">编辑</button>
+      <button class="edit-btn" aria-label="编辑基础信息" title="编辑" @click="openEdit('basicInfo')">✎</button>
       <div class="info-grid">
         <div v-if="game.basicInfo?.developer">
           <span class="label">开发：</span>{{ game.basicInfo.developer }}
@@ -47,9 +47,9 @@
     </div>
 
     <!-- Staff -->
-    <div class="section" v-if="game.staff">
+    <div class="section staff-section" v-if="game.staff">
       <h3>制作人员</h3>
-      <button class="edit-btn" @click="openEdit('staff')">编辑</button>
+      <button class="edit-btn" aria-label="编辑制作人员" title="编辑" @click="openEdit('staff')">✎</button>
       <div class="info-grid">
         <div v-if="game.staff.planner"><span class="label">企划：</span>{{ game.staff.planner }}</div>
         <div v-if="game.staff.scenario"><span class="label">剧本：</span>{{ game.staff.scenario }}</div>
@@ -59,9 +59,9 @@
     </div>
 
     <!-- 标签 -->
-    <div class="section" v-if="game.tags?.length">
-      <h3>标签</h3>
-      <button class="edit-btn" @click="openEdit('tags')">编辑</button>
+    <div class="section tags-section" v-if="game.tags?.length">
+      <h3>Tag</h3>
+      <button class="edit-btn" aria-label="编辑标签" title="编辑" @click="openEdit('tags')">✎</button>
       <div class="tags">
         <span v-for="tag in game.tags" :key="tag" class="tag">
           {{ tag }}
@@ -70,8 +70,8 @@
     </div>
 
     <!-- 游戏简介 -->
-    <div class="description">
-      <button class="edit-btn" @click="openEdit('description')">编辑</button>
+    <div class="section description">
+      <button class="edit-btn" aria-label="编辑游戏简介" title="编辑" @click="openEdit('description')">✎</button>
       <p>{{ game.description || '暂无介绍内容。' }}</p>
     </div>
     
@@ -81,7 +81,7 @@
     v-if="uiStore.activeModal?.startsWith('edit-')"
     :type="uiStore.activeModal.replace('edit-', '') as keyof Game"
     @close="uiStore.activeModal = null"
-/>
+  />
 </template>
 
 <script setup lang="ts">
@@ -91,6 +91,7 @@ import { computed } from 'vue';
 import EditModal from '../EditModal.vue'
 import { useRoute } from 'vue-router'
 import { useUIStore } from '@/renderer/stores/ui.store';
+import defaultCharacterAvatar from '@/renderer/assets/images/akarin.webp'
 
 const route = useRoute()
 const gameStore = useGameStore()
@@ -100,129 +101,181 @@ const game = computed(() => {
 })
 const uiStore = useUIStore()
 
+// 路径为空或本地头像文件丢失时，统一回退到应用内置头像。
+const handleAvatarError = (event: Event) => {
+  const image = event.currentTarget as HTMLImageElement
+  if (image.dataset.fallbackApplied) return
+
+  image.dataset.fallbackApplied = 'true'
+  image.src = defaultCharacterAvatar
+}
+
 // 编辑模式
 const openEdit = (type: keyof Game) => {
   uiStore.activeModal = 'edit-' + type
-  // editType.value = type
 }
-
 </script>
+
 <style scoped>
-.edit-btn {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  padding: 4px 6px;
-  border-radius: 8px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* ===== 概览网格 ===== */
+.game-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-bottom: 24px;
+  gap: 16px;
 }
 
-.edit-btn:hover {
-  background: #e5e7eb;
-}
-
-/* 通用 section */
 .section {
-  margin-bottom: 40px;
+  position: relative;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #e5e9f0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 7px 25px rgba(50, 61, 86, 0.04);
+}
+
+.characters-section,
+.tags-section,
+.description {
+  grid-column: 1 / -1;
 }
 
 .section h3 {
-  font-size: 18px;
+  margin: 0 0 17px;
+  color: #444e60;
+  font-size: 15px;
   font-weight: 600;
-  margin-bottom: 16px;
-  color: #111827;
 }
-/* 角色列表 */
+
+/* 基础信息与制作人员卡片内部保持单列。 */
+.basic-section .info-grid,
+.staff-section .info-grid {
+  grid-template-columns: 1fr;
+}
+
+/* ===== 编辑按钮 ===== */
+.edit-btn {
+  position: absolute;
+  top: 16px;
+  right: 17px;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: #8490a2;
+  background: #f2f3f6;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.edit-btn:hover {
+  color: #4f72c4;
+  background: #e9effb;
+}
+
+/* ===== 角色 ===== */
 .character-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 20px 20px;
 }
 
 .character-card {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 12px;
-
-  padding: 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
 }
 
 .character-avatar {
-  width: 68px;
-  height: 68px;
-  object-fit: cover;
-  border-radius: 12px; /* 圆角头像 */
   flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  object-fit: cover;
 }
 
 .character-info {
   display: flex;
-  flex-direction: column; /* 竖排 */
+  flex-direction: column;
   justify-content: center;
   min-width: 0;
 }
 
 .character-name {
+  overflow: hidden;
+  color: #40495a;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 550;
   line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .character-va {
-  margin-top: 4px;
-  font-size: 13px;
-  color: #999;
+  overflow: hidden;
+  margin-top: 3px;
+  color: #929baa;
+  font-size: 12px;
   line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* 描述 */
-.description p {
-  line-height: 1.8;
-  font-size: 15px;
-  color: #4b5563;
-}
-
-/* 信息网格 */
+/* ===== 基础信息与制作人员 ===== */
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 14px;
-  font-size: 14px;
-  color: #374151;
+  gap: 13px 20px;
+  color: #485264;
+  font-size: 15px;
 }
 
 .label {
-  font-weight: 600;
-  color: #6b7280;
   margin-right: 6px;
+  color: #949cab;
+  font-weight: 400;
 }
 
-/* 标签 */
+/* ===== Tag ===== */
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 7px;
 }
 
 .tag {
-  background: #e0f2fe;
-  color: #0369a1;
-  padding: 6px 14px;
+  padding: 5px 10px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
+  color: #5975b6;
+  background: #edf2fb;
+  font-size: 13px;
+  font-weight: 450;
 }
 
-/* 评分 */
-.score-grid {
-  display: flex;
-  gap: 30px;
+/* ===== 游戏简介 ===== */
+.description p {
+  margin: 0;
+  color: #626d7e;
   font-size: 15px;
-  color: #1f2937;
+  line-height: 1.85;
+  white-space: pre-wrap;
 }
 
+/* ===== 窄窗口适配 ===== */
+@media (max-width: 760px) {
+  .game-overview {
+    grid-template-columns: 1fr;
+  }
 
+  .characters-section,
+  .tags-section,
+  .description {
+    grid-column: auto;
+  }
+}
 </style>

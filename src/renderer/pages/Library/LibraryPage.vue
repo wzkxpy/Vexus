@@ -9,7 +9,7 @@
       <div class="sort-controls">
         <OptionsMenu :items="sortItems" :selected="gameStore.sortType">
           <template #button>
-            <button class="sort-button"> ⇅ </button> 
+            <button class="sort-button" title="选择排序方式" aria-label="选择排序方式">⇅</button>
           </template>
         </OptionsMenu>
 
@@ -64,7 +64,7 @@ const sortItems = [
   { label: '按添加时间排序', value: 'addTime', action: () => gameStore.setSortType('addTime') },
   { label: '按名称排序', value: 'title', action: () => gameStore.setSortType('title') },
   { label: '按游玩时长排序', value: 'playtime', action: () => gameStore.setSortType('playtime') },
-  { label: '按评分排序', value: 'score', action: () => gameStore.setSortType('score') },
+  { label: '按个人评分排序', value: 'score', action: () => gameStore.setSortType('score') },
   { label: '按发售时间排序', value: 'releaseDate', action: () => gameStore.setSortType('releaseDate') },
   { label: '按最近游玩排序', value: 'lastRunDate', action: () => gameStore.setSortType('lastRunDate') },
   { label: '自定义排序', value: 'custom', action: () => gameStore.setSortType('custom') },
@@ -83,97 +83,106 @@ const sortItems = [
   font-family: system-ui, -apple-system, BlinkMacSystemFont;
 }
 
-/* ===== 新增：悬浮顶栏样式 ===== */
+/* ===== 悬浮顶栏 ===== */
 .floating-topbar {
   position: fixed;
-  top: 15px;      /* 顶部留白 */
-  left: 16px;     /* 左侧留白 */
-  right: 140px;    /* 右侧留白 */
-  z-index: 999;   /* 确保浮在最上层 */
+  top: 14px;
+  left: 28px;
+  right: 148px;
+  z-index: 999;
 
   -webkit-app-region: drag;
   user-select: none;
-  
-  /* 视觉样式 */
-  background: #ffffff;
-  padding: 6px 24px;
-  border-radius: 999px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
-  
-  /* 内部布局 */
+
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 44px;
+  padding: 5px 7px 5px 18px;
+  border: 1px solid rgba(226, 230, 238, .92);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .88);
+  box-shadow: 0 7px 22px rgba(50, 61, 86, .07);
+  backdrop-filter: blur(14px);
 }
 
 .topbar-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-  letter-spacing: -0.2px;
+  color: #30394a;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: .01em;
 }
 
 .sort-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #f2f4f8;
   -webkit-app-region: no-drag;
 }
+
 .sort-button {
-  padding: 6px 10px;
-  /* border: none; */
-  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
   background: transparent;
-  color: #6b7280;
-  font-size: 12px;
-  font-weight: 500;
+  color: #697486;
+  font-size: 15px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: .16s ease;
 }
+
 .sort-button:hover {
-  background: white;
-  /* border-color: rgba(99, 102, 241, 0.4); */
-  transform: translateY(-1px);
-}
-.sort-button.active {
-  transform: translateY(0);
   background: #ffffff;
-  color: #111827;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  color: #4f72c4;
+  box-shadow: 0 1px 5px rgba(55, 67, 94, .1);
 }
 
 .sort-order-button {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 600;
-  border: 1px solid rgba(148, 163, 184, 0.36);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.9);
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: #697486;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 550;
   cursor: pointer;
-  transition:
-    background 150ms ease,
-    border-color 150ms ease,
-    transform 150ms ease;
+  transition: .16s ease;
 }
+
 .sort-order-button:hover {
-  background: white;
-  border-color: rgba(99, 102, 241, 0.4);
-  transform: translateY(-1px);
+  color: #4f72c4;
+  background: #fff;
+  box-shadow: 0 1px 5px rgba(55, 67, 94, .1);
 }
+
 .sort-order-button:active {
-  transform: translateY(0);
+  transform: scale(.94);
+}
+
+.sort-button:focus-visible,
+.sort-order-button:focus-visible {
+  outline: 2px solid rgba(98, 134, 220, .3);
+  outline-offset: 1px;
 }
 
 /* ===== Main Content ===== */
 .main-content {
   flex: 1;
   overflow-y: auto;
-  margin-top: 50px;
-  padding: 40px 50px 40px 50px; /* 上右下左 */
+  margin-top: 52px;
+  padding: 32px 50px 40px;
 }
 
 /* 滚动条 */

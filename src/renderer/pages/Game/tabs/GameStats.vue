@@ -9,17 +9,15 @@
       </button>
     </div>
 
-    <Bar
-      v-if="chartData"
-      :data="chartData"
-      :options="chartOptions"
-    />
+    <div class="chart-panel">
+      <Bar v-if="chartData" :data="chartData" :options="chartOptions" />
+    </div>
 
     <div class="summary">
-      <p>总时长：{{ totalPlaytime }} 分钟</p>
-      <p>游戏次数：{{ playCount }}</p>
-      <p>次均时长：{{ avgSession }}</p>
-      <p>日均时长：{{ avgDaily }}</p>
+      <div><span>总时长</span><strong>{{ Math.round(totalPlaytime) }}</strong><small>分钟</small></div>
+      <div><span>游戏次数</span><strong>{{ playCount }}</strong><small>次</small></div>
+      <div><span>次均时长</span><strong>{{ avgSession }}</strong><small>分钟</small></div>
+      <div><span>日均时长</span><strong>{{ avgDaily }}</strong><small>分钟</small></div>
     </div>
 
     <SessionModal
@@ -32,7 +30,7 @@
 
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { Bar } from 'vue-chartjs'
 import {
   Chart,
@@ -68,8 +66,6 @@ const sessions = computed(() => sessionStore.getGameSessions(game.value!.id))
 
 const dailyPlaytime = computed(() => {
   const map: Record<string, number> = {}
-  console.log(sessions.value);
-  
   for (const s of sessions.value) {
     const date = s.playDate
     map[date] = (map[date] || 0) + Math.round(s.duration / 60)
@@ -85,7 +81,10 @@ const chartData = computed(() => {
     datasets: [
       {
         label: '分钟',
-        data
+        data,
+        backgroundColor: '#7698e5',
+        borderRadius: 5,
+        maxBarThickness: 34
       }
     ]
   }
@@ -93,8 +92,13 @@ const chartData = computed(() => {
 
 const chartOptions = {
   responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: { display: false }
+  },
+  scales: {
+    x: { grid: { display: false }, ticks: { color: '#8d96a6', font: { size: 10 } }, border: { display: false } },
+    y: { beginAtZero: true, grid: { color: '#edf0f4' }, ticks: { color: '#8d96a6', font: { size: 10 } }, border: { display: false } }
   }
 }
 
@@ -115,20 +119,36 @@ const avgDaily = computed(() => {
 
 </script>
 
-<style>
+<style scoped>
+.stats {
+  padding: 20px;
+  border: 1px solid #e5e9f0;
+  border-radius: 14px;
+  background: rgba(255,255,255,.86);
+  box-shadow: 0 7px 25px rgba(50,61,86,.04);
+}
 .stats-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 18px;
 }
-
+.stats-header h3 { margin: 0; color: #444e60; font-size: 14px; font-weight: 600; }
 .session-btn {
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: none;
-  background: #4f46e5;
-  color: white;
+  padding: 6px 10px;
+  border: 1px solid #dce4f5;
+  border-radius: 7px;
+  background: #edf2fc;
+  color: #5474bd;
+  font-size: 12px;
   cursor: pointer;
 }
-
+.session-btn:hover { background: #e4ecfb; }
+.chart-panel { height: 260px; padding: 12px 10px 5px; border: 1px solid #edf0f4; border-radius: 11px; background: #fafbfc; }
+.summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 14px; }
+.summary > div { padding: 13px; border: 1px solid #edf0f4; border-radius: 10px; background: #fafbfc; }
+.summary span { display: block; margin-bottom: 7px; color: #9099a9; font-size: 12px; }
+.summary strong { color: #3d485b; font-size: 20px; font-weight: 600; }
+.summary small { margin-left: 4px; color: #9aa2b0; font-size: 11px; }
+@media (max-width: 680px) { .summary { grid-template-columns: repeat(2,1fr); } }
 </style>

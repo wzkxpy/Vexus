@@ -14,6 +14,7 @@ export function computeTitleSplit(originalTitle: string, localizedTitle?: string
         { token: '～', mainOffset: 0, subOffset: 0 },
         { token: ': ', mainOffset: 0, subOffset: 2 },
         { token: '：', mainOffset: 0, subOffset: 1 },
+        { token: '。-', mainOffset: 1, subOffset: 1 },
         { token: ' // ', mainOffset: 0, subOffset: 1 },
         { token: '-nine-', mainOffset: 6, subOffset: 6 },
     ]
