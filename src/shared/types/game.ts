@@ -55,10 +55,11 @@ export interface Game {
 
   // 个人记录
   record: {
-    addTime: string           // ISO datetime
-    lastRunDate?: string      // ISO datetime
+    addedAt: string           // ISO datetime
+    lastRunAt?: string        // ISO datetime
     playStatus: PlayStatus    // 游玩状态
     personalScore?: number    // 个人评分
+    sessionCount: number      // 游玩次数
     sessionPlaytime: number   // 计时游玩时长
     extraPlaytime: number     // 额外的游玩时长
   }

@@ -70,11 +70,11 @@ function compareSession(a: Session, b: Session): number {
   if (a.playDate !== b.playDate) {
     return a.playDate.localeCompare(b.playDate)
   }
-  if (a.startTime && b.startTime) {
-    return a.startTime.localeCompare(b.startTime)
+  if (a.startedAt && b.startedAt) {
+    return Date.parse(a.startedAt) - Date.parse(b.startedAt)
   }
-  if (a.startTime) return -1
-  if (b.startTime) return 1
+  if (a.startedAt) return -1
+  if (b.startedAt) return 1
   return b.duration - a.duration
 }
 

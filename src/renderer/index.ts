@@ -5,6 +5,7 @@ import router from './router'
 import { createPinia } from 'pinia'
 import { useSessionStore } from './stores/session.store'
 import { useRuntimeStore } from './stores/runtime.store'
+import { useGameStore } from './stores/game.store'
 
 createApp(App)
   .use(router)  // 注册路由，用于页面导航
@@ -15,10 +16,14 @@ createApp(App)
 // 🔥 在这里注册 IPC
 const sessionStore = useSessionStore()
 const runtimeStore = useRuntimeStore()
+const gameStore = useGameStore()
 
-window.callbackAPI.onGameStopped(({ gameId }) => {
+window.callbackAPI.onGameStopped(async ({ gameId }) => {
   if (runtimeStore.runningGameId === gameId) {
     runtimeStore.stop()
   }
-  sessionStore.refreshGameSessions(gameId)
+  await Promise.all([
+    sessionStore.refreshGameSessions(gameId),
+    gameStore.refreshGame(gameId)
+  ])
 })

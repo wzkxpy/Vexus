@@ -18,7 +18,7 @@ export const useGameStore = defineStore('game', () => {
     games.value.find(g => g.id === featuredGameId.value) || null
   )
   // const sortType = getSetting('gameSortType')
-  const sortType = ref<GameSortType>('addTime')
+  const sortType = ref<GameSortType>('addedAt')
   const sortOrder = ref<'asc' | 'desc'>('desc')
 
   // actions
@@ -98,10 +98,18 @@ export const useGameStore = defineStore('game', () => {
 
   // 更新游戏到数据库，并刷新到状态
   const updateGame = async (id: string, payload: Partial<Game>) => {
-    const g = gameMap.value.get(id) || null // 直接修改原对象，保持响应式
-    if (!g) return
-    Object.assign(g, payload)
-    await window.databaseAPI.updateGame(JSON.parse(JSON.stringify(g)))
+    const game = gameMap.value.get(id)
+    if (!game) throw new Error('Game not found')
+    // 备份当前游戏数据，在更新失败时回滚
+    const snapshot = JSON.parse(JSON.stringify(game)) as Game
+    Object.assign(game, payload)
+
+    try {
+      await window.databaseAPI.updateGame(JSON.parse(JSON.stringify(game)))
+    } catch (error) {
+      Object.assign(game, snapshot)
+      throw error
+    }
   }
 
   // 更新媒体资源文件，并刷新游戏数据到状态
@@ -142,10 +150,10 @@ export const useGameStore = defineStore('game', () => {
     games.value.sort((a, b) => {
       let result = 0
       switch (sortType.value) {
-        case 'addTime':
+        case 'addedAt':
           result =
-            new Date(a.record.addTime).getTime() -
-            new Date(b.record.addTime).getTime()
+            new Date(a.record.addedAt).getTime() -
+            new Date(b.record.addedAt).getTime()
           break
         case 'title':
           result = (
@@ -174,10 +182,10 @@ export const useGameStore = defineStore('game', () => {
             new Date(a.basicInfo.releaseDate ?? '1900-01-01').getTime() -
             new Date(b.basicInfo.releaseDate ?? '1900-01-01').getTime()
           break
-        case 'lastRunDate':
+        case 'lastRunAt':
           result =
-            new Date(a.record.lastRunDate ?? '1900-01-01').getTime() -
-            new Date(b.record.lastRunDate ?? '1900-01-01').getTime()
+            new Date(a.record.lastRunAt ?? '1900-01-01').getTime() -
+            new Date(b.record.lastRunAt ?? '1900-01-01').getTime()
           break
         case 'custom':
           result = (a.sortNum ?? 0) - (b.sortNum ?? 0)
@@ -201,7 +209,7 @@ export const useGameStore = defineStore('game', () => {
     getGameById,
     initGames,
     // refreshGames,
-    // refreshGame,
+    refreshGame,
     addGame,
     deleteGame,
     updateGame,

@@ -32,27 +32,36 @@ export class SessionService {
     if (!session.gameId) {
       throw new Error('Game id required')
     }
-    if (session.duration < 0 || session.duration > 86400) {
+    if (!Number.isFinite(session.duration) || session.duration < 0 || session.duration > 86400) {
       throw new Error('Duration cannot be negative or more than one day')
     }
-    // TODO 检测一天时长不超过 24h
-    if (!session.startTime && !session.endTime)
-      return
 
-    // 检测时间段重叠
-    let start = new Date(`${session.playDate}T${session.startTime}`).getTime() / 1000
-    let end = new Date(`${session.playDate}T${session.endTime}`).getTime() / 1000
-    if (end < start) end += 24 * 3600
+    // 检测 startedAt 和 endedAt 是否同时存在
+    const hasStartedAt = session.startedAt !== null
+    const hasEndedAt = session.endedAt !== null
+    if (hasStartedAt !== hasEndedAt) {
+      throw new Error('Started at and ended at must both be provided')
+    }
+    if (!hasStartedAt || !hasEndedAt) return
 
+    // 检测时间格式和逻辑
+    const start = Date.parse(session.startedAt!)
+    const end = Date.parse(session.endedAt!)
+    if (!Number.isFinite(start) || !Number.isFinite(end)) { // isFinite 非无穷的数字
+      throw new Error('Invalid session time')
+    }
+    if (end < start) {
+      throw new Error('Ended at cannot be earlier than started at')
+    }
+
+    // 检测时间是否与已有记录重叠
     const sessions = this.getGameSessions(session.gameId)
     for (const s of sessions) {
       if (s.id === session.id) continue
-      if (!s.startTime || !s.endTime) continue
+      if (!s.startedAt || !s.endedAt) continue
 
-      let sStart = new Date(`${s.playDate}T${s.startTime}`).getTime() / 1000
-      let sEnd = new Date(`${s.playDate}T${s.endTime}`).getTime() / 1000
-      if (sEnd < sStart) sEnd += 24 * 3600
-
+      const sStart = Date.parse(s.startedAt)
+      const sEnd = Date.parse(s.endedAt)
       const overlap = start < sEnd && end > sStart
       if (overlap) {
         throw new Error('Playtime overlaps with existing records')

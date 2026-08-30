@@ -54,8 +54,8 @@ export function initDatabase(db: Database) {
       characters TEXT, -- [ { name: '', voiceActor: '', avatar: '' } ]
 
       -- 个人记录 record
-      add_time TEXT DEFAULT CURRENT_TIMESTAMP,  -- 添加时间 ISO datetime
-      last_run_date TEXT,                       -- 最后运行日期 ISO datetime
+      added_at TEXT DEFAULT CURRENT_TIMESTAMP,  -- 添加时间 ISO datetime
+      last_run_at TEXT,                         -- 最后运行时间 ISO datetime
       play_status TEXT DEFAULT 'NotStarted',    -- 游玩状态 NotStarted Playing OnHold Completed
       personal_score FLOAT,                     -- 个人评分 1-10
       session_playtime INTEGER DEFAULT 0,       -- 计时游玩时长 / seconds
@@ -101,8 +101,8 @@ export function initDatabase(db: Database) {
       route_id TEXT,                -- 线路 ID
 
       local_date TEXT NOT NULL,   -- 游玩日期 yyyy-mm-dd
-      start_time TEXT,            -- 开始时间 ISO datetime
-      end_time TEXT,              -- 结束时间 ISO datetime
+      started_at TEXT,            -- 开始时间 ISO datetime
+      ended_at TEXT,              -- 结束时间 ISO datetime
       duration INTEGER NOT NULL,  -- 游玩时长 INT seconds
 
       auto_record INTEGER,        -- 是否为自动记录
@@ -114,9 +114,9 @@ export function initDatabase(db: Database) {
       FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE SET NULL,
 
       CHECK (
-        (start_time IS NOT NULL AND end_time IS NOT NULL)
+        (started_at IS NOT NULL AND ended_at IS NOT NULL)
         OR
-        (start_time IS NULL AND end_time IS NULL)
+        (started_at IS NULL AND ended_at IS NULL)
       )
     )
   `);
@@ -129,26 +129,34 @@ export function initDatabase(db: Database) {
 
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_sessions_game_time
-    ON sessions(game_id, start_time DESC);
+    ON sessions(game_id, started_at DESC);
   `);
 
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_sessions_route_time
-    ON sessions(route_id, start_time DESC);
+    ON sessions(route_id, started_at DESC);
   `);
 
   // 创建触发器
+  // sessions 表变化时，自动维护对应游戏的总时长和记录数。
   db.exec(`
     -- 1. 当插入新的 Session 时
     CREATE TRIGGER IF NOT EXISTS update_game_time_after_insert
     AFTER INSERT ON sessions
     BEGIN
         UPDATE games 
-        SET session_playtime = (
-            SELECT COALESCE(SUM(duration), 0)
-            FROM sessions 
-            WHERE game_id = NEW.game_id
-        )
+        SET
+          session_playtime = (
+              SELECT COALESCE(SUM(duration), 0)
+              FROM sessions
+              WHERE game_id = NEW.game_id
+          ),
+          session_count = (
+              SELECT COUNT(*)
+              FROM sessions
+              WHERE game_id = NEW.game_id
+          ),
+          updated_at = CURRENT_TIMESTAMP
         WHERE id = NEW.game_id;
     END;
 
@@ -161,7 +169,8 @@ export function initDatabase(db: Database) {
             SELECT COALESCE(SUM(duration), 0)
             FROM sessions 
             WHERE game_id = NEW.game_id
-        )
+        ),
+        updated_at = CURRENT_TIMESTAMP
         WHERE id = NEW.game_id;
     END;
 
@@ -170,11 +179,18 @@ export function initDatabase(db: Database) {
     AFTER DELETE ON sessions
     BEGIN
         UPDATE games 
-        SET session_playtime = (
-            SELECT COALESCE(SUM(duration), 0)
-            FROM sessions 
-            WHERE game_id = OLD.game_id
-        )
+        SET
+          session_playtime = (
+              SELECT COALESCE(SUM(duration), 0)
+              FROM sessions
+              WHERE game_id = OLD.game_id
+          ),
+          session_count = (
+              SELECT COUNT(*)
+              FROM sessions
+              WHERE game_id = OLD.game_id
+          ),
+          updated_at = CURRENT_TIMESTAMP
         WHERE id = OLD.game_id;
     END;
   `)

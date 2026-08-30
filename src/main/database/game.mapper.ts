@@ -101,12 +101,10 @@ export function gameToRow(game: Game) { // update
     characters: game.characters ? JSON.stringify(game.characters) : null,
 
     // 个人记录
-    // add_time: game.record.addTime,
-    last_run_date: game.record.lastRunDate ?? null,
+    last_run_at: game.record.lastRunAt ?? null,
     play_status: game.record.playStatus,
     personal_score: game.record.personalScore ?? null,
     extra_playtime: game.record.extraPlaytime,
-    session_playtime: game.record.sessionPlaytime,
 
     // 设置项
     nsfw: game.settings?.nsfw ? 1 : 0,
@@ -166,12 +164,13 @@ export function rowToGame(row: any): Game { // get
     characters: safeParse(row.characters, []),
 
     record: {
-      addTime: row.add_time,
-      lastRunDate: row.last_run_date,
+      addedAt: row.added_at,
+      lastRunAt: row.last_run_at,
       extraPlaytime: row.extra_playtime,
       playStatus: row.play_status,
       personalScore: row.personal_score,
       sessionPlaytime: row.session_playtime,
+      sessionCount: row.session_count,
     },
 
     settings: {

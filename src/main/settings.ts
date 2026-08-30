@@ -32,7 +32,7 @@ const store = new Store<Settings>({
     autoLaunch: false,
     theme: 'system',
     gameTitle: 'Local',
-    bangumiToken: '6o1H3zRciYAqsERmtEDUP6lrcPnnsIV29xH9QaYp',
+    bangumiToken: '',
     magpiePath: '',
     magpieHotkey: '',
     subTitle: true,
@@ -42,7 +42,7 @@ const store = new Store<Settings>({
       host: '127.0.0.1',
       port: 7890
     },
-    gameSortType: 'addTime',
+    gameSortType: 'addedAt',
     gameSortOrder: 'asc'
   }
 })

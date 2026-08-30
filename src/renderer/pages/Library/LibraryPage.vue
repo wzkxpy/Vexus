@@ -61,12 +61,12 @@ const uiStore = useUIStore()
 
 
 const sortItems = [
-  { label: '按添加时间排序', value: 'addTime', action: () => gameStore.setSortType('addTime') },
+  { label: '按添加时间排序', value: 'addedAt', action: () => gameStore.setSortType('addedAt') },
   { label: '按名称排序', value: 'title', action: () => gameStore.setSortType('title') },
   { label: '按游玩时长排序', value: 'playtime', action: () => gameStore.setSortType('playtime') },
   { label: '按个人评分排序', value: 'score', action: () => gameStore.setSortType('score') },
   { label: '按发售时间排序', value: 'releaseDate', action: () => gameStore.setSortType('releaseDate') },
-  { label: '按最近游玩排序', value: 'lastRunDate', action: () => gameStore.setSortType('lastRunDate') },
+  { label: '按最近游玩排序', value: 'lastRunAt', action: () => gameStore.setSortType('lastRunAt') },
   { label: '自定义排序', value: 'custom', action: () => gameStore.setSortType('custom') },
 ]
 </script>

@@ -9,8 +9,8 @@ export class GameMonitor {
   private pids: Set<number> = new Set();
   private gameId: string
   private timer: NodeJS.Timeout | null = null
-  private startTime: number = 0
-  private endTime: number = 0
+  private startedAtMs: number = 0
+  private endedAtMs: number = 0
   private active = false
   private sessionService: SessionService
   private readonly INTERVAL = 3000 // 监控间隔 ms
@@ -27,7 +27,7 @@ export class GameMonitor {
       return
     }
     this.active = true
-    this.startTime = Date.now()
+    this.startedAtMs = Date.now() // 毫秒时间戳 number
     this.timer = setInterval(() => this.checkProcess(), this.INTERVAL)
     console.log('[Monitor] started:', { gameId: this.gameId, pids: this.getPidList() })
   }
@@ -72,15 +72,15 @@ export class GameMonitor {
       this.timer = null
     }
     
-    this.endTime = Date.now()
-    const duration = Math.floor((this.endTime - this.startTime) / 1000) // seconds
-    const playDate = formatLocalDate(new Date(this.startTime));
+    this.endedAtMs = Date.now()
+    const duration = Math.floor((this.endedAtMs - this.startedAtMs) / 1000) // seconds
+    const playDate = formatLocalDate(new Date(this.startedAtMs));
 
     console.log('[Playtime] save:', {
       gameId: this.gameId,
       playDate: playDate,
-      startTime: new Date(this.startTime).toLocaleTimeString('zh-CN', { hour12: false }),
-      endTime: new Date(this.endTime).toLocaleTimeString('zh-CN', { hour12: false }),
+      startedAt: new Date(this.startedAtMs).toLocaleTimeString('zh-CN', { hour12: false }),
+      endedAt: new Date(this.endedAtMs).toLocaleTimeString('zh-CN', { hour12: false }),
       duration
     })
 
@@ -90,8 +90,8 @@ export class GameMonitor {
       routeId: null,
       playDate: playDate,
       duration: duration,
-      startTime: new Date(this.startTime).toISOString(),
-      endTime: new Date(this.endTime).toISOString(),
+      startedAt: new Date(this.startedAtMs).toISOString(), // number -> ISO string
+      endedAt: new Date(this.endedAtMs).toISOString(),
       autoRecord: true
     } as Session)
   }

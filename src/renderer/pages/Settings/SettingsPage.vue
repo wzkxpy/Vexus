@@ -120,7 +120,7 @@ const sections = [{ id: 'general', label: '常规', icon: '⌁' }, { id: 'displa
 const themeOptions = [{ label: '浅色', value: 'light' }, { label: '深色', value: 'dark' }, { label: '跟随系统', value: 'system' }] as const
 
 // 与主进程 Settings 保持相同结构；默认值仅用于加载期间兜底。
-const form = reactive<Settings>({ autoLaunch: false, theme: 'system', gameTitle: 'Local', subTitle: true, bangumiToken: '', magpiePath: '', magpieHotkey: '', proxy: { enabled: false, protocol: 'http', host: '', port: 7890 }, gameSortType: 'addTime', gameSortOrder: 'asc' })
+const form = reactive<Settings>({ autoLaunch: false, theme: 'system', gameTitle: 'Local', subTitle: true, bangumiToken: '', magpiePath: '', magpieHotkey: '', proxy: { enabled: false, protocol: 'http', host: '', port: 7890 }, gameSortType: 'addedAt', gameSortOrder: 'asc' })
 const loading = ref(true), showToken = ref(false), activeSection = ref('general'), contentRef = ref<HTMLElement | null>(null)
 // 保存状态驱动页面右上角的反馈提示。
 const saveState = ref<'saved' | 'saving' | 'error'>('saved')

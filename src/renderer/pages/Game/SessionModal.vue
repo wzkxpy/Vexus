@@ -27,11 +27,11 @@
 
           <!-- start time -->
           <input v-if="editingId === s.id" type="time" v-model="edit.startTime" :disabled="mode === 'duration'" />
-          <span v-else class="value">{{ s.startTime ? formatLocalTime(new Date(s.startTime)) : '-' }}</span>
+          <span v-else class="value">{{ s.startedAt ? formatLocalTime(new Date(s.startedAt)) : '-' }}</span>
 
           <!-- end time -->
           <input v-if="editingId === s.id" type="time" v-model="edit.endTime" :disabled="mode === 'duration'" />
-          <span v-else class="value">{{ s.endTime ? formatLocalTime(new Date(s.endTime)) : '-' }}</span>
+          <span v-else class="value">{{ s.endedAt ? formatLocalTime(new Date(s.endedAt)) : '-' }}</span>
 
           <!-- duration -->
           <input v-if="editingId === s.id" type="number" placeholder="分钟" v-model.number="edit.duration_m"
@@ -150,8 +150,8 @@ const createSession = () => {
     gameId: game.value!.id,
     playDate: today(),
     duration: 0,
-    startTime: null,
-    endTime: null,
+    startedAt: null,
+    endedAt: null,
     routeId: null,
     autoRecord: false
   }
@@ -177,11 +177,11 @@ const startEdit = (s: Session) => {
   edit.id = s.id
   edit.playDate = s.playDate
   edit.duration_m = Math.round(s.duration / 60)
-  edit.startTime = s.startTime ? formatLocalTime(new Date(s.startTime)) : ''
-  edit.endTime = s.endTime ? formatLocalTime(new Date(s.endTime)) : ''
+  edit.startTime = s.startedAt ? formatLocalTime(new Date(s.startedAt)) : ''
+  edit.endTime = s.endedAt ? formatLocalTime(new Date(s.endedAt)) : ''
 
   mode.value =
-    s.startTime && s.endTime
+    s.startedAt && s.endedAt
       ? 'time'
       : 'duration'
 }
@@ -205,22 +205,21 @@ const save = async () => {
   if (!edit.playDate) return
 
   let duration_s = edit.duration_m * 60
-  let startTime: string | null = null
-  let endTime: string | null = null
+  let startedAt: string | null = null
+  let endedAt: string | null = null
 
   if (mode.value === 'time') {
     if (!edit.startTime || !edit.endTime) return
 
-    startTime = edit.startTime + ':00'
-    endTime = edit.endTime + ':00'
-    const start = new Date(`${edit.playDate}T${startTime}`)
-    const end = new Date(`${edit.playDate}T${endTime}`)
+    const start = new Date(`${edit.playDate}T${edit.startTime}:00`)
+    const end = new Date(`${edit.playDate}T${edit.endTime}:00`)
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return
     if (end.getTime() < start.getTime()) {
       end.setDate(end.getDate() + 1)
     }
 
-    startTime = start.toISOString()
-    endTime = end.toISOString()
+    startedAt = start.toISOString()
+    endedAt = end.toISOString()
     duration_s = Math.round((end.getTime() - start.getTime()) / 1000)
   }
 
@@ -229,8 +228,8 @@ const save = async () => {
     gameId: game.value!.id,
     playDate: edit.playDate,
     duration: duration_s,
-    startTime,
-    endTime,
+    startedAt,
+    endedAt,
     routeId: null,
     autoRecord: false
   }
@@ -239,7 +238,7 @@ const save = async () => {
     if (mode.value === 'duration') {
       // 查找是否已有同一天的 session
       const existing = sessions.value.find(s =>
-        s.id !== edit.id && !s.endTime && s.playDate === edit.playDate
+        s.id !== edit.id && !s.endedAt && s.playDate === edit.playDate
       )
       if (existing) {
         session.id = existing.id
@@ -255,7 +254,7 @@ const save = async () => {
   else  // 修改时
     await sessionStore.updateSession(session)
 
-  gameStore.refreshGame(game.value!.id)  // 刷新游戏数据以更新总游玩时长等信息
+  await gameStore.refreshGame(game.value!.id)  // 数据库触发器已重算总时长，同步刷新前端缓存
   draftSession.value = null
   editingId.value = null
 }
@@ -265,7 +264,7 @@ const removeSession = async (s: Session) => {
   const ok = confirm('确定删除吗？')
   if (!ok) return
   await sessionStore.deleteSession(s.id, s.gameId)
-  gameStore.refreshGame(game.value!.id)  // 刷新游戏数据以更新总游玩时长等信息
+  await gameStore.refreshGame(game.value!.id)  // 数据库触发器已重算总时长，同步刷新前端缓存
 }
 </script>
 

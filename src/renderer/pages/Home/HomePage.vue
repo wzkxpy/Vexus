@@ -160,7 +160,7 @@ const scrollRightFn = () => {
 // 获取最近的游戏列表
 const recentGames = computed(() => {
   return [...gameStore.games]
-    .sort((a, b) => (b.record.lastRunDate || '').localeCompare(a.record.lastRunDate || ''))
+    .sort((a, b) => (b.record.lastRunAt || '').localeCompare(a.record.lastRunAt || ''))
     .slice(0, 12)
 })
 

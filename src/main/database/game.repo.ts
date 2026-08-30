@@ -90,8 +90,8 @@ add(game: NewGame): string {
     'music',
     'characters',
 
-    'add_time',
-    'last_run_date',
+    'added_at',
+    'last_run_at',
     'play_status',
     'personal_score',
     'session_playtime',

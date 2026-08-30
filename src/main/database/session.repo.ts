@@ -11,7 +11,7 @@ export class SessionRepository {
       INSERT INTO sessions (
         id, game_id, route_id,
         local_date,
-        start_time, end_time, duration,
+        started_at, ended_at, duration,
         auto_record
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -21,8 +21,8 @@ export class SessionRepository {
         session.gameId,
         session.routeId,
         session.playDate,
-        session.startTime,
-        session.endTime,
+        session.startedAt,
+        session.endedAt,
         session.duration,
         session.autoRecord ? 1 : 0
     )
@@ -42,8 +42,8 @@ export class SessionRepository {
         route_id = ?,
         local_date = ?,
         duration = ?,
-        start_time = ?,
-        end_time = ?,
+        started_at = ?,
+        ended_at = ?,
         auto_record = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
@@ -52,8 +52,8 @@ export class SessionRepository {
       session.routeId ?? null,
       session.playDate,
       session.duration,
-      session.startTime ?? null,
-      session.endTime ?? null,
+      session.startedAt ?? null,
+      session.endedAt ?? null,
       session.autoRecord ? 1 : 0,
       session.id
     )
@@ -63,7 +63,7 @@ export class SessionRepository {
     const stmt = this.db.prepare(`
       SELECT * FROM sessions
       WHERE game_id = ?
-      ORDER BY local_date ASC, start_time ASC
+      ORDER BY local_date ASC, started_at ASC
     `)
     const rows = stmt.all(gameId)
     return rows.map((row: any): Session => ({
@@ -71,8 +71,8 @@ export class SessionRepository {
       gameId: row.game_id,
       routeId: row.route_id,
       playDate: row.local_date,
-      startTime: row.start_time,
-      endTime: row.end_time,
+      startedAt: row.started_at,
+      endedAt: row.ended_at,
       duration: row.duration,
       autoRecord: Boolean(row.auto_record)
     }))
