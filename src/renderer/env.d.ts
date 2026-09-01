@@ -23,6 +23,7 @@ declare global {
       addSession: (session: Session) => Promise<void>
       deleteSession: (id: string) => Promise<void>
       updateSession: (session: Session) => Promise<void>
+      importSessions: (gameId: string, text: string) => Promise<void>
     },
 
     fileAPI: {

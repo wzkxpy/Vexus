@@ -78,4 +78,38 @@ export class SessionRepository {
     }))
   }
 
+  // 单个游戏覆盖导入
+  // 删除旧记录和写入新记录必须处于同一事务，避免失败后留下部分数据。
+  importForGame(gameId: string, sessions: Session[]) {
+    const deleteStmt = this.db.prepare(`
+      DELETE FROM sessions
+      WHERE game_id = ?
+    `)
+    const insertStmt = this.db.prepare(`
+      INSERT INTO sessions (
+        id, game_id, route_id,
+        local_date,
+        started_at, ended_at, duration,
+        auto_record
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+
+    this.db.transaction(() => {
+      deleteStmt.run(gameId)
+      for (const session of sessions) {
+        insertStmt.run(
+          session.id,
+          session.gameId,
+          session.routeId,
+          session.playDate,
+          session.startedAt,
+          session.endedAt,
+          session.duration,
+          session.autoRecord ? 1 : 0
+        )
+      }
+    })()
+  }
+
 }

@@ -49,10 +49,10 @@
               {{ mode === 'time' ? '按时间' : '按时长' }}
             </button>
 
-            <button v-if="editingId === s.id" @click="save"> 保存
+            <button v-if="editingId === s.id" @click="cancel"> 取消
             </button>
 
-            <button v-if="editingId === s.id" @click="cancel"> 取消
+            <button v-if="editingId === s.id" @click="save"> 保存
             </button>
 
             <button v-if="editingId !== s.id" class="danger" @click="removeSession(s)"> 删除
@@ -62,14 +62,24 @@
 
         </div>
 
-        <!-- 新建 -->
+      </div>
+
+      <div class="footer-actions">
         <button class="add-btn" @click="createSession">
           + 新记录
         </button>
-
+        <button class="import-btn" @click="showImportModal = true">
+          导入时长
+        </button>
       </div>
 
     </div>
+    <SessionImportModal
+      v-if="showImportModal"
+      :game-id="game!.id"
+      @close="showImportModal = false"
+      @imported="handleImported"
+    />
   </div>
 </template>
 
@@ -80,6 +90,7 @@ import { useGameStore } from '@/renderer/stores/game.store'
 import type { Session } from '@/shared/types'
 import { useRoute } from 'vue-router'
 import { formatLocalDate, formatLocalTime } from '@/shared/utils'
+import SessionImportModal from './SessionImportModal.vue'
 
 defineEmits(['close'])
 
@@ -90,6 +101,11 @@ const game = computed(() => {
   const id = route.params.id as string
   return gameStore.getGameById(id)
 })
+const showImportModal = ref(false)
+
+const handleImported = () => {
+  showImportModal.value = false
+}
 
 /* draft session (未保存) */
 const draftSession = ref<Session | null>(null)
@@ -284,10 +300,13 @@ const removeSession = async (s: Session) => {
 .modal {
   width: 720px;
   max-height: 85vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   background: #ffffff;
   border-radius: 14px;
   padding: 24px;
-  overflow-y: auto;
+  overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, .25);
 }
 
@@ -314,13 +333,29 @@ const removeSession = async (s: Session) => {
 }
 
 .session-list {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.session-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.session-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd2df;
 }
 
 /* 表头 */
 .header-row {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   font-weight: 560;
   font-size: 14px;
   color: #555555;
@@ -328,7 +363,7 @@ const removeSession = async (s: Session) => {
 
 .session-item {
   display: grid;
-  grid-template-columns: 120px 100px 100px 120px auto;
+  grid-template-columns: 120px 100px 100px 100px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
 
@@ -345,14 +380,12 @@ const removeSession = async (s: Session) => {
 }
 
 /* 值显示 */
-
 .value {
   font-size: 14px;
   color: #374151;
 }
 
 /* duration 标签 */
-
 .duration {
   display: inline-block;
   background: #e0ecff;
@@ -364,7 +397,6 @@ const removeSession = async (s: Session) => {
 }
 
 /* 输入框 */
-
 input {
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -384,14 +416,15 @@ input:disabled {
 }
 
 /* 按钮区 */
-
 .actions {
   display: flex;
   gap: 6px;
 }
+.actions button {
+  white-space: nowrap;
+}
 
 /* 默认按钮 */
-
 button {
   border: none;
   border-radius: 6px;
@@ -401,13 +434,11 @@ button {
   background: #e5e7eb;
   transition: .15s;
 }
-
 button:hover {
   background: #d1d5db;
 }
 
 /* 添加按钮 */
-
 .add-btn {
   width: 120px;
   background: #2563eb;
@@ -418,29 +449,44 @@ button:hover {
   cursor: pointer;
   margin-bottom: 8px;
 }
-
 .add-btn:hover {
   background: #1d4ed8;
 }
 
-/* 保存按钮 */
+.footer-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: 16px;
+}
 
+.footer-actions .add-btn {
+  margin-bottom: 0;
+}
+
+.import-btn {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.import-btn:hover {
+  background: #bfdbfe;
+}
+
+/* 保存按钮 */
 .actions button:nth-child(3) {
   background: #22c55e;
   color: white;
 }
-
 .actions button:nth-child(3):hover {
   background: #16a34a;
 }
 
 /* 删除按钮 */
-
 .danger {
   background: #fee2e2;
   color: #b91c1c;
 }
-
 .danger:hover {
   background: #fecaca;
 }

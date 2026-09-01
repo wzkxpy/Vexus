@@ -52,16 +52,21 @@ export const useSessionStore = defineStore('session', {
 
     async updateSession(session: Session) {
       await window.databaseAPI.updateSession(session)
-
       const list = this.sessionsByGame[session.gameId]
       if (!list) return
-
       const index = list.findIndex(s => s.id === session.id)
       if (index !== -1) {
         list[index] = session
       }
     },
 
+    // 单个游戏覆盖导入 session
+    async importSessions(gameId: string, text: string) {
+      await window.databaseAPI.importSessions(gameId, text)
+      const sessions = await window.databaseAPI.getGameSessions(gameId)
+      this.sessionsByGame[gameId] = sessions
+      this.loadedGames.add(gameId)
+    },
 
   }
 })

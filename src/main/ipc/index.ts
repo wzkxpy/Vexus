@@ -6,6 +6,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { GameService } from '../database/game.service'
 import { SessionService } from '../database/session.service'
 import { Game, NewGame, Session } from '@/shared/types'
+import { SessionImportService } from '../services/sessionImport'
 import { searchGames, fetchGame, buildGameFromBangumi } from '../providers/manager'
 import { launchGame, stopGame, openFolder } from '../services/launch'
 import { getSettings, getSetting, setSetting, Settings } from '../settings'
@@ -32,7 +33,11 @@ export function registerFileIPC() {
 }
 
 
-export function registerDBIPC(gameService: GameService, sessionService: SessionService) {
+export function registerDBIPC(
+  gameService: GameService,
+  sessionService: SessionService,
+  sessionImportService: SessionImportService
+) {
   // Game
   ipcMain.handle('addGame', (_, newgame: NewGame) => {
     return gameService.addGame(newgame)
@@ -64,6 +69,9 @@ export function registerDBIPC(gameService: GameService, sessionService: SessionS
   })
   ipcMain.handle('updateSession', (_, session: Session) =>{
     return sessionService.updateSession(session)
+  })
+  ipcMain.handle('importSessions', (_, gameId: string, text: string) => {
+    return sessionImportService.import(gameId, text)
   })
 }
 
