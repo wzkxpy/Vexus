@@ -69,6 +69,9 @@ export class SessionService {
     if (!session.gameId) {
       throw new Error('Game id required')
     }
+    if (!['auto', 'manual', 'import'].includes(session.source)) {
+      throw new Error('Invalid session source')
+    }
     if (!Number.isFinite(session.duration) || session.duration < 0 || session.duration > 86400) {
       throw new Error('Duration cannot be negative or more than one day')
     }

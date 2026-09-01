@@ -50,7 +50,7 @@ export function parseVniteSessions(gameId: string, value: Record<string, unknown
       startedAt,
       endedAt,
       duration,
-      autoRecord: false
+      source: 'import'
     })
   }
 
@@ -75,7 +75,7 @@ export function parseVniteSessions(gameId: string, value: Record<string, unknown
       startedAt: null,
       endedAt: null,
       duration,
-      autoRecord: false
+      source: 'import'
     })
   }
 

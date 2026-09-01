@@ -4,7 +4,7 @@
     <div class="modal">
       <div class="header">
         <b>游玩记录</b>
-        <button class="close-btn" @click="$emit('close')">✕</button>
+        <button class="close-btn" :disabled="savingExtra" @click="requestClose">✕</button>
       </div>
 
       <div class="session-list">
@@ -71,6 +71,38 @@
         <button class="import-btn" @click="showImportModal = true">
           导入时长
         </button>
+
+        <div class="extra-playtime-section">
+          <div class="extra-playtime-editor">
+            <label for="extra-playtime">未记录时长</label>
+            <input
+              id="extra-playtime"
+              v-model="extraMinutes"
+              type="text"
+              inputmode="numeric"
+              :disabled="savingExtra"
+              @input="sanitizeExtraMinutes"
+              @keydown="blockExtraInvalidKeys"
+              @keydown.enter.prevent="saveExtraPlaytime"
+              @keydown.escape.prevent="cancelExtraPlaytime"
+            />
+            <span>min</span>
+            <div class="extra-edit-actions" :class="{ visible: extraDirty }">
+              <button
+                class="extra-confirm"
+                title="保存"
+                :disabled="savingExtra || !extraDirty"
+                @click="saveExtraPlaytime"
+              >✓</button>
+              <button
+                title="撤销"
+                :disabled="savingExtra || !extraDirty"
+                @click="cancelExtraPlaytime"
+              >×</button>
+            </div>
+          </div>
+          <span v-if="extraError" class="extra-error">{{ extraError }}</span>
+        </div>
       </div>
 
     </div>
@@ -84,15 +116,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameStore } from '@/renderer/stores/game.store'
-import type { Session } from '@/shared/types'
+import type { Session, SessionSource } from '@/shared/types'
 import { useRoute } from 'vue-router'
 import { formatLocalDate, formatLocalTime } from '@/shared/utils'
 import SessionImportModal from './SessionImportModal.vue'
 
-defineEmits(['close'])
+const emit = defineEmits(['close'])
 
 const sessionStore = useSessionStore()
 const gameStore = useGameStore()
@@ -102,6 +134,87 @@ const game = computed(() => {
   return gameStore.getGameById(id)
 })
 const showImportModal = ref(false)
+const savedExtraSeconds = ref(game.value?.record.extraPlaytime ?? 0)
+const extraMinutes = ref(formatExtraMinutes(savedExtraSeconds.value))
+const savingExtra = ref(false)
+const extraError = ref('')
+
+const normalizedExtraSeconds = computed(() => {
+  if (extraMinutes.value === '') return 0
+  const minutes = Number(extraMinutes.value)
+  if (!Number.isFinite(minutes) || minutes < 0) return null
+  return Math.round(minutes * 60)
+})
+
+const extraDirty = computed(() =>
+  extraMinutes.value !== formatExtraMinutes(savedExtraSeconds.value)
+)
+
+watch(
+  () => game.value?.record.extraPlaytime,
+  seconds => {
+    if (seconds === undefined || extraDirty.value) return
+    savedExtraSeconds.value = seconds
+    extraMinutes.value = formatExtraMinutes(seconds)
+  }
+)
+
+const saveExtraPlaytime = async () => {
+  if (!game.value || !extraDirty.value || savingExtra.value) return
+  const seconds = normalizedExtraSeconds.value
+  if (seconds === null) {
+    extraError.value = '请输入不小于 0 的有效数字'
+    return
+  }
+
+  savingExtra.value = true
+  extraError.value = ''
+  try {
+    await gameStore.updateGame(game.value.id, {
+      record: {
+        ...game.value.record,
+        extraPlaytime: seconds
+      }
+    })
+    savedExtraSeconds.value = seconds
+    extraMinutes.value = formatExtraMinutes(seconds)
+  } catch (reason) {
+    extraError.value = reason instanceof Error ? reason.message : '保存失败，请重试'
+  } finally {
+    savingExtra.value = false
+  }
+}
+
+const cancelExtraPlaytime = () => {
+  extraMinutes.value = formatExtraMinutes(savedExtraSeconds.value)
+  extraError.value = ''
+}
+
+const requestClose = () => {
+  if (savingExtra.value) return
+  emit('close')
+}
+
+const sanitizeExtraMinutes = () => {
+  extraMinutes.value = extraMinutes.value.replace(/\D/g, '')
+  extraError.value = ''
+}
+
+const blockExtraInvalidKeys = (event: KeyboardEvent) => {
+  if (event.ctrlKey || event.metaKey) return
+  const allowed = [
+    'Backspace', 'Delete', 'Tab',
+    'ArrowLeft', 'ArrowRight', 'Home', 'End',
+    'Enter', 'Escape'
+  ]
+  if (!/^\d$/.test(event.key) && !allowed.includes(event.key)) {
+    event.preventDefault()
+  }
+}
+
+function formatExtraMinutes(seconds: number) {
+  return String(Math.round(seconds / 60))
+}
 
 const handleImported = () => {
   showImportModal.value = false
@@ -129,7 +242,8 @@ const edit = reactive({
   playDate: '',
   duration_m: 0,
   startTime: '',
-  endTime: ''
+  endTime: '',
+  source: 'manual' as SessionSource
 })
 
 /* 工具 */
@@ -169,7 +283,7 @@ const createSession = () => {
     startedAt: null,
     endedAt: null,
     routeId: null,
-    autoRecord: false
+    source: 'manual'
   }
   draftSession.value = session
 
@@ -180,6 +294,7 @@ const createSession = () => {
   edit.duration_m = 0
   edit.startTime = ''
   edit.endTime = ''
+  edit.source = 'manual'
 
   mode.value = 'time'
 }
@@ -195,6 +310,7 @@ const startEdit = (s: Session) => {
   edit.duration_m = Math.round(s.duration / 60)
   edit.startTime = s.startedAt ? formatLocalTime(new Date(s.startedAt)) : ''
   edit.endTime = s.endedAt ? formatLocalTime(new Date(s.endedAt)) : ''
+  edit.source = s.source
 
   mode.value =
     s.startedAt && s.endedAt
@@ -247,14 +363,17 @@ const save = async () => {
     startedAt,
     endedAt,
     routeId: null,
-    autoRecord: false
+    source: edit.source
   }
 
   if (draftSession.value) {  // 新增时
     if (mode.value === 'duration') {
       // 查找是否已有同一天的 session
       const existing = sessions.value.find(s =>
-        s.id !== edit.id && !s.endedAt && s.playDate === edit.playDate
+        s.id !== edit.id
+        && !s.endedAt
+        && s.playDate === edit.playDate
+        && s.source === 'manual'
       )
       if (existing) {
         session.id = existing.id
@@ -455,6 +574,7 @@ button:hover {
 
 .footer-actions {
   display: flex;
+  align-items: flex-start;
   gap: 8px;
   flex-shrink: 0;
   margin-top: 16px;
@@ -471,6 +591,60 @@ button:hover {
 
 .import-btn:hover {
   background: #bfdbfe;
+}
+
+.extra-playtime-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.extra-playtime-editor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  color: #4b5563;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.extra-playtime-editor input {
+  width: 96px;
+  box-sizing: border-box;
+}
+
+.extra-edit-actions {
+  width: 60px;
+  display: flex;
+  gap: 4px;
+  visibility: hidden;
+}
+
+.extra-edit-actions.visible {
+  visibility: visible;
+}
+
+.extra-edit-actions button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+.extra-edit-actions .extra-confirm {
+  color: #ffffff;
+  background: #22c55e;
+}
+
+.extra-edit-actions .extra-confirm:hover {
+  background: #16a34a;
+}
+
+.extra-error {
+  color: #b91c1c;
+  font-size: 12px;
 }
 
 /* 保存按钮 */

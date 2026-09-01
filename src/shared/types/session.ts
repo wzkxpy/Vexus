@@ -1,5 +1,7 @@
 // src/shared/types/session.ts
 
+export type SessionSource = 'auto' | 'manual' | 'import'
+
 export interface Session {
   id: string
   gameId: string
@@ -9,5 +11,5 @@ export interface Session {
   startedAt: string | null
   endedAt: string | null
   duration: number
-  autoRecord: boolean
+  source: SessionSource
 }

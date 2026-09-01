@@ -35,7 +35,7 @@ export function parsePotatoVNSessions(
       startedAt: null,
       endedAt: null,
       duration,
-      autoRecord: false
+      source: 'import'
     } satisfies Session
   })
 

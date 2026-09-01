@@ -92,7 +92,7 @@ export class GameMonitor {
       duration: duration,
       startedAt: new Date(this.startedAtMs).toISOString(), // number -> ISO string
       endedAt: new Date(this.endedAtMs).toISOString(),
-      autoRecord: true
+      source: 'auto'
     } as Session)
   }
 

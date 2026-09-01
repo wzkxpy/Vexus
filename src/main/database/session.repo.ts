@@ -1,4 +1,4 @@
-import { Session } from '@/shared/types'
+import { Session, SessionSource } from '@/shared/types'
 import type { Database } from 'better-sqlite3'
 
 
@@ -12,7 +12,7 @@ export class SessionRepository {
         id, game_id, route_id,
         local_date,
         started_at, ended_at, duration,
-        auto_record
+        source
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `)
@@ -24,7 +24,7 @@ export class SessionRepository {
         session.startedAt,
         session.endedAt,
         session.duration,
-        session.autoRecord ? 1 : 0
+        session.source
     )
   }
 
@@ -44,7 +44,7 @@ export class SessionRepository {
         duration = ?,
         started_at = ?,
         ended_at = ?,
-        auto_record = ?,
+        source = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `)
@@ -54,7 +54,7 @@ export class SessionRepository {
       session.duration,
       session.startedAt ?? null,
       session.endedAt ?? null,
-      session.autoRecord ? 1 : 0,
+      session.source,
       session.id
     )
   }
@@ -74,7 +74,7 @@ export class SessionRepository {
       startedAt: row.started_at,
       endedAt: row.ended_at,
       duration: row.duration,
-      autoRecord: Boolean(row.auto_record)
+      source: row.source as SessionSource
     }))
   }
 
@@ -90,7 +90,7 @@ export class SessionRepository {
         id, game_id, route_id,
         local_date,
         started_at, ended_at, duration,
-        auto_record
+        source
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `)
@@ -106,7 +106,7 @@ export class SessionRepository {
           session.startedAt,
           session.endedAt,
           session.duration,
-          session.autoRecord ? 1 : 0
+          session.source
         )
       }
     })()

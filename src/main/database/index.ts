@@ -68,7 +68,6 @@ export function initDatabase(db: Database) {
 
       created_at TEXT DEFAULT CURRENT_TIMESTAMP, -- 记录创建时间
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP  -- 记录更新时间
-      -- 注意 update 字段不会自动更新, 需要在更新记录时手动设置为 CURRENT_TIMESTAMP
     )
   `)
 
@@ -105,7 +104,7 @@ export function initDatabase(db: Database) {
       ended_at TEXT,              -- 结束时间 ISO datetime
       duration INTEGER NOT NULL,  -- 游玩时长 INT seconds
 
-      auto_record INTEGER,        -- 是否为自动记录
+      source TEXT NOT NULL DEFAULT 'manual', -- 来源 auto / manual / import
 
       created_at TEXT DEFAULT CURRENT_TIMESTAMP, -- 记录创建时间
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP, -- 记录更新时间
@@ -117,7 +116,8 @@ export function initDatabase(db: Database) {
         (started_at IS NOT NULL AND ended_at IS NOT NULL)
         OR
         (started_at IS NULL AND ended_at IS NULL)
-      )
+      ),
+      CHECK (source IN ('auto', 'manual', 'import'))
     )
   `);
 
