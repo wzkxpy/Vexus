@@ -574,7 +574,7 @@ button:hover {
 
 .footer-actions {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   flex-shrink: 0;
   margin-top: 16px;

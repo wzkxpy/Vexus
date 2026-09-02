@@ -1,6 +1,15 @@
 <template>
   <div v-if="game" class="game-overview">
 
+    <!-- 线路 -->
+    <div class="section routes-section">
+      <h3>线路</h3>
+      <button class="edit-btn" aria-label="编辑线路" title="编辑线路" @click="uiStore.activeModal = 'route-editor'">✎</button>
+      <div v-if="routeLoading" class="route-message">正在加载线路…</div>
+      <div v-else-if="routeError" class="route-message error">{{ routeError }}</div>
+      <RouteTree v-else :routes="gameRoutes" />
+    </div>
+
     <!-- 角色 -->
     <div class="section characters-section" v-if="game.characters?.length">
       <h3>角色</h3>
@@ -90,17 +99,27 @@
     :characters="game.characters"
     @close="uiStore.activeModal = null"
   />
+
+  <RouteEditorModal
+    v-if="uiStore.activeModal === 'route-editor' && game"
+    :game-id="game.id"
+    :routes="gameRoutes"
+    @close="uiStore.activeModal = null"
+  />
 </template>
 
 <script setup lang="ts">
 import type { Game } from '@/shared/types';
 import { useGameStore } from '@/renderer/stores/game.store'
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import EditModal from '../EditModal.vue'
 import CharacterSortModal from '../CharacterSortModal.vue'
 import { useRoute } from 'vue-router'
 import { useUIStore } from '@/renderer/stores/ui.store';
 import defaultCharacterAvatar from '@/renderer/assets/images/akarin.webp'
+import { useRouteStore } from '@/renderer/stores/route.store'
+import RouteTree from '../routes/RouteTree.vue'
+import RouteEditorModal from '../routes/RouteEditorModal.vue'
 
 const route = useRoute()
 const gameStore = useGameStore()
@@ -109,6 +128,15 @@ const game = computed(() => {
   return gameStore.getGameById(id)
 })
 const uiStore = useUIStore()
+const routeStore = useRouteStore()
+const gameId = computed(() => route.params.id as string)
+const gameRoutes = computed(() => routeStore.getGameRoutes(gameId.value))
+const routeLoading = computed(() => routeStore.loadingByGame[gameId.value] ?? false)
+const routeError = computed(() => routeStore.errorByGame[gameId.value] ?? null)
+
+watch(gameId, id => {
+  if (id) void routeStore.loadGameRoutes(id)
+}, { immediate: true })
 
 // 路径为空或本地头像文件丢失时，统一回退到应用内置头像。
 const handleAvatarError = (event: Event) => {
@@ -144,11 +172,16 @@ const openEdit = (type: keyof Game) => {
   box-shadow: 0 7px 25px rgba(50, 61, 86, 0.04);
 }
 
+.routes-section,
 .characters-section,
 .tags-section,
 .description {
   grid-column: 1 / -1;
 }
+
+.routes-section { min-height: 180px; }
+.route-message { display: grid; min-height: 116px; place-items: center; color: #98a1b1; font-size: 13px; }
+.route-message.error { color: #c84d5a; }
 
 .section h3 {
   margin: 0 0 17px;
@@ -281,6 +314,7 @@ const openEdit = (type: keyof Game) => {
     grid-template-columns: 1fr;
   }
 
+  .routes-section,
   .characters-section,
   .tags-section,
   .description {

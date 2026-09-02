@@ -24,6 +24,8 @@ declare global {
       deleteSession: (id: string) => Promise<void>
       updateSession: (session: Session) => Promise<void>
       importSessions: (gameId: string, text: string) => Promise<void>
+      getGameRoutes: (gameId: string) => Promise<Route[]>
+      saveGameRoutes: (gameId: string, routes: Route[]) => Promise<Route[]>
     },
 
     fileAPI: {
