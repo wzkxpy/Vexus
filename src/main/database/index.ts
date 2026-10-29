@@ -86,7 +86,6 @@ export function initDatabase(db: Database) {
       lock_condition TEXT,          -- 剧情锁 JSON
 
       status TEXT DEFAULT 'NotStarted',  -- 游玩状态
-      playtime INTEGER DEFAULT 0,        -- 游玩时长 / seconds
 
       created_at TEXT DEFAULT CURRENT_TIMESTAMP, -- 记录创建时间
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP, -- 记录更新时间
@@ -102,6 +101,7 @@ export function initDatabase(db: Database) {
 
       game_id TEXT NOT NULL,        -- 游戏 ID
       route_id TEXT,                -- 线路 ID
+      route_tag TEXT,               -- 未绑定时的线路标签（导入/删线后保留）
 
       local_date TEXT NOT NULL,   -- 游玩日期 yyyy-mm-dd
       started_at TEXT,            -- 开始时间 ISO datetime
@@ -196,6 +196,15 @@ export function initDatabase(db: Database) {
           ),
           updated_at = CURRENT_TIMESTAMP
         WHERE id = OLD.game_id;
+    END;
+
+    -- 4. 删除线路前保留其名称，外键置空 route_id 后记录进入待绑定。
+    CREATE TRIGGER IF NOT EXISTS preserve_session_route_tag_before_route_delete
+    BEFORE DELETE ON routes
+    BEGIN
+        UPDATE sessions
+        SET route_tag = OLD.name
+        WHERE route_id = OLD.id AND route_tag IS NULL;
     END;
   `)
 }

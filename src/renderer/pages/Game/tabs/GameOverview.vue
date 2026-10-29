@@ -5,6 +5,9 @@
     <div class="section routes-section">
       <h3>线路</h3>
       <button class="edit-btn" aria-label="编辑线路" title="编辑线路" @click="uiStore.activeModal = 'route-editor'"><Pencil :size="12" /></button>
+      <p v-if="!routeLoading && !routeError && unassignedPlaytime > 0" class="route-unassigned">
+        未归属线路的游玩时长：{{ formatPlaytime(unassignedPlaytime) }}
+      </p>
       <div v-if="routeLoading" class="route-message">正在加载线路…</div>
       <div v-else-if="routeError" class="route-message error">{{ routeError }}</div>
       <RouteTree v-else :routes="gameRoutes" />
@@ -135,6 +138,19 @@ const gameRoutes = computed(() => routeStore.getGameRoutes(gameId.value))
 const routeLoading = computed(() => routeStore.loadingByGame[gameId.value] ?? false)
 const routeError = computed(() => routeStore.errorByGame[gameId.value] ?? null)
 
+// 只有 sessionPlaytime 参与线路归属，未记录时长（extraPlaytime）保持游戏级。
+const unassignedPlaytime = computed(() => {
+  const total = game.value?.record.sessionPlaytime ?? 0
+  const assigned = gameRoutes.value.reduce((sum, item) => sum + item.playtime, 0)
+  return Math.max(0, total - assigned)
+})
+const formatPlaytime = (seconds: number) => {
+  const total = Math.max(0, Math.floor(seconds))
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor(total % 3600 / 60)
+  return hours ? `${hours} 小时 ${minutes} 分钟` : minutes ? `${minutes} 分钟` : `${total} 秒`
+}
+
 watch(gameId, id => {
   if (id) void routeStore.loadGameRoutes(id)
 }, { immediate: true })
@@ -183,6 +199,7 @@ const openEdit = (type: keyof Game) => {
 .routes-section { min-height: 180px; }
 .route-message { display: grid; min-height: 116px; place-items: center; color: #98a1b1; font-size: 13px; }
 .route-message.error { color: #c84d5a; }
+.route-unassigned { margin: -7px 0 12px; color: #8c96a6; font-size: 12px; }
 
 .section h3 {
   margin: 0 0 17px;

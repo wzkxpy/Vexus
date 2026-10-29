@@ -1,12 +1,19 @@
 import { SessionService } from "../../database/session.service";
 import { parsePotatoVNSessions } from "./potato.parser";
 import { parseVniteSessions } from "./vnite.parser";
+import { parseVexusSessions } from "./vexus.parser";
+import { SESSION_EXPORT_FORMAT } from '@/shared/sessionExport';
 
 export class SessionImportService {
   constructor(private sessionService: SessionService) {}
 
   import(gameId: string, text: string) {
     const data = parseText(text);
+    if (data.format === SESSION_EXPORT_FORMAT) {
+      const sessions = parseVexusSessions(gameId, data);
+      this.sessionService.importSessions(gameId, sessions);
+      return;
+    }
     const isPotatoVN = 'PlayedTime' in data;
     const isVnite = 'timers' in data && 'dailyPlayTimes' in data;
     if (isPotatoVN === isVnite) {

@@ -31,6 +31,7 @@ export function parsePotatoVNSessions(
       id: randomUUID(),
       gameId,
       routeId: null,
+      routeTag: null,
       playDate,
       startedAt: null,
       endedAt: null,

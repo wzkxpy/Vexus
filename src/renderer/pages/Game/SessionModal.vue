@@ -17,6 +17,7 @@
           <span>开始时间</span>
           <span>结束时间</span>
           <span>时长</span>
+          <span>线路</span>
           <span>操作</span>
         </div>
 
@@ -39,6 +40,13 @@
           <input v-if="editingId === s.id" type="number" placeholder="分钟" v-model.number="edit.duration_m"
             :disabled="mode === 'time'" @keydown="blockInvalidKeys" @input="fixDuration" min="0" max="1440" />
           <span v-else class="duration">{{ formatDuration(s.duration) }}</span>
+
+          <!-- route -->
+          <select v-if="editingId === s.id" v-model="edit.routeId" class="route-select" aria-label="线路">
+            <option :value="null">未指定</option>
+            <option v-for="item in gameRoutes" :key="item.id" :value="item.id">{{ item.name }}</option>
+          </select>
+          <span v-else class="value route-value" :class="{ 'route-pending': !s.routeId && s.routeTag }">{{ sessionRouteLabel(s) }}</span>
 
           <!-- actions -->
           <div class="actions">
@@ -66,6 +74,26 @@
 
       </div>
 
+      <div v-if="pendingGroups.length" class="pending-tags" :aria-busy="Boolean(bindingTag)">
+        <div class="pending-title">待绑定线路</div>
+        <div v-for="group in pendingGroups" :key="group.tag" class="pending-row">
+          <span class="pending-tag" :title="group.tag">{{ group.tag }}</span>
+          <span class="pending-meta">{{ group.count }} 条 · {{ formatDuration(group.duration) }}</span>
+          <select
+            class="pending-select"
+            :disabled="Boolean(bindingTag)"
+            aria-label="为标签选择线路"
+            @change="bindTag(group.tag, $event)"
+          >
+            <option value="" selected disabled>选择线路…</option>
+            <option v-for="item in gameRoutes" :key="item.id" :value="item.id">{{ item.name }}</option>
+          </select>
+        </div>
+        <p v-if="bindingError" class="pending-error" role="alert">{{ bindingError }}</p>
+      </div>
+
+      <p v-if="exportError" class="export-error" role="alert">{{ exportError }}</p>
+
       <div class="footer-actions">
         <button class="add-btn" @click="createSession">
           <Plus :size="14" />
@@ -73,6 +101,14 @@
         </button>
         <button class="import-btn" @click="showImportModal = true">
           导入时长
+        </button>
+        <button
+          class="export-btn"
+          :disabled="exporting || !canExport"
+          title="复制游玩记录 JSON 到剪贴板"
+          @click="copyExport"
+        >
+          {{ copied ? '已复制' : exporting ? '导出中…' : '导出' }}
         </button>
 
         <div class="extra-playtime-section">
@@ -121,9 +157,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameStore } from '@/renderer/stores/game.store'
+import { useRouteStore } from '@/renderer/stores/route.store'
+import { buildSessionExport } from '@/shared/sessionExport'
 import type { Session, SessionSource } from '@/shared/types'
 import { useRoute } from 'vue-router'
 import { formatLocalDate, formatLocalTime } from '@/shared/utils'
@@ -134,11 +172,29 @@ const emit = defineEmits(['close'])
 
 const sessionStore = useSessionStore()
 const gameStore = useGameStore()
+const routeStore = useRouteStore()
 const route = useRoute()
 const game = computed(() => {
   const id = route.params.id as string
   return gameStore.getGameById(id)
 })
+const gameRoutes = computed(() => routeStore.getGameRoutes(game.value!.id))
+const routeName = (routeId: string | null) => {
+  if (!routeId) return '未指定'
+  return gameRoutes.value.find(item => item.id === routeId)?.name ?? '未指定'
+}
+const sessionRouteLabel = (session: Session) => {
+  if (session.routeId) return routeName(session.routeId)
+  return session.routeTag ? `待绑定：${session.routeTag}` : '未指定'
+}
+// 新记录默认归入当前游玩中的线路，与自动记录规则一致。
+const defaultRouteId = () =>
+  gameRoutes.value.find(item => item.status === 'Playing')?.id ?? null
+watch(
+  () => game.value?.id,
+  id => { if (id) void routeStore.loadGameRoutes(id) },
+  { immediate: true }
+)
 const showImportModal = ref(false)
 const savedExtraSeconds = ref(game.value?.record.extraPlaytime ?? 0)
 const extraMinutes = ref(formatExtraMinutes(savedExtraSeconds.value))
@@ -238,6 +294,73 @@ const sessions = computed(() => {
   return list
 })
 
+const exportSessions = computed(() => sessionStore.getGameSessions(game.value!.id))
+const canExport = computed(() => exportSessions.value.some(session => session.duration > 0))
+const pendingGroups = computed(() => {
+  const groups = new Map<string, { tag: string; count: number; duration: number }>()
+  for (const session of exportSessions.value) {
+    const tag = session.routeTag
+    if (session.routeId || !tag) continue
+    const group = groups.get(tag)
+    if (group) {
+      group.count += 1
+      group.duration += session.duration
+    } else {
+      groups.set(tag, { tag, count: 1, duration: session.duration })
+    }
+  }
+  return [...groups.values()]
+})
+const bindingTag = ref<string | null>(null)
+const bindingError = ref('')
+const bindTag = async (tag: string, event: Event) => {
+  const select = event.target as HTMLSelectElement
+  const routeId = select.value
+  if (!routeId || bindingTag.value) return
+  bindingTag.value = tag
+  bindingError.value = ''
+  try {
+    await sessionStore.assignTagToRoute(game.value!.id, tag, routeId)
+  } catch (error) {
+    console.error('Failed to bind route tag:', error)
+    bindingError.value = '绑定失败，请重试'
+    select.value = ''
+  } finally {
+    bindingTag.value = null
+  }
+}
+const exporting = ref(false)
+const copied = ref(false)
+const exportError = ref('')
+let copiedTimer: ReturnType<typeof setTimeout> | null = null
+
+const copyExport = async () => {
+  if (exporting.value || !canExport.value) return
+  exporting.value = true
+  exportError.value = ''
+  copied.value = false
+  try {
+    // 已绑定记录的标签由当前线路名派生，导出前确保线路列表已加载。
+    const gameId = game.value!.id
+    if (routeStore.routesByGame[gameId] === undefined) {
+      await routeStore.loadGameRoutes(gameId)
+    }
+    await window.clipboardAPI.writeText(buildSessionExport(exportSessions.value, gameRoutes.value))
+    copied.value = true
+    if (copiedTimer) clearTimeout(copiedTimer)
+    copiedTimer = setTimeout(() => { copied.value = false }, 1500)
+  } catch (error) {
+    console.error('Failed to export sessions:', error)
+    exportError.value = '复制到剪贴板失败，请重试'
+  } finally {
+    exporting.value = false
+  }
+}
+
+onBeforeUnmount(() => {
+  if (copiedTimer) clearTimeout(copiedTimer)
+})
+
 /* 编辑状态 */
 const editingId = ref<string | null>(null)
 
@@ -249,6 +372,8 @@ const edit = reactive({
   duration_m: 0,
   startTime: '',
   endTime: '',
+  routeId: null as string | null,
+  routeTag: null as string | null,
   source: 'manual' as SessionSource
 })
 
@@ -288,7 +413,8 @@ const createSession = () => {
     duration: 0,
     startedAt: null,
     endedAt: null,
-    routeId: null,
+    routeId: defaultRouteId(),
+    routeTag: null,
     source: 'manual'
   }
   draftSession.value = session
@@ -300,6 +426,8 @@ const createSession = () => {
   edit.duration_m = 0
   edit.startTime = ''
   edit.endTime = ''
+  edit.routeId = session.routeId
+  edit.routeTag = null
   edit.source = 'manual'
 
   mode.value = 'time'
@@ -316,6 +444,8 @@ const startEdit = (s: Session) => {
   edit.duration_m = Math.round(s.duration / 60)
   edit.startTime = s.startedAt ? formatLocalTime(new Date(s.startedAt)) : ''
   edit.endTime = s.endedAt ? formatLocalTime(new Date(s.endedAt)) : ''
+  edit.routeId = s.routeId
+  edit.routeTag = s.routeTag
   edit.source = s.source
 
   mode.value =
@@ -368,32 +498,16 @@ const save = async () => {
     duration: duration_s,
     startedAt,
     endedAt,
-    routeId: null,
+    routeId: edit.routeId,
+    routeTag: edit.routeId ? null : edit.routeTag,
     source: edit.source
   }
 
-  if (draftSession.value) {  // 新增时
-    if (mode.value === 'duration') {
-      // 查找是否已有同一天的 session
-      const existing = sessions.value.find(s =>
-        s.id !== edit.id
-        && !s.endedAt
-        && s.playDate === edit.playDate
-        && s.source === 'manual'
-      )
-      if (existing) {
-        session.id = existing.id
-        session.duration += existing.duration
-        await sessionStore.updateSession(session)
-      } else {
-        await sessionStore.addSession(session)
-      }
-    }
-    else  // time mode
-      await sessionStore.addSession(session)
-  }
-  else  // 修改时
+  if (draftSession.value) {
+    await sessionStore.addSession(session)
+  } else {
     await sessionStore.updateSession(session)
+  }
 
   await gameStore.refreshGame(game.value!.id)  // 数据库触发器已重算总时长，同步刷新前端缓存
   draftSession.value = null
@@ -423,7 +537,7 @@ const removeSession = async (s: Session) => {
 }
 
 .modal {
-  width: 720px;
+  width: min(860px, calc(100vw - 32px));
   max-height: 85vh;
   box-sizing: border-box;
   display: flex;
@@ -467,8 +581,71 @@ const removeSession = async (s: Session) => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow-y: auto;
+  overflow: auto;
   padding-right: 4px;
+}
+
+.pending-tags {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #efe3ca;
+  border-radius: 10px;
+  background: #fdf9f0;
+}
+
+.pending-title {
+  margin-bottom: 8px;
+  color: #8a6d3b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pending-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pending-row + .pending-row {
+  margin-top: 8px;
+}
+
+.pending-tag {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #6d5325;
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.pending-meta {
+  flex-shrink: 0;
+  color: #998a6c;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pending-select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid #dfcfae;
+  border-radius: 6px;
+  background: #fff;
+  color: #6d5325;
+  font-size: 12px;
+}
+
+.pending-error {
+  margin: 8px 0 0;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.route-pending {
+  color: #9a7d4c;
 }
 
 .session-list::-webkit-scrollbar {
@@ -492,7 +669,8 @@ const removeSession = async (s: Session) => {
 
 .session-item {
   display: grid;
-  grid-template-columns: 120px 100px 100px 100px minmax(0, 1fr);
+  grid-template-columns: 104px 92px 92px 92px minmax(104px, 1fr) minmax(170px, auto);
+  min-width: 780px;
   gap: 10px;
   align-items: center;
 
@@ -534,6 +712,34 @@ input {
   transition: .15s;
 }
 
+.session-item input,
+.session-item select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.route-select {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 14px;
+  background: #fff;
+  transition: .15s;
+}
+
+.route-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, .15);
+}
+
+.route-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 input:focus {
   outline: none;
   border-color: #2563eb;
@@ -547,6 +753,7 @@ input:disabled {
 /* 按钮区 */
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 .actions button {
@@ -589,6 +796,7 @@ button:hover {
 .footer-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   flex-shrink: 0;
   margin-top: 16px;
@@ -605,6 +813,26 @@ button:hover {
 
 .import-btn:hover {
   background: #bfdbfe;
+}
+
+.export-btn {
+  color: #3f5f9e;
+  background: #e8edf7;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: #dbe3f2;
+}
+
+.export-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.export-error {
+  margin: 12px 0 0;
+  color: #b91c1c;
+  font-size: 12px;
 }
 
 .extra-playtime-section {

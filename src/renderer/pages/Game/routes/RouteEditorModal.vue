@@ -110,12 +110,16 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ChevronDown, GripVertical, Trash2, X } from '@lucide/vue'
 import { getRouteLockState } from '@/shared/routeLocks'
+import { getRouteColor } from '@/shared/routeColors'
 import { ROUTE_TYPE_OPTIONS, type Route } from '@/shared/types'
 import { useRouteStore } from '@/renderer/stores/route.store'
+import { useSessionStore } from '@/renderer/stores/session.store'
 
 const props = defineProps<{ gameId: string; routes: Route[] }>()
 const emit = defineEmits<{ close: [] }>()
 const routeStore = useRouteStore()
+const sessionStore = useSessionStore()
+const routeColor = getRouteColor
 
 // 嵌套条件也必须复制，取消编辑不能修改 store 中的原始数据。
 const copyRoute = (route: Route): Route => ({
@@ -165,11 +169,6 @@ const setPrerequisite = (route: Route, id: string, event: Event) => {
   route.lockCondition = ids.size ? { mode, preRouteIds: [...ids], unlocked: route.lockCondition?.unlocked ?? false } : null
   errorMessage.value = ''
 }
-const defaultColors: Record<Route['type'], string> = {
-  common: '#5d82d8', chapter: '#7b70c9', character: '#d77e9c', main: '#4f9b82'
-}
-// 空颜色保留类型默认色，切换类型时仍可自动跟随。
-const routeColor = (route: Route) => /^#[0-9a-f]{6}$/i.test(route.color) ? route.color : defaultColors[route.type]
 const setRouteColor = (route: Route, event: Event) => {
   route.color = (event.target as HTMLInputElement).value
 }
@@ -316,6 +315,8 @@ const saveRoutes = async () => {
   normalizeOrder()
   try {
     await routeStore.saveGameRoutes(props.gameId, draftRoutes.value.map(copyRoute), resetLockIds.value.filter(id => draftRoutes.value.some(route => route.id === id && route.lockCondition)))
+    // 删除线路会由外键清空记录的 routeId，同步缓存避免继续提交已失效的线路。
+    await sessionStore.refreshGameSessions(props.gameId)
     emit('close')
   } catch (error) {
     console.error('Failed to save routes:', error)
@@ -324,7 +325,9 @@ const saveRoutes = async () => {
       ? '剧情锁存在循环依赖，请检查前置线路，不能互相等待解锁。'
       : message.includes('Prerequisite route must exist in the same game')
         ? '前置线路不存在，请重新选择剧情锁条件。'
-        : '保存失败，原有线路未改变，请重试。'
+        : message.includes('Route names must be unique')
+          ? '线路名称不能重复。'
+          : '保存失败，原有线路未改变，请重试。'
   } finally {
     saving.value = false
   }

@@ -25,6 +25,7 @@ declare global {
       deleteSession: (id: string) => Promise<void>
       updateSession: (session: Session) => Promise<void>
       importSessions: (gameId: string, text: string) => Promise<void>
+      assignTagToRoute: (gameId: string, tag: string, routeId: string) => Promise<void>
       getGameRoutes: (gameId: string) => Promise<Route[]>
       saveGameRoutes: (gameId: string, routes: Route[], resetLockIds?: string[]) => Promise<Route[]>
       updateRouteStatus: (gameId: string, routeId: string, status: RouteStatus) => Promise<Route[]>
@@ -33,6 +34,10 @@ declare global {
     fileAPI: {
       getFilePath: (file: File) => Promise<string>
       openFolder: (exePath: string) => Promise<{success: boolean}>
+    },
+
+    clipboardAPI: {
+      writeText: (text: string) => Promise<void>
     },
 
     launchAPI: {

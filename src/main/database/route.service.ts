@@ -51,6 +51,7 @@ export class RouteService {
     const current = new Map(this.refreshLocks(gameId).map(route => [route.id, route]))
 
     const ids = new Set<string>()
+    const names = new Set<string>()
     // 提交数组的顺序是全局线路顺序的唯一来源，不信任客户端携带的旧 order。
     const normalized = routes.map((route, index): Route => {
       if (!route.id || ids.has(route.id)) throw new Error('Route ids must be unique')
@@ -58,7 +59,10 @@ export class RouteService {
 
       const name = route.name.trim()
       if (!name) throw new Error('Route name required')
+      // 线路名作为导出/待绑定的标签，同名会导致无法区分归属。
+      if (names.has(name)) throw new Error('Route names must be unique')
       ids.add(route.id)
+      names.add(name)
 
       return {
         ...route,

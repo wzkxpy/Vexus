@@ -1,13 +1,17 @@
 import { SessionRepository } from "./session.repo";
+import { RouteRepository } from "./route.repo";
 import { Session } from "@/shared/types";
 
 
 export class SessionService {
-  constructor(private repo: SessionRepository) {}
+  constructor(
+    private repo: SessionRepository,
+    private routeRepo: RouteRepository
+  ) {}
 
   addSession(session: Session) {
     this.validateSession(session)
-    this.repo.add(session);
+    this.repo.add(this.normalizeTag(session));
   }
 
   deleteSession(id: string) {
@@ -15,8 +19,27 @@ export class SessionService {
   }
 
   updateSession(session: Session) {
+    const gameId = this.repo.getGameId(session.id)
+    if (!gameId) throw new Error('Session not found')
+    if (gameId !== session.gameId) throw new Error('Session game id mismatch')
     this.validateSession(session)
-    this.repo.update(session)
+    this.repo.update(this.normalizeTag(session))
+  }
+
+  // 将同一标签下的待绑定记录一次性关联到线路。
+  assignTagToRoute(gameId: string, tag: string, routeId: string) {
+    if (typeof gameId !== 'string' || typeof tag !== 'string' || typeof routeId !== 'string') {
+      throw new Error('Invalid route tag mapping')
+    }
+    const normalizedTag = tag.trim()
+    if (!gameId || !normalizedTag || !routeId) {
+      throw new Error('Game, tag and route ids required')
+    }
+    if (normalizedTag.length > 80) throw new Error('Invalid route tag')
+    if (!this.routeRepo.belongsToGame(routeId, gameId)) {
+      throw new Error('Route does not belong to game')
+    }
+    this.repo.assignTagToRoute(gameId, normalizedTag, routeId)
   }
 
   getGameSessions(gameId: string) {
@@ -37,7 +60,7 @@ export class SessionService {
 
     // 覆盖时旧记录会被删除，只需保证新批次内部不存在时间重叠。
     this.validateNoOverlap(sessions)
-    return this.repo.importForGame(gameId, sessions)
+    return this.repo.importForGame(gameId, sessions.map(session => this.normalizeTag(session)))
   }
 
 /**************************************************/
@@ -69,6 +92,19 @@ export class SessionService {
     if (!session.gameId) {
       throw new Error('Game id required')
     }
+    if (session.routeId !== null) {
+      if (typeof session.routeId !== 'string' || !session.routeId) {
+        throw new Error('Invalid route id')
+      }
+      if (!this.routeRepo.belongsToGame(session.routeId, session.gameId)) {
+        throw new Error('Route does not belong to game')
+      }
+    }
+    if (session.routeTag !== null) {
+      if (typeof session.routeTag !== 'string' || !session.routeTag.trim() || session.routeTag.trim().length > 80) {
+        throw new Error('Invalid route tag')
+      }
+    }
     if (!['auto', 'manual', 'import'].includes(session.source)) {
       throw new Error('Invalid session source')
     }
@@ -91,6 +127,14 @@ export class SessionService {
       throw new Error('Ended at cannot be earlier than started at')
     }
 
+  }
+
+  // 标签只在记录未绑定线路时保留；绑定后由线路名重新派生。
+  private normalizeTag(session: Session): Session {
+    return {
+      ...session,
+      routeTag: session.routeId === null ? (session.routeTag?.trim() || null) : null
+    }
   }
 
   // 检查批量导入的记录中是否存在时间重叠

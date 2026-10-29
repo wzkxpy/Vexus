@@ -4,7 +4,6 @@
       <div class="header">
         <div>
           <b>导入游玩时长</b>
-          <p>支持 vnite 和 PotatoVN 导出的 JSON，导入后将覆盖当前游戏的全部游玩记录。</p>
         </div>
         <button class="icon-btn" aria-label="关闭" :disabled="importing" @click="emit('close')">
           <X :size="16" />
@@ -14,7 +13,7 @@
       <textarea
         v-model="text"
         :disabled="importing"
-        placeholder='粘贴 vnite 或 PotatoVN 的时长 JSON'
+        placeholder='粘贴 Vexus 导出、vnite 或 PotatoVN 的时长 JSON'
         @input="error = ''"
       />
 

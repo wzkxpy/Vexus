@@ -6,6 +6,7 @@ import { shell } from 'electron'
 import { GameMonitor } from './monitor'
 import { container } from '../container'
 import { SessionService } from '../database/session.service'
+import { RouteRepository } from '../database/route.repo'
 const kill = require('tree-kill')
 
 
@@ -25,9 +26,12 @@ export async function launchGame(gameId: string, exePath: string) {
   const pid = child.pid!
 
   const sessionService = container.get('sessionService') as SessionService
-  gameMonitor = new GameMonitor(gameId, pid, sessionService)
+  const routeRepo = container.get('routeRepo') as RouteRepository
+  // 启动时固定归属线路，运行期间线路状态变化不追溯本次记录。
+  const routeId = routeRepo.getPlayingRouteId(gameId)
+  gameMonitor = new GameMonitor(gameId, pid, routeId, sessionService, routeRepo)
   await gameMonitor.start()
-  console.log('[Launch] start:', { gameId, pid })
+  console.log('[Launch] start:', { gameId, pid, routeId })
   return { success: true, pid }
 }
 

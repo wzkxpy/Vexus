@@ -6,6 +6,7 @@ import { createPinia } from 'pinia'
 import { useSessionStore } from './stores/session.store'
 import { useRuntimeStore } from './stores/runtime.store'
 import { useGameStore } from './stores/game.store'
+import { useRouteStore } from './stores/route.store'
 
 createApp(App)
   .use(router)  // 注册路由，用于页面导航
@@ -17,6 +18,7 @@ createApp(App)
 const sessionStore = useSessionStore()
 const runtimeStore = useRuntimeStore()
 const gameStore = useGameStore()
+const routeStore = useRouteStore()
 
 gameStore.initGames().catch(error => {
   console.error('Failed to load games:', error)
@@ -28,6 +30,7 @@ window.callbackAPI.onGameStopped(async ({ gameId }) => {
   }
   await Promise.all([
     sessionStore.refreshGameSessions(gameId),
-    gameStore.refreshGame(gameId)
+    gameStore.refreshGame(gameId),
+    routeStore.refreshGameRoutes(gameId)
   ])
 })

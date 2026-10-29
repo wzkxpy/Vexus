@@ -22,6 +22,17 @@ export const useRouteStore = defineStore('route', () => {
     }
   }
 
+  // 游玩记录变化后同步线路时长；未打开过线路区时保持惰性加载。
+  const refreshGameRoutes = async (gameId: string) => {
+    if (routesByGame.value[gameId] === undefined) return
+    try {
+      routesByGame.value[gameId] = await window.databaseAPI.getGameRoutes(gameId)
+      errorByGame.value[gameId] = null
+    } catch (error) {
+      console.error('Failed to refresh routes:', error)
+    }
+  }
+
   const saveGameRoutes = async (gameId: string, routes: Route[], resetLockIds: string[] = []) => {
     const saved = await window.databaseAPI.saveGameRoutes(gameId, routes, resetLockIds)
     routesByGame.value[gameId] = saved
@@ -42,6 +53,7 @@ export const useRouteStore = defineStore('route', () => {
     errorByGame,
     getGameRoutes,
     loadGameRoutes,
+    refreshGameRoutes,
     saveGameRoutes,
     updateRouteStatus
   }

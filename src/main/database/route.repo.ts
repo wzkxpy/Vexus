@@ -12,6 +12,22 @@ export class RouteRepository {
       .run(JSON.stringify(route.lockCondition), route.id, route.gameId)
   }
 
+  // 自动记录在启动时绑定到当前游玩中的线路；无游玩中线路时不归属。
+  getPlayingRouteId(gameId: string): string | null {
+    const row = this.db.prepare(`
+      SELECT id FROM routes
+      WHERE game_id = ? AND status = 'Playing'
+      ORDER BY updated_at DESC, created_at DESC
+      LIMIT 1
+    `).get(gameId) as { id: string } | undefined
+    return row?.id ?? null
+  }
+
+  belongsToGame(routeId: string, gameId: string): boolean {
+    return Boolean(this.db.prepare('SELECT 1 FROM routes WHERE id = ? AND game_id = ?')
+      .get(routeId, gameId))
+  }
+
   // 获取某个游戏的全部 route[]
   getByGame(gameId: string): Route[] {
     const rows = this.db.prepare(`
@@ -57,8 +73,8 @@ export class RouteRepository {
   saveForGame(gameId: string, routes: Route[]): Route[] {
     const upsert = this.db.prepare(`
       INSERT INTO routes (
-        id, game_id, name, description, color, type, "order", lock_condition, status, playtime
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        id, game_id, name, description, color, type, "order", lock_condition, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name,
         description = excluded.description,

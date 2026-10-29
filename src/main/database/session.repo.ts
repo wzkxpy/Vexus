@@ -9,23 +9,30 @@ export class SessionRepository {
   add(session: Session) {
     const stmt = this.db.prepare(`
       INSERT INTO sessions (
-        id, game_id, route_id,
+        id, game_id, route_id, route_tag,
         local_date,
         started_at, ended_at, duration,
         source
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     stmt.run(
         session.id,
         session.gameId,
         session.routeId,
+        session.routeTag,
         session.playDate,
         session.startedAt,
         session.endedAt,
         session.duration,
         session.source
     )
+  }
+
+  getGameId(id: string): string | null {
+    const row = this.db.prepare('SELECT game_id FROM sessions WHERE id = ?')
+      .get(id) as { game_id: string } | undefined
+    return row?.game_id ?? null
   }
 
   delete(id: string) {
@@ -40,6 +47,7 @@ export class SessionRepository {
     const stmt = this.db.prepare(`
       UPDATE sessions SET
         route_id = ?,
+        route_tag = ?,
         local_date = ?,
         duration = ?,
         started_at = ?,
@@ -50,6 +58,7 @@ export class SessionRepository {
     `)
     stmt.run(
       session.routeId ?? null,
+      session.routeTag ?? null,
       session.playDate,
       session.duration,
       session.startedAt ?? null,
@@ -57,6 +66,15 @@ export class SessionRepository {
       session.source,
       session.id
     )
+  }
+
+  // 将一个标签下的待绑定记录批量关联到线路，并清除标签。
+  assignTagToRoute(gameId: string, tag: string, routeId: string) {
+    this.db.prepare(`
+      UPDATE sessions
+      SET route_id = ?, route_tag = NULL, updated_at = CURRENT_TIMESTAMP
+      WHERE game_id = ? AND route_id IS NULL AND route_tag = ?
+    `).run(routeId, gameId, tag)
   }
 
   getByGame(gameId: string) {
@@ -70,6 +88,7 @@ export class SessionRepository {
       id: row.id,
       gameId: row.game_id,
       routeId: row.route_id,
+      routeTag: row.route_tag,
       playDate: row.local_date,
       startedAt: row.started_at,
       endedAt: row.ended_at,
@@ -87,12 +106,12 @@ export class SessionRepository {
     `)
     const insertStmt = this.db.prepare(`
       INSERT INTO sessions (
-        id, game_id, route_id,
+        id, game_id, route_id, route_tag,
         local_date,
         started_at, ended_at, duration,
         source
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
     this.db.transaction(() => {
@@ -102,6 +121,7 @@ export class SessionRepository {
           session.id,
           session.gameId,
           session.routeId,
+          session.routeTag,
           session.playDate,
           session.startedAt,
           session.endedAt,

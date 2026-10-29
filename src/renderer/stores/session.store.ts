@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { Session } from '@/shared/types'
+import { useRouteStore } from './route.store'
 
 
 export const useSessionStore = defineStore('session', {
@@ -41,6 +42,7 @@ export const useSessionStore = defineStore('session', {
       } else {
         list.splice(index, 0, session)
       }
+      await useRouteStore().refreshGameRoutes(session.gameId)
     },
 
     async deleteSession(id: string, gameId: string) {
@@ -48,6 +50,7 @@ export const useSessionStore = defineStore('session', {
       if (!this.sessionsByGame[gameId]) return
       this.sessionsByGame[gameId] =
         this.sessionsByGame[gameId].filter(s => s.id !== id)
+      await useRouteStore().refreshGameRoutes(gameId)
     },
 
     async updateSession(session: Session) {
@@ -58,6 +61,16 @@ export const useSessionStore = defineStore('session', {
       if (index !== -1) {
         list[index] = session
       }
+      await useRouteStore().refreshGameRoutes(session.gameId)
+    },
+
+    // 将同一标签下的待绑定记录批量关联到线路
+    async assignTagToRoute(gameId: string, tag: string, routeId: string) {
+      await window.databaseAPI.assignTagToRoute(gameId, tag, routeId)
+      const sessions = await window.databaseAPI.getGameSessions(gameId)
+      this.sessionsByGame[gameId] = sessions
+      this.loadedGames.add(gameId)
+      await useRouteStore().refreshGameRoutes(gameId)
     },
 
     // 单个游戏覆盖导入 session
@@ -66,6 +79,7 @@ export const useSessionStore = defineStore('session', {
       const sessions = await window.databaseAPI.getGameSessions(gameId)
       this.sessionsByGame[gameId] = sessions
       this.loadedGames.add(gameId)
+      await useRouteStore().refreshGameRoutes(gameId)
     },
 
   }

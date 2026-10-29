@@ -2,7 +2,7 @@
 // import 'dotenv/config' // 创建环境变量
 import { app, protocol } from 'electron';
 import { createWindow } from './window';
-import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerSettingsIPC, registerFileIPC } from './ipc';
+import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerSettingsIPC, registerFileIPC, registerClipboardIPC } from './ipc';
 import Database from 'better-sqlite3'
 import { initDatabase } from './database/index'
 import { GameRepository } from './database/game.repo'
@@ -28,12 +28,13 @@ app.whenReady().then(() => {
 
   const gameRepo = new GameRepository(db)
   const gameService = new GameService(gameRepo, mediaService)
-  const sessionRepo = new SessionRepository(db)
-  const sessionService = new SessionService(sessionRepo)
-  const sessionImportService = new SessionImportService(sessionService)
   const routeRepo = new RouteRepository(db)
   const routeService = new RouteService(routeRepo)
+  const sessionRepo = new SessionRepository(db)
+  const sessionService = new SessionService(sessionRepo, routeRepo)
+  const sessionImportService = new SessionImportService(sessionService)
   container.register('sessionService', sessionService)
+  container.register('routeRepo', routeRepo)
   // 注册自定义协议用于加载媒体文件
   protocol.handle('vexus-media', (request) => {
     const url = request.url.replace('vexus-media://', '')
@@ -49,6 +50,7 @@ app.whenReady().then(() => {
   registerWindowIPC(win)  // Register IPC handlers for the window
   registerDBIPC(gameService, sessionService, sessionImportService, routeService) // Register database-related IPC handlers
   registerFileIPC()
+  registerClipboardIPC()
   registerLaunchIPC() // Register IPC handlers for launching games
   registerSettingsIPC() // Register IPC handlers for settings management
   registerProviderIPC() // Register IPC handlers for Bangumi API interactions

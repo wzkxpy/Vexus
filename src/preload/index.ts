@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld('databaseAPI', {
   updateSession: (session: Session): Promise<void> => ipcRenderer.invoke('updateSession', session),
   importSessions: (gameId: string, text: string): Promise<void> =>
     ipcRenderer.invoke('importSessions', gameId, text),
+  assignTagToRoute: (gameId: string, tag: string, routeId: string): Promise<void> =>
+    ipcRenderer.invoke('assignTagToRoute', gameId, tag, routeId),
 
   getGameRoutes: (gameId: string): Promise<Route[]> => ipcRenderer.invoke('getGameRoutes', gameId),
   saveGameRoutes: (gameId: string, routes: Route[], resetLockIds: string[] = []): Promise<Route[]> =>
@@ -45,6 +47,10 @@ contextBridge.exposeInMainWorld('launchAPI', {
 contextBridge.exposeInMainWorld('fileAPI', {
   getFilePath: (file: File) => { return webUtils.getPathForFile(file) },
   openFolder: (exePath: string) => ipcRenderer.invoke('openFolder', exePath)
+})
+
+contextBridge.exposeInMainWorld('clipboardAPI', {
+  writeText: (text: string): Promise<void> => ipcRenderer.invoke('clipboard:writeText', text)
 })
 
 // 读取设置 API

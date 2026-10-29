@@ -2,7 +2,7 @@
 // Electron IPC 
 // 负责注册主进程的 IPC 事件处理器, 供 preload 暴露给渲染进程调用
 
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, clipboard } from 'electron'
 import { GameService } from '../database/game.service'
 import { SessionService } from '../database/session.service'
 import { Game, NewGame, Route, RouteStatus, Session } from '@/shared/types'
@@ -30,6 +30,13 @@ export function registerWindowIPC(win: BrowserWindow) {
 export function registerFileIPC() {
   ipcMain.handle('openFolder', async (_, exePath: string) => {
     return openFolder(exePath)
+  })
+}
+
+export function registerClipboardIPC() {
+  ipcMain.handle('clipboard:writeText', (_, text: string) => {
+    if (typeof text !== 'string') throw new Error('Invalid clipboard text')
+    clipboard.writeText(text)
   })
 }
 
@@ -74,6 +81,9 @@ export function registerDBIPC(
   })
   ipcMain.handle('importSessions', (_, gameId: string, text: string) => {
     return sessionImportService.import(gameId, text)
+  })
+  ipcMain.handle('assignTagToRoute', (_, gameId: string, tag: string, routeId: string) => {
+    return sessionService.assignTagToRoute(gameId, tag, routeId)
   })
   // Route
   ipcMain.handle('getGameRoutes', (_, gameId: string) => {
