@@ -144,7 +144,7 @@ vite.config.ts.timestamp-*
 .vscode/
 
 # Personal files
-about/
+docs/
 
 # Agent files
 AGENTS.md

@@ -2,6 +2,7 @@
 
 /// <reference types="vite/client" />
 export {}
+import type { RouteStatus } from '@/shared/types'
 
 declare global {
   interface Window {
@@ -24,6 +25,9 @@ declare global {
       deleteSession: (id: string) => Promise<void>
       updateSession: (session: Session) => Promise<void>
       importSessions: (gameId: string, text: string) => Promise<void>
+      getGameRoutes: (gameId: string) => Promise<Route[]>
+      saveGameRoutes: (gameId: string, routes: Route[], resetLockIds?: string[]) => Promise<Route[]>
+      updateRouteStatus: (gameId: string, routeId: string, status: RouteStatus) => Promise<Route[]>
     },
 
     fileAPI: {

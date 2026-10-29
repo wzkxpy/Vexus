@@ -14,6 +14,8 @@ import { SessionRepository } from './database/session.repo';
 import { container } from './container';
 import { getProxyAgent } from './settings';
 import { SessionImportService } from './services/sessionImport';
+import { RouteRepository } from './database/route.repo';
+import { RouteService } from './database/route.service';
 
 
 app.whenReady().then(() => {
@@ -29,6 +31,8 @@ app.whenReady().then(() => {
   const sessionRepo = new SessionRepository(db)
   const sessionService = new SessionService(sessionRepo)
   const sessionImportService = new SessionImportService(sessionService)
+  const routeRepo = new RouteRepository(db)
+  const routeService = new RouteService(routeRepo)
   container.register('sessionService', sessionService)
   // 注册自定义协议用于加载媒体文件
   protocol.handle('vexus-media', (request) => {
@@ -43,7 +47,7 @@ app.whenReady().then(() => {
   const win = createWindow() // Create the main application window 
   // 注册 IPC 处理器
   registerWindowIPC(win)  // Register IPC handlers for the window
-  registerDBIPC(gameService, sessionService, sessionImportService) // Register database-related IPC handlers
+  registerDBIPC(gameService, sessionService, sessionImportService, routeService) // Register database-related IPC handlers
   registerFileIPC()
   registerLaunchIPC() // Register IPC handlers for launching games
   registerSettingsIPC() // Register IPC handlers for settings management
