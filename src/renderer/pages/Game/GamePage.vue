@@ -2,7 +2,7 @@
 <template>
   <div v-if="game" class="game-page">
     <div class="drag-area"></div>
-    <button class="back-btn" @click="handleBack()"><span>←</span> 返回</button>
+    <button class="back-btn" @click="handleBack()"><ArrowLeft :size="15" /> 返回</button>
 
     <!-- 标题 + 封面 -->
     <div class="top-section">
@@ -13,7 +13,7 @@
           :src="game.media.coverPath"
           class="cover-img"
         />
-        <div v-else class="cover-placeholder">🎮</div>
+        <div v-else class="cover-placeholder"><Gamepad2 :size="42" :stroke-width="1.4" /></div>
       </div>
 
       <div class="left">
@@ -29,12 +29,16 @@
         
         <div class="action-row">
           <button class="launch-btn" :class="{ running: isRunning }" @click="isRunning ? handleStop() : handleLaunch()">
-            {{ isRunning ? '■ 停止游戏' : '▶ 启动游戏' }}
+            <Square v-if="isRunning" :size="13" fill="currentColor" />
+            <Play v-else :size="15" fill="currentColor" />
+            {{ isRunning ? '停止游戏' : '启动游戏' }}
           </button>
           
           <OptionsMenu :items="menuItems" :context="game">
             <template #button>
-              <button class="settings-btn">⚙</button>
+              <button class="settings-btn" aria-label="更多操作" title="更多操作">
+                <Settings :size="16" />
+              </button>
             </template>
           </OptionsMenu>
         </div>
@@ -73,7 +77,9 @@
                 {{ game.externalScore.vndb }}
               </div>
             </div>
-            <button class="edit-btn" aria-label="编辑评分" title="编辑" @click="openEdit('externalScore')">✎</button>
+            <button class="edit-btn" aria-label="编辑评分" title="编辑" @click="openEdit('externalScore')">
+              <Pencil :size="13" />
+            </button>
           </div>
         </div>
       </div>
@@ -131,6 +137,7 @@ import GameOverview from './tabs/GameOverview.vue'
 import GameGuide from './tabs/GameGuide.vue'
 import { Game, TitleSplit } from '@/shared/types'
 import { useRoute } from 'vue-router'
+import { ArrowLeft, Gamepad2, Pencil, Play, Settings, Square } from '@lucide/vue'
 import router from '@/renderer/router'
 import MediaModal from './MediaModal.vue'
 import TitleSplitModal from './TitleSplitModal.vue'
@@ -401,6 +408,10 @@ watch(
 
 /* ===== 操作按钮 ===== */
 .launch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-width: 118px;
   height: 38px;
   padding: 0 18px;
@@ -582,7 +593,6 @@ watch(
   border-radius: 12px;
   color: #a4adbc;
   background: linear-gradient(145deg, #f2f4f8, #e8ecf3);
-  font-size: 34px;
 }
 
 /* ===== 内容导航 ===== */

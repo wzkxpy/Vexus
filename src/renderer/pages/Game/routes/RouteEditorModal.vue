@@ -5,7 +5,9 @@
         <div>
           <h3 id="route-editor-title">编辑线路</h3>
         </div>
-        <button class="close-btn" aria-label="关闭" :disabled="saving" @click="emit('close')">×</button>
+        <button class="close-btn" aria-label="关闭" :disabled="saving" @click="emit('close')">
+          <X :size="16" />
+        </button>
       </div>
 
       <div class="list-heading"><span>线路列表 <b>{{ draftRoutes.length }}</b></span></div>
@@ -27,7 +29,7 @@
             draggable="true"
             @dragstart="handleDragStart(index, $event)"
             @dragend="resetDrag"
-          >⠿</span>
+          ><GripVertical :size="15" /></span>
           <span class="route-number">{{ index + 1 }}</span>
           <select v-model="route.type" aria-label="线路类型" @change="handleTypeChange(route)">
             <option
@@ -48,7 +50,7 @@
             aria-haspopup="dialog"
             @click="positionLockPanel($event)"
           >
-            剧情锁<span aria-hidden="true">⌄</span>
+            剧情锁<ChevronDown :size="13" aria-hidden="true" />
           </button>
           <span v-else class="common-note">无剧情锁</span>
           <div class="color-control">
@@ -57,7 +59,7 @@
             </label>
             <button type="button" class="reset-color" :disabled="!route.color" title="恢复类型默认颜色" @click="route.color = ''">重置</button>
           </div>
-          <button type="button" class="delete-btn" :aria-label="`删除${route.name || '未命名线路'}`" title="删除线路" @click="removeRoute(index)">×</button>
+          <button type="button" class="delete-btn" :aria-label="`删除${route.name || '未命名线路'}`" title="删除线路" @click="removeRoute(index)"><Trash2 :size="14" /></button>
           <div
             v-if="route.type !== 'common'"
             :id="`route-lock-${route.id}`"
@@ -106,6 +108,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { ChevronDown, GripVertical, Trash2, X } from '@lucide/vue'
 import { getRouteLockState } from '@/shared/routeLocks'
 import { ROUTE_TYPE_OPTIONS, type Route } from '@/shared/types'
 import { useRouteStore } from '@/renderer/stores/route.store'
@@ -358,13 +361,15 @@ const saveRoutes = async () => {
 .modal-header h3 { margin: 0; font-size: 18px; }
 
 .close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 30px;
   height: 30px;
   border: 0;
   border-radius: 7px;
   color: #7b8698;
   background: #f2f4f7;
-  font-size: 21px;
   cursor: pointer;
 }
 
@@ -393,11 +398,12 @@ const saveRoutes = async () => {
 .route-item:hover { background: #f7f9fd; }
 .route-item.drag-over { border-color: #7697e4; box-shadow: 0 -3px 0 #7697e4; }
 .drag-handle {
+  display: flex;
+  align-items: center;
   flex: 0 0 auto;
   padding: 5px 2px;
   color: #a5adba;
   cursor: grab;
-  font-size: 22px;
   line-height: 1;
   user-select: none;
 }
@@ -421,6 +427,9 @@ const saveRoutes = async () => {
 .route-item select:focus { border-color: #7899e2; box-shadow: 0 0 0 2px rgba(93, 130, 216, 0.12); }
 
 .delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 30px;
   height: 30px;
   padding: 0;

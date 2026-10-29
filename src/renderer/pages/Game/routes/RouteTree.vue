@@ -30,7 +30,9 @@
           <div class="route-copy">
             <strong><span v-for="(line, index) in node.nameLines" :key="index">{{ line }}</span></strong>
             <small v-if="node.status !== 'NotStarted'" class="node-status" :class="`node-status-${node.status}`">
-              <span aria-hidden="true">{{ node.status === 'Playing' ? '▶' : node.status === 'OnHold' ? 'Ⅱ' : '✓' }}</span>
+              <Play v-if="node.status === 'Playing'" :size="10" fill="currentColor" aria-hidden="true" />
+              <Pause v-else-if="node.status === 'OnHold'" :size="10" fill="currentColor" aria-hidden="true" />
+              <Check v-else :size="11" :stroke-width="2.6" aria-hidden="true" />
               {{ statusLabel(node.status) }}
             </small>
           </div>
@@ -56,7 +58,9 @@
             selectedState.completedCount }}/{{ selectedState.prerequisites.length }} 已完成</p>
           <ul class="condition-list">
             <li v-for="item in selectedState.prerequisites" :key="item.id" :class="{ completed: item.completed }">
-              <span>{{ item.completed ? '✓' : '○' }}</span><span>{{ item.route?.name ?? '前置线路已不存在' }}</span><small>{{
+              <Check v-if="item.completed" :size="12" :stroke-width="2.6" aria-hidden="true" />
+              <Circle v-else :size="11" aria-hidden="true" />
+              <span>{{ item.route?.name ?? '前置线路已不存在' }}</span><small>{{
                 item.completed ? '已完成' : '未完成' }}</small></li>
           </ul>
           <p v-if="!selectedState.prerequisites.length" class="details-note">尚未设置前置线路，请在编辑线路中补充条件。</p>
@@ -81,6 +85,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
+import { Check, Circle, Pause, Play } from '@lucide/vue'
 import { getRouteLockState } from '@/shared/routeLocks'
 import { placeRoutePanel } from './routePanelPosition'
 import { buildDependencyBus } from './routeDependencyPath'
@@ -430,8 +435,12 @@ button.route-node {
 .condition-list li {
   display: flex;
   gap: 8px;
-  align-items: baseline;
+  align-items: center;
   padding: 6px 0;
+}
+
+.condition-list svg {
+  flex: 0 0 auto;
 }
 
 .condition-list li>span:nth-child(2) {
@@ -553,7 +562,7 @@ button.route-node {
 }
 
 .route-copy .node-status { display: flex; align-items: center; gap: 4px; }
-.node-status > span { font-size: 11px; font-weight: 700; }
+.node-status svg { flex: 0 0 auto; }
 .route-copy .node-status-Playing { color: #5076c5; }
 .route-copy .node-status-OnHold { color: #9a7d4c; }
 .route-copy .node-status-Completed { color: #43876f; }

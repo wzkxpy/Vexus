@@ -20,6 +20,7 @@
     "vite-plugin-electron-renderer": "^0.14.6"
   },
   "dependencies": {
+    "@lucide/vue": "^1.64.0",
     "axios": "^1.15.0",
     "better-sqlite3": "^12.6.2",
     "chart.js": "^4.5.1",

@@ -11,10 +11,11 @@
         :key="item.path"
         class="nav-item"
         :class="{ active: route.path === item.path }"
+        :title="item.label"
+        :aria-label="item.label"
         @click="router.push(item.path)"
       >
-        <!-- <component :is="item.icon" /> -->
-         {{ item.icon }}
+        <component :is="item.icon" :size="17" :stroke-width="1.9" />
       </button>
     </div>
   </transition>
@@ -22,6 +23,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { LibraryBig, ChartColumn, Settings } from '@lucide/vue'
 import { useUIStore } from '../stores/ui.store'
 
 const route = useRoute()
@@ -31,15 +33,18 @@ const uiStore = useUIStore()
 const pages = [
   {
     path: '/library',
-    icon: 'L'
+    icon: LibraryBig,
+    label: '游戏库'
   },
   {
     path: '/dashboard',
-    icon: 'D'
+    icon: ChartColumn,
+    label: '统计'
   },
   {
     path: '/settings',
-    icon: 'S'
+    icon: Settings,
+    label: '设置'
   }
 ]
 

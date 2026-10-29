@@ -4,7 +4,9 @@
     <div class="modal">
       <div class="header">
         <b>游玩记录</b>
-        <button class="close-btn" :disabled="savingExtra" @click="requestClose">✕</button>
+        <button class="close-btn" aria-label="关闭" :disabled="savingExtra" @click="requestClose">
+          <X :size="16" />
+        </button>
       </div>
 
       <div class="session-list">
@@ -66,7 +68,8 @@
 
       <div class="footer-actions">
         <button class="add-btn" @click="createSession">
-          + 新记录
+          <Plus :size="14" />
+          新记录
         </button>
         <button class="import-btn" @click="showImportModal = true">
           导入时长
@@ -91,14 +94,16 @@
               <button
                 class="extra-confirm"
                 title="保存"
+                aria-label="保存"
                 :disabled="savingExtra || !extraDirty"
                 @click="saveExtraPlaytime"
-              >✓</button>
+              ><Check :size="14" /></button>
               <button
                 title="撤销"
+                aria-label="撤销"
                 :disabled="savingExtra || !extraDirty"
                 @click="cancelExtraPlaytime"
-              >×</button>
+              ><X :size="14" /></button>
             </div>
           </div>
           <span v-if="extraError" class="extra-error">{{ extraError }}</span>
@@ -122,6 +127,7 @@ import { useGameStore } from '@/renderer/stores/game.store'
 import type { Session, SessionSource } from '@/shared/types'
 import { useRoute } from 'vue-router'
 import { formatLocalDate, formatLocalTime } from '@/shared/utils'
+import { Check, Plus, X } from '@lucide/vue'
 import SessionImportModal from './SessionImportModal.vue'
 
 const emit = defineEmits(['close'])
@@ -438,11 +444,15 @@ const removeSession = async (s: Session) => {
 }
 
 .close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: #f3f4f6;
   width: 32px;
   height: 32px;
   border-radius: 8px;
+  color: #4b5563;
   cursor: pointer;
   transition: .2s;
 }
@@ -559,6 +569,10 @@ button:hover {
 
 /* 添加按钮 */
 .add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   width: 120px;
   background: #2563eb;
   color: white;
@@ -628,6 +642,9 @@ button:hover {
 }
 
 .extra-edit-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 28px;
   padding: 0;

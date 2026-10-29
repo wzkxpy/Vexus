@@ -1,14 +1,16 @@
 <!-- /src/renderer/layout/AppHeader.vue -->
 <template>
   <div class="window-controls">
-    <button @click="minimize">—</button>
-    <button @click="maximize">▢</button>
-    <button class="close" @click="close">✕</button>
+    <button aria-label="最小化" @click="minimize"><Minus :size="14" /></button>
+    <button aria-label="最大化" @click="maximize"><Square :size="11" /></button>
+    <button class="close" aria-label="关闭" @click="close"><X :size="15" /></button>
   </div>
 </template>
 
 
 <script setup lang="ts">
+import { Minus, Square, X } from '@lucide/vue'
+
 const minimize = () => window.windowAPI.minimize()
 const maximize = () => window.windowAPI.maximize()
 const close = () => window.windowAPI.close()
@@ -42,7 +44,9 @@ button {
   border-radius: 50%;
   background: transparent;
   color: #374151;
-  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition:
     background 0.15s,
@@ -59,4 +63,3 @@ button:active {
   transform: scale(0.9);
 }
 </style>
-

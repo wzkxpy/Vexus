@@ -6,7 +6,9 @@
           <b>导入游玩时长</b>
           <p>支持 vnite 和 PotatoVN 导出的 JSON，导入后将覆盖当前游戏的全部游玩记录。</p>
         </div>
-        <button class="icon-btn" :disabled="importing" @click="emit('close')">✕</button>
+        <button class="icon-btn" aria-label="关闭" :disabled="importing" @click="emit('close')">
+          <X :size="16" />
+        </button>
       </div>
 
       <textarea
@@ -34,6 +36,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { X } from '@lucide/vue'
 import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameStore } from '@/renderer/stores/game.store'
 
@@ -138,7 +141,14 @@ button {
 
 button:hover:not(:disabled) { background: #d1d5db; }
 button:disabled { cursor: not-allowed; opacity: .5; }
-.icon-btn { width: 32px; height: 32px; padding: 0; }
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
 .danger { color: #fff; background: #dc2626; }
 .danger:hover:not(:disabled) { background: #b91c1c; }
 

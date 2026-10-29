@@ -9,7 +9,9 @@
       <div class="sort-controls">
         <OptionsMenu :items="sortItems" :selected="gameStore.sortType">
           <template #button>
-            <button class="sort-button" title="选择排序方式" aria-label="选择排序方式">⇅</button>
+            <button class="sort-button" title="选择排序方式" aria-label="选择排序方式">
+              <ArrowUpDown :size="16" />
+            </button>
           </template>
         </OptionsMenu>
 
@@ -17,8 +19,10 @@
           class="sort-order-button"
           @click="gameStore.setSortOrder()"
           :title="gameStore.sortOrder === 'asc' ? '当前：升序' : '当前：降序'"
+          :aria-label="gameStore.sortOrder === 'asc' ? '当前：升序' : '当前：降序'"
         >
-          {{ gameStore.sortOrder === 'asc' ? '↑' : '↓' }}
+          <ArrowUp v-if="gameStore.sortOrder === 'asc'" :size="15" />
+          <ArrowDown v-else :size="15" />
         </button>
 
       </div>
@@ -39,7 +43,9 @@
     </main>
 
     <!-- 添加游戏弹窗 -->
-    <div class="add-button" @click="uiStore.activeModal = 'add-game'">+</div>
+    <div class="add-button" title="添加游戏" @click="uiStore.activeModal = 'add-game'">
+      <Plus :size="22" :stroke-width="2" />
+    </div>
     <AddGameModal
       v-if="uiStore.activeModal === 'add-game'"
       @close="uiStore.activeModal = null"
@@ -53,6 +59,7 @@
 import { useGameStore } from '@/renderer/stores/game.store'
 import GameCard from '@/renderer/components/GameCard.vue'
 import AddGameModal from './AddGameModal.vue'
+import { ArrowDown, ArrowUp, ArrowUpDown, Plus } from '@lucide/vue'
 import { useUIStore } from '../../stores/ui.store'
 import OptionsMenu from '@/renderer/components/OptionsMenu.vue'
 

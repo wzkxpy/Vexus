@@ -4,7 +4,7 @@
     <!-- 线路 -->
     <div class="section routes-section">
       <h3>线路</h3>
-      <button class="edit-btn" aria-label="编辑线路" title="编辑线路" @click="uiStore.activeModal = 'route-editor'">✎</button>
+      <button class="edit-btn" aria-label="编辑线路" title="编辑线路" @click="uiStore.activeModal = 'route-editor'"><Pencil :size="12" /></button>
       <div v-if="routeLoading" class="route-message">正在加载线路…</div>
       <div v-else-if="routeError" class="route-message error">{{ routeError }}</div>
       <RouteTree v-else :routes="gameRoutes" />
@@ -13,7 +13,7 @@
     <!-- 角色 -->
     <div class="section characters-section" v-if="game.characters?.length">
       <h3>角色</h3>
-      <button class="edit-btn" aria-label="调整角色顺序" title="调整角色顺序" @click="uiStore.activeModal = 'character-sort'">✎</button>
+      <button class="edit-btn" aria-label="调整角色顺序" title="调整角色顺序" @click="uiStore.activeModal = 'character-sort'"><Pencil :size="12" /></button>
       <div class="character-grid">
         <div
           class="character-card"
@@ -39,7 +39,7 @@
     <!-- 基础信息 -->
     <div class="section basic-section">
       <h3>基础信息</h3>
-      <button class="edit-btn" aria-label="编辑基础信息" title="编辑" @click="openEdit('basicInfo')">✎</button>
+      <button class="edit-btn" aria-label="编辑基础信息" title="编辑" @click="openEdit('basicInfo')"><Pencil :size="12" /></button>
       <div class="info-grid">
         <div v-if="game.basicInfo?.developer">
           <span class="label">开发：</span>{{ game.basicInfo.developer }}
@@ -59,7 +59,7 @@
     <!-- Staff -->
     <div class="section staff-section" v-if="game.staff">
       <h3>制作人员</h3>
-      <button class="edit-btn" aria-label="编辑制作人员" title="编辑" @click="openEdit('staff')">✎</button>
+      <button class="edit-btn" aria-label="编辑制作人员" title="编辑" @click="openEdit('staff')"><Pencil :size="12" /></button>
       <div class="info-grid">
         <div v-if="game.staff.planner"><span class="label">企划：</span>{{ game.staff.planner }}</div>
         <div v-if="game.staff.scenario"><span class="label">剧本：</span>{{ game.staff.scenario }}</div>
@@ -71,7 +71,7 @@
     <!-- 标签 -->
     <div class="section tags-section" v-if="game.tags?.length">
       <h3>Tag</h3>
-      <button class="edit-btn" aria-label="编辑标签" title="编辑" @click="openEdit('tags')">✎</button>
+      <button class="edit-btn" aria-label="编辑标签" title="编辑" @click="openEdit('tags')"><Pencil :size="12" /></button>
       <div class="tags">
         <span v-for="tag in game.tags" :key="tag" class="tag">
           {{ tag }}
@@ -81,7 +81,7 @@
 
     <!-- 游戏简介 -->
     <div class="section description">
-      <button class="edit-btn" aria-label="编辑游戏简介" title="编辑" @click="openEdit('description')">✎</button>
+      <button class="edit-btn" aria-label="编辑游戏简介" title="编辑" @click="openEdit('description')"><Pencil :size="12" /></button>
       <p>{{ game.description || '暂无介绍内容。' }}</p>
     </div>
     
@@ -112,6 +112,7 @@
 import type { Game } from '@/shared/types';
 import { useGameStore } from '@/renderer/stores/game.store'
 import { computed, watch } from 'vue';
+import { Pencil } from '@lucide/vue'
 import EditModal from '../EditModal.vue'
 import CharacterSortModal from '../CharacterSortModal.vue'
 import { useRoute } from 'vue-router'

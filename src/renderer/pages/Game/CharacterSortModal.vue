@@ -6,7 +6,9 @@
           <h3 id="character-sort-title">调整角色顺序</h3>
           <p>拖动角色，或使用右侧按钮调整位置。</p>
         </div>
-        <button class="close-btn" aria-label="关闭" @click="emit('close')">×</button>
+        <button class="close-btn" aria-label="关闭" @click="emit('close')">
+          <X :size="16" />
+        </button>
       </div>
 
       <div class="character-list">
@@ -21,7 +23,7 @@
           @drop.prevent="handleDrop(index)"
           @dragend="resetDrag"
         >
-          <span class="drag-handle" title="拖动排序" aria-hidden="true">⋮⋮</span>
+          <span class="drag-handle" title="拖动排序" aria-hidden="true"><GripVertical :size="16" /></span>
           <img
             :src="character.avatarPath || defaultCharacterAvatar"
             :alt="character.name"
@@ -34,10 +36,10 @@
             <div class="voice-actor">{{ character.voiceActor }}</div>
           </div>
           <div class="move-actions">
-            <button title="置顶" :disabled="index === 0" @click="moveCharacter(index, 0)">⇈</button>
-            <button title="上移" :disabled="index === 0" @click="moveCharacter(index, index - 1)">↑</button>
-            <button title="下移" :disabled="index === draftCharacters.length - 1" @click="moveCharacter(index, index + 1)">↓</button>
-            <button title="置底" :disabled="index === draftCharacters.length - 1" @click="moveCharacter(index, draftCharacters.length - 1)">⇊</button>
+            <button title="置顶" aria-label="置顶" :disabled="index === 0" @click="moveCharacter(index, 0)"><ChevronsUp :size="14" /></button>
+            <button title="上移" aria-label="上移" :disabled="index === 0" @click="moveCharacter(index, index - 1)"><ArrowUp :size="14" /></button>
+            <button title="下移" aria-label="下移" :disabled="index === draftCharacters.length - 1" @click="moveCharacter(index, index + 1)"><ArrowDown :size="14" /></button>
+            <button title="置底" aria-label="置底" :disabled="index === draftCharacters.length - 1" @click="moveCharacter(index, draftCharacters.length - 1)"><ChevronsDown :size="14" /></button>
           </div>
         </div>
       </div>
@@ -56,6 +58,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, GripVertical, X } from '@lucide/vue'
 import type { Character } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
 import defaultCharacterAvatar from '@/renderer/assets/images/akarin.webp'
@@ -167,13 +170,15 @@ const saveOrder = async () => {
 .modal-header p { margin: 7px 0 0; color: #8a94a5; font-size: 13px; }
 
 .close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 30px;
   height: 30px;
   border: 0;
   border-radius: 7px;
   color: #7b8698;
   background: #f2f4f7;
-  font-size: 21px;
   cursor: pointer;
 }
 
@@ -198,7 +203,7 @@ const saveOrder = async () => {
 
 .character-item.dragging { opacity: 0.42; }
 .character-item.drag-over { border-color: #7697e4; transform: translateY(2px); }
-.drag-handle { color: #a5adba; cursor: grab; font-size: 17px; letter-spacing: -5px; }
+.drag-handle { display: flex; align-items: center; color: #a5adba; cursor: grab; }
 
 .avatar {
   flex: 0 0 auto;
@@ -214,6 +219,9 @@ const saveOrder = async () => {
 
 .move-actions { display: flex; gap: 4px; }
 .move-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 29px;
   height: 29px;
   padding: 0;

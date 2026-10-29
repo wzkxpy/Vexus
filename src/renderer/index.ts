@@ -18,6 +18,10 @@ const sessionStore = useSessionStore()
 const runtimeStore = useRuntimeStore()
 const gameStore = useGameStore()
 
+gameStore.initGames().catch(error => {
+  console.error('Failed to load games:', error)
+})
+
 window.callbackAPI.onGameStopped(async ({ gameId }) => {
   if (runtimeStore.runningGameId === gameId) {
     runtimeStore.stop()
