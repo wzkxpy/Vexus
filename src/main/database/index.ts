@@ -74,15 +74,16 @@ export function initDatabase(db: Database) {
   // 初始化 route 表
   db.exec(`
     CREATE TABLE IF NOT EXISTS routes (
-      id TEXT PRIMARY KEY,               -- UUID v4
-      game_id TEXT NOT NULL,             -- 游戏 ID
+      id TEXT PRIMARY KEY,          -- UUID v4
+      game_id TEXT NOT NULL,        -- 游戏 ID
 
-      name TEXT NOT NULL,                -- 线路名称
-      description TEXT,                  -- 备注说明
-      color TEXT,                        -- 颜色标记
+      name TEXT NOT NULL,           -- 线路名称
+      description TEXT,             -- 备注说明
+      color TEXT,                   -- 颜色标记
 
-      type TEXT DEFAULT 'Normal',        -- 线路类型
-      "order" INTEGER,                     -- 线路顺序编号
+      type TEXT DEFAULT 'Normal',   -- 线路类型
+      "order" INTEGER,              -- 线路顺序编号
+      lock_condition TEXT,          -- 剧情锁 JSON
 
       status TEXT DEFAULT 'NotStarted',  -- 游玩状态
       playtime INTEGER DEFAULT 0,        -- 游玩时长 / seconds

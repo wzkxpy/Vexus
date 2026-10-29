@@ -1,5 +1,5 @@
 // src/preload/index.ts
-import type { Game, NewGame, Route, Session } from '@/shared/types'
+import type { Game, NewGame, Route, RouteStatus, Session } from '@/shared/types'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // 窗口控制 API
@@ -27,8 +27,10 @@ contextBridge.exposeInMainWorld('databaseAPI', {
     ipcRenderer.invoke('importSessions', gameId, text),
 
   getGameRoutes: (gameId: string): Promise<Route[]> => ipcRenderer.invoke('getGameRoutes', gameId),
-  saveGameRoutes: (gameId: string, routes: Route[]): Promise<Route[]> =>
-    ipcRenderer.invoke('saveGameRoutes', gameId, routes)
+  saveGameRoutes: (gameId: string, routes: Route[], resetLockIds: string[] = []): Promise<Route[]> =>
+    ipcRenderer.invoke('saveGameRoutes', gameId, routes, resetLockIds),
+  updateRouteStatus: (gameId: string, routeId: string, status: RouteStatus): Promise<Route[]> =>
+    ipcRenderer.invoke('updateRouteStatus', gameId, routeId, status)
 
   //属性值: (参数: 参数类型): Promise<返回值类型> => ipcRenderer.invoke('IPC通道', 参数)
 })

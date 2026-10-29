@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Route } from '@/shared/types'
+import type { Route, RouteStatus } from '@/shared/types'
 
 export const useRouteStore = defineStore('route', () => {
   const routesByGame = ref<Record<string, Route[]>>({})
@@ -22,10 +22,17 @@ export const useRouteStore = defineStore('route', () => {
     }
   }
 
-  const saveGameRoutes = async (gameId: string, routes: Route[]) => {
-    const saved = await window.databaseAPI.saveGameRoutes(gameId, routes)
+  const saveGameRoutes = async (gameId: string, routes: Route[], resetLockIds: string[] = []) => {
+    const saved = await window.databaseAPI.saveGameRoutes(gameId, routes, resetLockIds)
     routesByGame.value[gameId] = saved
     errorByGame.value[gameId] = null
+    return saved
+  }
+
+  const updateRouteStatus = async (gameId: string, routeId: string, status: RouteStatus) => {
+    const saved = await window.databaseAPI.updateRouteStatus(gameId, routeId, status)
+    // 成功后再替换数据，失败时保留原状态和前置解锁结果。
+    routesByGame.value[gameId] = saved
     return saved
   }
 
@@ -35,6 +42,7 @@ export const useRouteStore = defineStore('route', () => {
     errorByGame,
     getGameRoutes,
     loadGameRoutes,
-    saveGameRoutes
+    saveGameRoutes,
+    updateRouteStatus
   }
 })

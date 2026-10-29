@@ -5,12 +5,13 @@ export interface Route {
   gameId: string
 
   name: string
-  description?: string
+  description: string | null
   color: string
 
   type: RouteType
   order: number
 
+  lockCondition: RouteLockCondition | null
   status: RouteStatus
   playtime: number
 }
@@ -25,8 +26,22 @@ export const ROUTE_TYPE_OPTIONS = [
 
 export type RouteType = typeof ROUTE_TYPE_OPTIONS[number]['value']
 
+// 剧情锁
+export interface RouteLockCondition {
+  unlocked: boolean
+  mode: 'all' | 'any'
+  preRouteIds: string[]
+}
+
 export type RouteStatus =
   | 'NotStarted'
   | 'Playing'
   | 'OnHold'
   | 'Completed'
+
+export const ROUTE_STATUS_OPTIONS = [
+  { value: 'NotStarted', label: '未开始' },
+  { value: 'Playing', label: '游玩中' },
+  { value: 'OnHold', label: '搁置中' },
+  { value: 'Completed', label: '已完成' }
+] as const satisfies ReadonlyArray<{ value: RouteStatus; label: string }>

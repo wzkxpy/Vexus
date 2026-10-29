@@ -8,6 +8,8 @@ export interface PositionedRouteNode extends RouteTreeNode {
   x: number
   y: number
   width: number
+  height: number
+  nameLines: string[]
 }
 
 export interface RouteTreeEdge {
@@ -20,22 +22,12 @@ export interface RouteTreeLayout {
   edges: RouteTreeEdge[]
   width: number
   height: number
+  columnGap: number
+  fontSize: number
+  padding: number
 }
 
-const MIN_NODE_WIDTH = 110
-const NODE_HEIGHT = 52
-const COLUMN_GAP = 72
-const ROW_GAP = 24
 const PADDING = 18
-
-// 中文按全角、其他字符按常见 UI 字体平均宽度估算，避免渲染后再测量造成画布跳动。
-const getNodeWidth = (name: string) => {
-  const textWidth = Array.from(name).reduce(
-    (width, character) => width + (/[^\u0000-\u00ff]/.test(character) ? 13 : 7.2),
-    0
-  )
-  return Math.max(MIN_NODE_WIDTH, Math.ceil(textWidth + 28))
-}
 
 const isMainRoute = (route: Route) =>
   ROUTE_TYPE_OPTIONS.some(option => option.value === route.type && option.isMain)
@@ -58,51 +50,105 @@ export function buildRouteTree(routes: Route[]): RouteTreeNode | null {
   return root
 }
 
-// 叶节点依次占据纵向行，父节点居中于首尾子节点之间。
-export function layoutRouteTree(root: RouteTreeNode | null): RouteTreeLayout {
-  if (!root) return { nodes: [], edges: [], width: 0, height: 0 }
+const densities = [
+  { minWidth: 110, maxWidth: 240, height: 52, columnGap: 72, rowGap: 24, fontSize: 13, padding: 10 },
+  { minWidth: 96, maxWidth: 210, height: 46, columnGap: 44, rowGap: 14, fontSize: 12, padding: 8 },
+  { minWidth: 88, maxWidth: 180, height: 42, columnGap: 28, rowGap: 10, fontSize: 11, padding: 7 }
+]
 
+export function layoutRouteTree(root: RouteTreeNode | null, density = 0,
+  measure: (text: string, size: number) => number = (text, size) => Array.from(text).length * size,
+  verticalCompression = 0
+): RouteTreeLayout {
+  const level = Math.max(0, Math.min(densities.length - 1, density))
+  const lower = densities[Math.floor(level)]!
+  const upper = densities[Math.ceil(level)]!
+  const fraction = level - Math.floor(level)
+  const interpolate = (key: keyof typeof lower) => lower[key] + (upper[key] - lower[key]) * fraction
+  const config = {
+    minWidth: interpolate('minWidth'), maxWidth: interpolate('maxWidth'),
+    height: interpolate('height'), columnGap: interpolate('columnGap'),
+    rowGap: interpolate('rowGap') + (10 - interpolate('rowGap')) * verticalCompression,
+    fontSize: interpolate('fontSize'), padding: interpolate('padding')
+  }
   const nodes: PositionedRouteNode[] = []
   const edges: RouteTreeEdge[] = []
-  let nextLeafY = PADDING
-  let maxRight = PADDING + MIN_NODE_WIDTH
-
-  const visit = (node: RouteTreeNode, x: number): PositionedRouteNode => {
-    const width = getNodeWidth(node.name)
-    maxRight = Math.max(maxRight, x + width)
-    const hasCharacterSibling = node.children.some(child => child.type === 'character')
-    // 与个人线并列的后续主干跨两列，其他父子关系只前进一个标准列宽。
-    const children = node.children.map(child => visit(
-      child,
-      x + width + COLUMN_GAP + (
-        isMainRoute(child) && hasCharacterSibling ? MIN_NODE_WIDTH + COLUMN_GAP : 0
-      )
-    ))
-    const y = children.length === 0
-      ? nextLeafY
-      : (children[0].y + children[children.length - 1].y) / 2
-
-    if (children.length === 0) nextLeafY += NODE_HEIGHT + ROW_GAP
-
-    const positioned: PositionedRouteNode = {
-      ...node,
-      x,
-      y,
-      width
+  const empty = { nodes, edges, width: 0, ...config }
+  if (!root) return { ...empty, height: 0 }
+  // 按实际字体宽度换行，完整保留名称；高度随行数增加，不裁切文字。
+  const prepare = (node: RouteTreeNode): {
+    node: RouteTreeNode; width: number; height: number; nameLines: string[];
+    children: ReturnType<typeof prepare>[]; subtreeHeight: number
+  } => {
+    const extra = config.padding * 2 + 5 + (node.type !== 'common' && node.lockCondition ? 25 : 0)
+    const width = Math.max(config.minWidth, Math.min(config.maxWidth, Math.ceil(measure(node.name, config.fontSize) + extra)))
+    const nameLines: string[] = []
+    let line = ''
+    for (const character of Array.from(node.name)) {
+      if (character === '\n') { nameLines.push(line); line = ''; continue }
+      if (line && measure(line + character, config.fontSize) > width - extra) {
+        nameLines.push(line)
+        line = ''
+      }
+      line += character
     }
+    nameLines.push(line)
+    const height = Math.max(config.height, nameLines.length * (config.fontSize + 4) + 30)
+    const children = node.children.map(prepare)
+    const subtreeHeight = Math.max(height, children.reduce((sum, child) => sum + child.subtreeHeight, 0) + Math.max(0, children.length - 1) * config.rowGap)
+    return { node, width, height, nameLines, children, subtreeHeight }
+  }
+  let maxRight = 0
+  const visit = (item: ReturnType<typeof prepare>, x: number, top: number): PositionedRouteNode => {
+    const positioned = { ...item.node, x, y: top + (item.subtreeHeight - item.height) / 2,
+      width: item.width, height: item.height, nameLines: item.nameLines }
     nodes.push(positioned)
-    for (const child of children) edges.push({ from: positioned, to: child })
+    maxRight = Math.max(maxRight, x + item.width)
+    const childrenHeight = item.children.reduce((sum, child) => sum + child.subtreeHeight, 0) + Math.max(0, item.children.length - 1) * config.rowGap
+    let childTop = top + (item.subtreeHeight - childrenHeight) / 2
+    const hasBranch = item.children.some(child => child.node.type === 'character')
+    for (const child of item.children) {
+      const childX = x + item.width + config.columnGap + (isMainRoute(child.node) && hasBranch ? config.minWidth + config.columnGap : 0)
+      const target = visit(child, childX, childTop)
+      edges.push({ from: positioned, to: target })
+      childTop += child.subtreeHeight + config.rowGap
+    }
     return positioned
   }
-
-  visit(root, PADDING)
-  return {
-    nodes,
-    edges,
-    width: maxRight + PADDING,
-    height: Math.max(nextLeafY - ROW_GAP + PADDING, NODE_HEIGHT + PADDING * 2)
-  }
+  const prepared = prepare(root)
+  visit(prepared, PADDING, PADDING)
+  return { ...empty, width: maxRight + PADDING, height: prepared.subtreeHeight + PADDING * 2 }
 }
 
-export const routeTreeNodeSize = { height: NODE_HEIGHT }
-export const routeTreeColumnGap = COLUMN_GAP
+/** Width determines node density; excess height only tightens the vertical gaps. */
+export function fitRouteTree(root: RouteTreeNode | null, width: number, height: number,
+  measure?: (text: string, size: number) => number): RouteTreeLayout {
+  let density = 0
+  let result = layoutRouteTree(root, density, measure)
+  if (result.width > width) {
+    let low = 0
+    let high = 2
+    result = layoutRouteTree(root, high, measure)
+    if (result.width <= width) {
+      // Find the least compression that fits instead of jumping to the next preset.
+      for (let step = 0; step < 20; step++) {
+        const middle = (low + high) / 2
+        if (layoutRouteTree(root, middle, measure).width > width) low = middle
+        else high = middle
+      }
+    }
+    density = high
+    result = layoutRouteTree(root, density, measure)
+  }
+  if (result.height > height) {
+    let low = 0
+    let high = 1
+    for (let step = 0; step < 16; step++) {
+      const middle = (low + high) / 2
+      if (layoutRouteTree(root, density, measure, middle).height > height) low = middle
+      else high = middle
+    }
+    result = layoutRouteTree(root, density, measure, high)
+  }
+  return result
+}

@@ -5,7 +5,7 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { GameService } from '../database/game.service'
 import { SessionService } from '../database/session.service'
-import { Game, NewGame, Route, Session } from '@/shared/types'
+import { Game, NewGame, Route, RouteStatus, Session } from '@/shared/types'
 import { SessionImportService } from '../services/sessionImport'
 import { searchGames, fetchGame, buildGameFromBangumi } from '../providers/manager'
 import { launchGame, stopGame, openFolder } from '../services/launch'
@@ -79,8 +79,11 @@ export function registerDBIPC(
   ipcMain.handle('getGameRoutes', (_, gameId: string) => {
     return routeService.getGameRoutes(gameId)
   })
-  ipcMain.handle('saveGameRoutes', (_, gameId: string, routes: Route[]) => {
-    return routeService.saveGameRoutes(gameId, routes)
+  ipcMain.handle('saveGameRoutes', (_, gameId: string, routes: Route[], resetLockIds: string[] = []) => {
+    return routeService.saveGameRoutes(gameId, routes, resetLockIds)
+  })
+  ipcMain.handle('updateRouteStatus', (_, gameId: string, routeId: string, status: RouteStatus) => {
+    return routeService.updateRouteStatus(gameId, routeId, status)
   })
 }
 
