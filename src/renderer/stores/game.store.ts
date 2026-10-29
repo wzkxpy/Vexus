@@ -13,10 +13,6 @@ export const useGameStore = defineStore('game', () => {
     return new Map(games.value.map(g => [g.id, g]))
   })
   const loaded = ref(false)
-  const featuredGameId = ref<string | null>(null) // 首页展示游戏
-  const featuredGame = computed(() =>
-    games.value.find(g => g.id === featuredGameId.value) || null
-  )
   // const sortType = getSetting('gameSortType')
   const sortType = ref<GameSortType>('addedAt')
   const sortOrder = ref<'asc' | 'desc'>('desc')
@@ -66,10 +62,6 @@ export const useGameStore = defineStore('game', () => {
   //   Object.assign(game, patch)
   // }
 
-  const setFeaturedGame = (id: string | null) => {
-    featuredGameId.value = id
-  }
-  
   const getGameById = (id: string) => {
     return gameMap.value.get(id) || null
   }
@@ -89,9 +81,6 @@ export const useGameStore = defineStore('game', () => {
     const ok = await window.databaseAPI.deleteGame(id)
     if (ok) {
       games.value = games.value.filter(g => g.id !== id)
-      if (featuredGameId.value === id) {
-        featuredGameId.value = games.value[0]?.id ?? null
-      }
     }
     return ok
   }
@@ -197,8 +186,6 @@ export const useGameStore = defineStore('game', () => {
 
   return {
     games,
-    featuredGameId,
-    featuredGame,
     updateMedia,
     sortType,
     sortOrder,
@@ -212,8 +199,7 @@ export const useGameStore = defineStore('game', () => {
     refreshGame,
     addGame,
     deleteGame,
-    updateGame,
-    setFeaturedGame
+    updateGame
     // deleteSelectedGame
   }
 })
