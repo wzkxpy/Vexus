@@ -9,7 +9,6 @@ export interface Route {
   color: string
 
   type: RouteType
-  order: number
 
   lockCondition: RouteLockCondition | null
   status: RouteStatus

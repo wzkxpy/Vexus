@@ -34,14 +34,14 @@ export class RouteRepository {
       SELECT
         id, game_id,
         name, description, color,
-        type, "order",
+        type,
         lock_condition,
         status,
         (SELECT COALESCE(SUM(duration), 0) FROM sessions
          WHERE sessions.route_id = routes.id AND sessions.game_id = routes.game_id) AS playtime
       FROM routes
       WHERE game_id = ?
-      ORDER BY "order" ASC, created_at ASC
+      ORDER BY created_at ASC, id ASC
     `).all(gameId) as RouteRow[]
     return rows.map(rowToRoute)
   }
@@ -73,14 +73,13 @@ export class RouteRepository {
   saveForGame(gameId: string, routes: Route[]): Route[] {
     const upsert = this.db.prepare(`
       INSERT INTO routes (
-        id, game_id, name, description, color, type, "order", lock_condition, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, game_id, name, description, color, type, lock_condition, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name,
         description = excluded.description,
         color = excluded.color,
         type = excluded.type,
-        "order" = excluded."order",
         lock_condition = excluded.lock_condition,
         updated_at = CURRENT_TIMESTAMP
       WHERE routes.game_id = excluded.game_id
@@ -96,7 +95,6 @@ export class RouteRepository {
           route.description ?? null,
           route.color,
           route.type,
-          route.order,
           route.lockCondition === null ? null : JSON.stringify(route.lockCondition),
           // 编辑器只保存线路结构；旧草稿不能恢复先前的游玩状态。
           'NotStarted'

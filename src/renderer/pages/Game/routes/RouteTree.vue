@@ -1,5 +1,5 @@
 <template>
-  <div v-if="routes.length === 0" class="empty-state">暂无线路</div>
+  <div v-if="routeNodes.length === 0" class="empty-state">{{ routes.length ? '线路尚未放入树' : '暂无线路' }}</div>
   <div v-else ref="treeElement" class="route-tree" :style="{ '--node-font-size': `${layout.fontSize}px`, '--node-padding': `${layout.padding}px` }">
     <div class="tree-scroll" :style="{ maxHeight: `${heightBudget}px` }" @scroll="closeDetails" @click.self="closeDetails">
       <div class="tree-canvas" :style="{ width: `${canvasWidth}px`, height: `${layout.height}px` }"
@@ -22,24 +22,28 @@
             :marker-end="edge.arrow ? `url(#${panelId}-${edge.completed ? 'done' : 'pending'})` : undefined" />
         </svg>
 
-        <button type="button" v-for="node in layout.nodes" :key="node.id" class="route-node"
-          :class="[`type-${node.type}`, { locked: lockStates.get(node.id) && !lockStates.get(node.id)?.unlocked, selected: selectedId === node.id, prerequisite: selectedState?.prerequisites.some(item => item.id === node.id), 'prerequisite-completed': selectedState?.prerequisites.some(item => item.id === node.id && item.completed) }]"
-          :style="{ left: `${node.x}px`, top: `${node.y}px`, width: `${node.width}px`, height: `${node.height}px`, borderLeftColor: /^#[0-9a-f]{6}$/i.test(node.color) ? node.color : undefined }"
-          :title="`${node.name} · ${statusLabel(node.status)}，点击查看详情`" :aria-expanded="selectedId === node.id"
+        <div v-for="node in forkNodes" :key="node.id" class="route-fork"
+          :style="{ left: `${node.x}px`, top: `${node.y}px`, width: `${node.width}px`, height: `${node.height}px` }"
+          aria-hidden="true"><span></span></div>
+
+        <button type="button" v-for="node in routeNodes" :key="node.id" class="route-node"
+          :class="[`type-${node.route?.type}`, { locked: node.route && lockStates.get(node.route.id) && !lockStates.get(node.route.id)?.unlocked, selected: node.route && selectedId === node.route.id, prerequisite: node.route && selectedState?.prerequisites.some(item => item.id === node.route?.id), 'prerequisite-completed': node.route && selectedState?.prerequisites.some(item => item.id === node.route?.id && item.completed) }]"
+          :style="{ left: `${node.x}px`, top: `${node.y}px`, width: `${node.width}px`, height: `${node.height}px`, borderLeftColor: nodeBorderColor(node) }"
+          :title="`${node.route?.name ?? ''} · ${statusLabel(nodeStatus(node))}，点击查看详情`" :aria-expanded="selectedId === node.route?.id"
           :aria-controls="panelId" aria-haspopup="dialog" @click="showDetails(node, $event)">
           <div class="route-copy">
             <strong><span v-for="(line, index) in node.nameLines" :key="index">{{ line }}</span></strong>
-            <small v-if="node.status !== 'NotStarted'" class="node-status" :class="`node-status-${node.status}`">
-              <Play v-if="node.status === 'Playing'" :size="10" fill="currentColor" aria-hidden="true" />
-              <Pause v-else-if="node.status === 'OnHold'" :size="10" fill="currentColor" aria-hidden="true" />
+            <small v-if="nodeStatus(node) !== 'NotStarted'" class="node-status" :class="`node-status-${nodeStatus(node)}`">
+              <Play v-if="nodeStatus(node) === 'Playing'" :size="10" fill="currentColor" aria-hidden="true" />
+              <Pause v-else-if="nodeStatus(node) === 'OnHold'" :size="10" fill="currentColor" aria-hidden="true" />
               <Check v-else :size="11" :stroke-width="2.6" aria-hidden="true" />
-              {{ statusLabel(node.status) }}
+              {{ statusLabel(nodeStatus(node)) }}
             </small>
           </div>
-          <svg v-if="lockStates.get(node.id)" class="lock-icon" :class="{ unlocked: lockStates.get(node.id)?.unlocked }"
+          <svg v-if="node.route && lockStates.get(node.route.id)" class="lock-icon" :class="{ unlocked: lockStates.get(node.route.id)?.unlocked }"
             viewBox="0 0 24 24" aria-hidden="true">
             <rect x="5" y="10" width="14" height="11" rx="3" />
-            <path :d="lockStates.get(node.id)?.unlocked ? 'M9 10 V6 a4 4 0 0 1 8 0' : 'M8 10 V6 a4 4 0 0 1 8 0 V10'" />
+            <path :d="lockStates.get(node.route.id)?.unlocked ? 'M9 10 V6 a4 4 0 0 1 8 0' : 'M8 10 V6 a4 4 0 0 1 8 0 V10'" />
             <path d="M12 14 v3" />
           </svg>
         </button>
@@ -87,17 +91,19 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { Check, Circle, Pause, Play } from '@lucide/vue'
 import { getRouteLockState } from '@/shared/routeLocks'
+import { getRouteColor } from '@/shared/routeColors'
 import { placeRoutePanel } from './routePanelPosition'
 import { buildDependencyBus } from './routeDependencyPath'
-import { ROUTE_TYPE_OPTIONS, ROUTE_STATUS_OPTIONS, type Route, type RouteType, type RouteStatus } from '@/shared/types'
+import { ROUTE_TYPE_OPTIONS, ROUTE_STATUS_OPTIONS, type Route, type RouteTree, type RouteType, type RouteStatus } from '@/shared/types'
 import { useRouteStore } from '@/renderer/stores/route.store'
 import {
-  buildRouteTree,
-  fitRouteTree,
+  buildRouteLayout,
+  routeTreeEdgePath,
+  type RouteLayoutNode,
   type RouteTreeEdge
 } from './routeTree'
 
-const props = defineProps<{ routes: Route[] }>()
+const props = defineProps<{ routes: Route[]; tree: RouteTree }>()
 const routeStore = useRouteStore()
 const statusDraft = ref<RouteStatus>('NotStarted')
 const statusSaving = ref<Record<string, boolean>>({})
@@ -114,7 +120,6 @@ const routeTypeLabel = (type: RouteType) =>
   ROUTE_TYPE_OPTIONS.find(option => option.value === type)?.label ?? type
 
 const treeElement = ref<HTMLElement | null>(null)
-const availableWidth = ref(1000)
 const heightBudget = ref(Math.max(240, Math.min(480, window.innerHeight * 0.55)))
 const fontFamily = ref('sans-serif')
 const textContext = document.createElement('canvas').getContext('2d')
@@ -123,24 +128,18 @@ const measureName = (text: string, size: number) => {
   textContext.font = `700 ${size}px ${fontFamily.value}`
   return textContext.measureText(text).width
 }
-const layout = computed(() => {
-  const root = buildRouteTree(props.routes)
-  return fitRouteTree(root, Math.max(1, availableWidth.value - 16), heightBudget.value - 16, measureName)
-})
+const routesById = computed(() => new Map(props.routes.map(route => [route.id, route])))
+const layout = computed(() => buildRouteLayout(props.tree, routesById.value, measureName))
+const routeNodes = computed(() => layout.value.nodes.filter(node => !node.isFork))
+const forkNodes = computed(() => layout.value.nodes.filter(node => node.isFork))
+const nodeStatus = (node: RouteLayoutNode): RouteStatus => node.route?.status ?? 'NotStarted'
+const nodeBorderColor = (node: RouteLayoutNode) =>
+  node.route ? getRouteColor(node.route) : undefined
 const resizeTree = () => {
-  if (treeElement.value) {
-    availableWidth.value = treeElement.value.clientWidth
-    fontFamily.value = getComputedStyle(treeElement.value).fontFamily
-  }
+  if (treeElement.value) fontFamily.value = getComputedStyle(treeElement.value).fontFamily
   heightBudget.value = Math.max(240, Math.min(480, window.innerHeight * 0.55))
   closeDetails()
 }
-const treeObserver = new ResizeObserver(resizeTree)
-watch(treeElement, (element, previous) => {
-  if (previous) treeObserver.unobserve(previous)
-  if (element) { treeObserver.observe(element); resizeTree() }
-}, { flush: 'post' })
-const routesById = computed(() => new Map(props.routes.map(route => [route.id, route])))
 const lockStates = computed(() => new Map(props.routes.map(route => [route.id, getRouteLockState(route, routesById.value)])))
 const selectedId = ref<string | null>(null)
 const selectedRoute = computed(() => selectedId.value ? routesById.value.get(selectedId.value) : undefined)
@@ -169,11 +168,11 @@ const panelId = `route-lock-details-${useId()}`
 const detailsPanel = ref<HTMLElement | null>(null)
 const panelStyle = ref<Record<string, string>>({})
 const dependencyEdges = computed(() => {
-  const target = layout.value.nodes.find(node => node.id === selectedId.value)
+  const target = layout.value.nodes.find(node => node.route?.id === selectedId.value)
   if (!target || !selectedState.value) return []
   return selectedState.value.prerequisites.flatMap(item => {
-    const source = layout.value.nodes.find(node => node.id === item.id)
-    return source && source.id !== target.id ? [{ from: source, to: target, completed: item.completed }] : []
+    const source = layout.value.nodes.find(node => node.route?.id === item.id)
+    return source && source !== target ? [{ from: source, to: target, completed: item.completed }] : []
   })
 })
 const dependencyBus = computed(() => buildDependencyBus(dependencyEdges.value, layout.value, selectedState.value?.unlocked ?? false))
@@ -186,7 +185,9 @@ const closeDetails = () => {
 const handlePanelToggle = () => {
   if (!detailsPanel.value?.matches(':popover-open')) selectedId.value = null
 }
-const showDetails = async (route: Route, event: MouseEvent) => {
+const showDetails = async (node: RouteLayoutNode, event: MouseEvent) => {
+  const route = node.route
+  if (!route) return
   if (selectedId.value === route.id) { closeDetails(); return }
   const trigger = event.currentTarget as HTMLElement
   const rect = trigger.getBoundingClientRect()
@@ -233,35 +234,16 @@ const handlePageScroll = (event: Event) => {
   closeDetails()
 }
 onMounted(() => {
+  resizeTree()
   window.addEventListener('resize', resizeTree)
   document.addEventListener('scroll', handlePageScroll, true)
 })
 onBeforeUnmount(() => {
-  treeObserver.disconnect()
   window.removeEventListener('resize', resizeTree)
   document.removeEventListener('scroll', handlePageScroll, true)
 })
 
-const edgePath = ({ from, to }: RouteTreeEdge) => {
-  const startX = from.x + from.width
-  const startY = from.y + from.height / 2
-  const endX = to.x
-  const endY = to.y + to.height / 2
-  const span = endX - startX
-
-  const isMainType = ROUTE_TYPE_OPTIONS.some(
-    option => option.value === to.type && option.isMain
-  )
-  if (isMainType && span > layout.value.columnGap * 2) {
-    // 跨两列主干先在第一列完成曲线转向，再沿目标行直连第二列。
-    const firstColumnX = startX + layout.value.columnGap
-    const firstCurveMiddleX = (startX + firstColumnX) / 2
-    return `M ${startX} ${startY} C ${firstCurveMiddleX} ${startY}, ${firstCurveMiddleX} ${endY}, ${firstColumnX} ${endY} L ${endX} ${endY}`
-  }
-
-  const middleX = (startX + endX) / 2
-  return `M ${startX} ${startY} C ${middleX} ${startY}, ${middleX} ${endY}, ${endX} ${endY}`
-}
+const edgePath = (edge: RouteTreeEdge) => routeTreeEdgePath(edge)
 </script>
 
 <style scoped>
@@ -294,6 +276,23 @@ const edgePath = ({ from, to }: RouteTreeEdge) => {
   fill: none;
   stroke: #cbd5e6;
   stroke-width: 2;
+}
+
+.route-fork {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.route-fork span {
+  width: 11px;
+  height: 11px;
+  border: 2px solid #9aa8bf;
+  border-radius: 2px;
+  background: #fff;
+  transform: rotate(45deg);
+  box-shadow: 0 2px 6px rgba(46, 61, 88, 0.12);
 }
 
 .route-node {
@@ -521,22 +520,6 @@ button.route-node {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: 1.6;
-}
-
-.route-node.type-common {
-  border-left-color: #5d82d8;
-}
-
-.route-node.type-main {
-  border-left-color: #4f9b82;
-}
-
-.route-node.type-chapter {
-  border-left-color: #7b70c9;
-}
-
-.route-node.type-character {
-  border-left-color: #d77e9c;
 }
 
 .route-copy {

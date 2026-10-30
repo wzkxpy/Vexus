@@ -5,12 +5,13 @@
 import { ipcMain, BrowserWindow, clipboard } from 'electron'
 import { GameService } from '../database/game.service'
 import { SessionService } from '../database/session.service'
-import { Game, NewGame, Route, RouteStatus, Session } from '@/shared/types'
+import { Game, NewGame, Route, RouteStatus, RouteTree, Session } from '@/shared/types'
 import { SessionImportService } from '../services/sessionImport'
 import { searchGames, fetchGame, buildGameFromBangumi } from '../providers/manager'
 import { launchGame, stopGame, openFolder } from '../services/launch'
 import { getSettings, getSetting, setSetting, Settings } from '../settings'
 import { RouteService } from '../database/route.service'
+import { RouteTreeService } from '../services/routeTree'
 // export function registerAllIPC() {
   
 // }
@@ -45,7 +46,8 @@ export function registerDBIPC(
   gameService: GameService,
   sessionService: SessionService,
   sessionImportService: SessionImportService,
-  routeService: RouteService
+  routeService: RouteService,
+  routeTreeService: RouteTreeService
 ) {
   // Game
   ipcMain.handle('addGame', (_, newgame: NewGame) => {
@@ -86,11 +88,13 @@ export function registerDBIPC(
     return sessionService.assignTagToRoute(gameId, tag, routeId)
   })
   // Route
-  ipcMain.handle('getGameRoutes', (_, gameId: string) => {
-    return routeService.getGameRoutes(gameId)
+  ipcMain.handle('getGameRouteTree', (_, gameId: string) => {
+    if (typeof gameId !== 'string' || !gameId) throw new Error('Invalid game id')
+    return routeTreeService.get(gameId)
   })
-  ipcMain.handle('saveGameRoutes', (_, gameId: string, routes: Route[], resetLockIds: string[] = []) => {
-    return routeService.saveGameRoutes(gameId, routes, resetLockIds)
+  ipcMain.handle('saveGameRouteTree', (_, gameId: string, routes: Route[], tree: RouteTree, resetLockIds: string[] = []) => {
+    if (typeof gameId !== 'string' || !gameId) throw new Error('Invalid game id')
+    return routeTreeService.save(gameId, routes, tree, resetLockIds)
   })
   ipcMain.handle('updateRouteStatus', (_, gameId: string, routeId: string, status: RouteStatus) => {
     return routeService.updateRouteStatus(gameId, routeId, status)

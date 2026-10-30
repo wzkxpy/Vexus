@@ -16,6 +16,8 @@ import { getProxyAgent } from './settings';
 import { SessionImportService } from './services/sessionImport';
 import { RouteRepository } from './database/route.repo';
 import { RouteService } from './database/route.service';
+import { RouteTreeFileStore } from './services/routeTreeFile';
+import { RouteTreeService } from './services/routeTree';
 
 
 app.whenReady().then(() => {
@@ -30,6 +32,10 @@ app.whenReady().then(() => {
   const gameService = new GameService(gameRepo, mediaService)
   const routeRepo = new RouteRepository(db)
   const routeService = new RouteService(routeRepo)
+  const routeTreeService = new RouteTreeService(
+    routeService,
+    new RouteTreeFileStore(path.join(app.getPath('userData'), 'route-trees'))
+  )
   const sessionRepo = new SessionRepository(db)
   const sessionService = new SessionService(sessionRepo, routeRepo)
   const sessionImportService = new SessionImportService(sessionService)
@@ -48,7 +54,7 @@ app.whenReady().then(() => {
   const win = createWindow() // Create the main application window 
   // 注册 IPC 处理器
   registerWindowIPC(win)  // Register IPC handlers for the window
-  registerDBIPC(gameService, sessionService, sessionImportService, routeService) // Register database-related IPC handlers
+  registerDBIPC(gameService, sessionService, sessionImportService, routeService, routeTreeService) // Register database-related IPC handlers
   registerFileIPC()
   registerClipboardIPC()
   registerLaunchIPC() // Register IPC handlers for launching games

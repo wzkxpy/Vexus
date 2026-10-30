@@ -7,7 +7,6 @@ export interface RouteRow {
   description: string | null
   color: string | null
   type: RouteType
-  order: number
   lock_condition: string | null
   status: RouteStatus
   playtime: number | null
@@ -27,7 +26,6 @@ export function rowToRoute(row: RouteRow): Route {
       description: row.description,
       color: row.color ?? '',
       type: row.type,
-      order: row.order,
       status: row.status,
       playtime: row.playtime ?? 0,
       lockCondition

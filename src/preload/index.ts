@@ -1,5 +1,5 @@
 // src/preload/index.ts
-import type { Game, NewGame, Route, RouteStatus, Session } from '@/shared/types'
+import type { Game, NewGame, Route, RouteStatus, RouteTree, Session } from '@/shared/types'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // 窗口控制 API
@@ -28,9 +28,11 @@ contextBridge.exposeInMainWorld('databaseAPI', {
   assignTagToRoute: (gameId: string, tag: string, routeId: string): Promise<void> =>
     ipcRenderer.invoke('assignTagToRoute', gameId, tag, routeId),
 
-  getGameRoutes: (gameId: string): Promise<Route[]> => ipcRenderer.invoke('getGameRoutes', gameId),
-  saveGameRoutes: (gameId: string, routes: Route[], resetLockIds: string[] = []): Promise<Route[]> =>
-    ipcRenderer.invoke('saveGameRoutes', gameId, routes, resetLockIds),
+  getGameRouteTree: (gameId: string): Promise<{ routes: Route[]; tree: RouteTree }> =>
+    ipcRenderer.invoke('getGameRouteTree', gameId),
+  saveGameRouteTree: (gameId: string, routes: Route[], tree: RouteTree, resetLockIds: string[] = []):
+    Promise<{ routes: Route[]; tree: RouteTree }> =>
+    ipcRenderer.invoke('saveGameRouteTree', gameId, routes, tree, resetLockIds),
   updateRouteStatus: (gameId: string, routeId: string, status: RouteStatus): Promise<Route[]> =>
     ipcRenderer.invoke('updateRouteStatus', gameId, routeId, status)
 

@@ -1,10 +1,16 @@
-import type { RouteTreeEdge, RouteTreeLayout } from './routeTree'
+import type { RouteLayoutNode, RouteTreeLayout } from './routeTree'
 
 interface Point { x: number; y: number }
 interface Rect { left: number; top: number; right: number; bottom: number }
 interface Wire { id: string; points: Point[]; completed: boolean; arrow: boolean }
 
-export function buildDependencyBus(edges: (RouteTreeEdge & { completed: boolean })[], layout: RouteTreeLayout, unlocked: boolean) {
+interface DependencyEdge {
+  from: RouteLayoutNode
+  to: RouteLayoutNode
+  completed: boolean
+}
+
+export function buildDependencyBus(edges: DependencyEdge[], layout: RouteTreeLayout, unlocked: boolean) {
   if (!edges.length) return { paths: [], obstacles: [] as Rect[] }
   const nodes = [...edges.map(edge => edge.from), edges[0].to]
   let best: { wires: Wire[]; hits: number; length: number } | undefined

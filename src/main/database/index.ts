@@ -82,7 +82,6 @@ export function initDatabase(db: Database) {
       color TEXT,                   -- 颜色标记
 
       type TEXT DEFAULT 'Normal',   -- 线路类型
-      "order" INTEGER,              -- 线路顺序编号
       lock_condition TEXT,          -- 剧情锁 JSON
 
       status TEXT DEFAULT 'NotStarted',  -- 游玩状态

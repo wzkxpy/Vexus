@@ -1,10 +1,22 @@
-import { ROUTE_TYPE_OPTIONS, type Route } from '@/shared/types'
+import type { Route, RouteTree, RouteTreePoint } from '@/shared/types'
 
-export interface RouteTreeNode extends Route {
-  children: RouteTreeNode[]
-}
+export const FORK_NODE_SIZE = 20
+export const ROUTE_FONT_SIZE = 13
+export const ROUTE_PADDING = 10
 
-export interface PositionedRouteNode extends RouteTreeNode {
+const CANVAS_PADDING = 24
+const ROUTE_MIN_WIDTH = 96
+const ROUTE_MAX_WIDTH = 240
+const AUTO_COLUMN_GAP = 72
+const AUTO_ROW_GAP = 24
+const AUTO_ROOT_GAP = 48
+const AUTO_PADDING = 24
+
+export interface RouteLayoutNode {
+  id: string
+  point: RouteTreePoint
+  route: Route | null
+  isFork: boolean
   x: number
   y: number
   width: number
@@ -13,142 +25,188 @@ export interface PositionedRouteNode extends RouteTreeNode {
 }
 
 export interface RouteTreeEdge {
-  from: PositionedRouteNode
-  to: PositionedRouteNode
+  from: RouteLayoutNode
+  to: RouteLayoutNode
+  childIndex: number
 }
 
 export interface RouteTreeLayout {
-  nodes: PositionedRouteNode[]
+  nodes: RouteLayoutNode[]
   edges: RouteTreeEdge[]
   width: number
   height: number
-  columnGap: number
   fontSize: number
   padding: number
 }
 
-const PADDING = 18
-
-const isMainRoute = (route: Route) =>
-  ROUTE_TYPE_OPTIONS.some(option => option.value === route.type && option.isMain)
-
-// 构建线路树
-// 分支永远属于它之前最近出现的主干；新的主干与此前分支并列，并成为后续锚点。
-export function buildRouteTree(routes: Route[]): RouteTreeNode | null {
-  const sorted = [...routes].sort((a, b) => a.order - b.order)
-  if (sorted.length === 0) return null
-
-  const root: RouteTreeNode = { ...sorted[0], children: [] }
-  let currentMain = root
-
-  for (const route of sorted.slice(1)) {
-    const node: RouteTreeNode = { ...route, children: [] }
-    currentMain.children.push(node)
-    if (isMainRoute(route)) currentMain = node
-  }
-
-  return root
+interface NodeSize {
+  width: number
+  height: number
+  nameLines: string[]
 }
 
-const densities = [
-  { minWidth: 110, maxWidth: 240, height: 52, columnGap: 72, rowGap: 24, fontSize: 13, padding: 10 },
-  { minWidth: 96, maxWidth: 210, height: 46, columnGap: 44, rowGap: 14, fontSize: 12, padding: 8 },
-  { minWidth: 88, maxWidth: 180, height: 42, columnGap: 28, rowGap: 10, fontSize: 11, padding: 7 }
-]
-
-export function layoutRouteTree(root: RouteTreeNode | null, density = 0,
-  measure: (text: string, size: number) => number = (text, size) => Array.from(text).length * size,
-  verticalCompression = 0
-): RouteTreeLayout {
-  const level = Math.max(0, Math.min(densities.length - 1, density))
-  const lower = densities[Math.floor(level)]!
-  const upper = densities[Math.ceil(level)]!
-  const fraction = level - Math.floor(level)
-  const interpolate = (key: keyof typeof lower) => lower[key] + (upper[key] - lower[key]) * fraction
-  const config = {
-    minWidth: interpolate('minWidth'), maxWidth: interpolate('maxWidth'),
-    height: interpolate('height'), columnGap: interpolate('columnGap'),
-    rowGap: interpolate('rowGap') + (10 - interpolate('rowGap')) * verticalCompression,
-    fontSize: interpolate('fontSize'), padding: interpolate('padding')
+export function measureRouteNode(route: Route, measure: (text: string, size: number) => number,
+  fontSize = ROUTE_FONT_SIZE): NodeSize {
+  const label = route.name.trim() ? route.name : '未命名线路'
+  const extra = ROUTE_PADDING * 2 + 5 + (route.type !== 'common' && route.lockCondition ? 25 : 0)
+  const width = Math.max(ROUTE_MIN_WIDTH,
+    Math.min(ROUTE_MAX_WIDTH, Math.ceil(measure(label, fontSize) + extra)))
+  const nameLines: string[] = []
+  let line = ''
+  for (const character of Array.from(label)) {
+    if (character === '\n') { nameLines.push(line); line = ''; continue }
+    if (line && measure(line + character, fontSize) > width - extra) {
+      nameLines.push(line)
+      line = ''
+    }
+    line += character
   }
-  const nodes: PositionedRouteNode[] = []
+  nameLines.push(line)
+  const height = Math.max(44, nameLines.length * (fontSize + 4) + 30)
+  return { width, height, nameLines }
+}
+
+const pointSize = (point: RouteTreePoint, routesById: Map<string, Route>,
+  measure: (text: string, size: number) => number): NodeSize => {
+  if (point.type === 'route') {
+    const route = routesById.get(point.routeId)
+    return route ? measureRouteNode(route, measure) : { width: 120, height: 44, nameLines: [] }
+  }
+  return { width: FORK_NODE_SIZE, height: FORK_NODE_SIZE, nameLines: [] }
+}
+
+// 每个点都保存坐标；这里只把结构解析为可渲染节点和边。
+export function buildRouteLayout(tree: RouteTree, routesById: Map<string, Route>,
+  measure: (text: string, size: number) => number): RouteTreeLayout {
+  const nodes: RouteLayoutNode[] = []
   const edges: RouteTreeEdge[] = []
-  const empty = { nodes, edges, width: 0, ...config }
-  if (!root) return { ...empty, height: 0 }
-  // 按实际字体宽度换行，完整保留名称；高度随行数增加，不裁切文字。
-  const prepare = (node: RouteTreeNode): {
-    node: RouteTreeNode; width: number; height: number; nameLines: string[];
-    children: ReturnType<typeof prepare>[]; subtreeHeight: number
-  } => {
-    const extra = config.padding * 2 + 5 + (node.type !== 'common' && node.lockCondition ? 25 : 0)
-    const width = Math.max(config.minWidth, Math.min(config.maxWidth, Math.ceil(measure(node.name, config.fontSize) + extra)))
-    const nameLines: string[] = []
-    let line = ''
-    for (const character of Array.from(node.name)) {
-      if (character === '\n') { nameLines.push(line); line = ''; continue }
-      if (line && measure(line + character, config.fontSize) > width - extra) {
-        nameLines.push(line)
-        line = ''
+
+  const visit = (point: RouteTreePoint | null): RouteLayoutNode | null => {
+    if (!point) return null
+    if (point.type === 'route') {
+      const route = routesById.get(point.routeId)
+      // 主进程读取时会清理悬空线路；这里不再渲染缺失的节点。
+      if (!route) return null
+      const size = pointSize(point, routesById, measure)
+      const node: RouteLayoutNode = {
+        id: point.id, point, route, isFork: false,
+        x: point.x, y: point.y, width: size.width, height: size.height, nameLines: size.nameLines
       }
-      line += character
+      nodes.push(node)
+      point.children.forEach((child, index) => {
+        const childNode = visit(child)
+        if (childNode) edges.push({ from: node, to: childNode, childIndex: index })
+      })
+      return node
     }
-    nameLines.push(line)
-    const height = Math.max(config.height, nameLines.length * (config.fontSize + 4) + 30)
-    const children = node.children.map(prepare)
-    const subtreeHeight = Math.max(height, children.reduce((sum, child) => sum + child.subtreeHeight, 0) + Math.max(0, children.length - 1) * config.rowGap)
-    return { node, width, height, nameLines, children, subtreeHeight }
+
+    const node: RouteLayoutNode = {
+      id: point.id, point, route: null, isFork: true,
+      x: point.x, y: point.y, width: FORK_NODE_SIZE, height: FORK_NODE_SIZE, nameLines: []
+    }
+    nodes.push(node)
+    point.children.forEach((child, index) => {
+      const childNode = visit(child)
+      if (childNode) edges.push({ from: node, to: childNode, childIndex: index })
+    })
+    return node
   }
+
+  for (const root of tree.roots) visit(root)
   let maxRight = 0
-  const visit = (item: ReturnType<typeof prepare>, x: number, top: number): PositionedRouteNode => {
-    const positioned = { ...item.node, x, y: top + (item.subtreeHeight - item.height) / 2,
-      width: item.width, height: item.height, nameLines: item.nameLines }
-    nodes.push(positioned)
-    maxRight = Math.max(maxRight, x + item.width)
-    const childrenHeight = item.children.reduce((sum, child) => sum + child.subtreeHeight, 0) + Math.max(0, item.children.length - 1) * config.rowGap
-    let childTop = top + (item.subtreeHeight - childrenHeight) / 2
-    const hasBranch = item.children.some(child => child.node.type === 'character')
-    for (const child of item.children) {
-      const childX = x + item.width + config.columnGap + (isMainRoute(child.node) && hasBranch ? config.minWidth + config.columnGap : 0)
-      const target = visit(child, childX, childTop)
-      edges.push({ from: positioned, to: target })
-      childTop += child.subtreeHeight + config.rowGap
-    }
-    return positioned
+  let maxBottom = 0
+  for (const node of nodes) {
+    maxRight = Math.max(maxRight, node.x + node.width)
+    maxBottom = Math.max(maxBottom, node.y + node.height)
   }
-  const prepared = prepare(root)
-  visit(prepared, PADDING, PADDING)
-  return { ...empty, width: maxRight + PADDING, height: prepared.subtreeHeight + PADDING * 2 }
+  return {
+    nodes,
+    edges,
+    width: nodes.length ? maxRight + CANVAS_PADDING : 0,
+    height: nodes.length ? maxBottom + CANVAS_PADDING : 0,
+    fontSize: ROUTE_FONT_SIZE,
+    padding: ROUTE_PADDING
+  }
 }
 
-/** Width determines node density; excess height only tightens the vertical gaps. */
-export function fitRouteTree(root: RouteTreeNode | null, width: number, height: number,
-  measure?: (text: string, size: number) => number): RouteTreeLayout {
-  let density = 0
-  let result = layoutRouteTree(root, density, measure)
-  if (result.width > width) {
-    let low = 0
-    let high = 2
-    result = layoutRouteTree(root, high, measure)
-    if (result.width <= width) {
-      // Find the least compression that fits instead of jumping to the next preset.
-      for (let step = 0; step < 20; step++) {
-        const middle = (low + high) / 2
-        if (layoutRouteTree(root, middle, measure).width > width) low = middle
-        else high = middle
-      }
-    }
-    density = high
-    result = layoutRouteTree(root, density, measure)
+interface PreparedPoint {
+  point: RouteTreePoint
+  size: NodeSize
+  children: PreparedPoint[]
+  childrenHeight: number
+  subtreeHeight: number
+}
+
+// 自动整理只给没有手工排布的树提供一个可用的初始布局。
+export function autoLayoutRouteTree(tree: RouteTree, routesById: Map<string, Route>,
+  measure: (text: string, size: number) => number): void {
+  if (!tree.roots.length) return
+
+  const prepare = (point: RouteTreePoint): PreparedPoint => {
+    const size = pointSize(point, routesById, measure)
+    const children = point.children.map(prepare)
+    const childrenHeight = children.reduce((sum, child) => sum + child.subtreeHeight, 0) +
+      Math.max(0, children.length - 1) * AUTO_ROW_GAP
+    return { point, size, children, childrenHeight, subtreeHeight: Math.max(size.height, childrenHeight) }
   }
-  if (result.height > height) {
-    let low = 0
-    let high = 1
-    for (let step = 0; step < 16; step++) {
-      const middle = (low + high) / 2
-      if (layoutRouteTree(root, density, measure, middle).height > height) low = middle
-      else high = middle
+
+  const visit = (prepared: PreparedPoint, x: number, top: number) => {
+    prepared.point.x = x
+    prepared.point.y = top + (prepared.subtreeHeight - prepared.size.height) / 2
+    let childTop = top + (prepared.subtreeHeight - prepared.childrenHeight) / 2
+    const childX = x + prepared.size.width + AUTO_COLUMN_GAP
+    for (const child of prepared.children) {
+      visit(child, childX, childTop)
+      childTop += child.subtreeHeight + AUTO_ROW_GAP
     }
-    result = layoutRouteTree(root, density, measure, high)
   }
-  return result
+
+  let top = AUTO_PADDING
+  for (const root of tree.roots) {
+    const prepared = prepare(root)
+    visit(prepared, AUTO_PADDING, top)
+    top += prepared.subtreeHeight + AUTO_ROOT_GAP
+  }
+}
+
+export function routeTreeEdgePath({ from, to }: RouteTreeEdge): string {
+  const startX = from.x + from.width
+  const startY = from.y + from.height / 2
+  const endX = to.x
+  const endY = to.y + to.height / 2
+  const middleX = (startX + endX) / 2
+  return `M ${startX} ${startY} C ${middleX} ${startY}, ${middleX} ${endY}, ${endX} ${endY}`
+}
+
+const CHILD_GAP_X = 72
+const CHILD_GAP_Y = 24
+
+export interface ChildSlot {
+  x: number
+  y: number
+  straight: boolean
+}
+
+// 优先放在目标右侧同一中线，得到直线连接；该位置被占用时上下错开，连接自然变成弧线。
+export function findChildSlot(target: RouteLayoutNode, width: number, height: number,
+  nodes: RouteLayoutNode[], excludeIds: Set<string> = new Set()): ChildSlot {
+  const x = target.x + target.width + CHILD_GAP_X
+  const centerY = target.y + target.height / 2
+  const baseY = centerY - height / 2
+  const collides = (y: number) => nodes.some(node => {
+    if (node.id === target.id || excludeIds.has(node.id)) return false
+    return x < node.x + node.width && x + width > node.x &&
+      y < node.y + node.height && y + height > node.y
+  })
+
+  if (baseY >= 0 && !collides(baseY)) return { x, y: baseY, straight: true }
+
+  const step = height + CHILD_GAP_Y
+  for (let index = 1; index <= 20; index++) {
+    const below = baseY + index * step
+    if (below >= 0 && !collides(below)) return { x, y: below, straight: false }
+    const above = baseY - index * step
+    if (above >= 0 && !collides(above)) return { x, y: above, straight: false }
+  }
+  return { x, y: Math.max(0, baseY + step), straight: false }
 }

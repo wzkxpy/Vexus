@@ -1,5 +1,6 @@
 import { ROUTE_STATUS_OPTIONS, type Route, type RouteLockCondition, type RouteStatus } from '@/shared/types'
 import { getRouteLockState } from '@/shared/routeLocks'
+import { isRouteColor } from '@/shared/routeColors'
 import { RouteRepository } from './route.repo'
 
 export class RouteService {
@@ -52,8 +53,8 @@ export class RouteService {
 
     const ids = new Set<string>()
     const names = new Set<string>()
-    // 提交数组的顺序是全局线路顺序的唯一来源，不信任客户端携带的旧 order。
-    const normalized = routes.map((route, index): Route => {
+    // 数组顺序不再代表树结构；树结构由每局的 route-trees JSON 文件维护。
+    const normalized = routes.map((route): Route => {
       if (!route.id || ids.has(route.id)) throw new Error('Route ids must be unique')
       if (route.gameId !== gameId) throw new Error('Route game id mismatch')
 
@@ -61,6 +62,8 @@ export class RouteService {
       if (!name) throw new Error('Route name required')
       // 线路名作为导出/待绑定的标签，同名会导致无法区分归属。
       if (names.has(name)) throw new Error('Route names must be unique')
+      // 每条线路必须带自己的颜色；颜色由编辑器在新建时分配。
+      if (!isRouteColor(route.color)) throw new Error('Route color required')
       ids.add(route.id)
       names.add(name)
 
@@ -68,8 +71,7 @@ export class RouteService {
         ...route,
         name,
         description: route.description?.trim() || null,
-        color: route.color || '',
-        order: index + 1,
+        color: route.color,
         lockCondition: this.normalizeLockCondition(route.lockCondition)
       }
     })

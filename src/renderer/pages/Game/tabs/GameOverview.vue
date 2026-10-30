@@ -4,13 +4,16 @@
     <!-- 线路 -->
     <div class="section routes-section">
       <h3>线路</h3>
-      <button class="edit-btn" aria-label="编辑线路" title="编辑线路" @click="uiStore.activeModal = 'route-editor'"><Pencil :size="12" /></button>
+      <button class="edit-btn" aria-label="编辑线路" title="编辑线路" :disabled="routeLoading || !!routeError" @click="uiStore.activeModal = 'route-editor'"><Pencil :size="12" /></button>
       <p v-if="!routeLoading && !routeError && unassignedPlaytime > 0" class="route-unassigned">
         未归属线路的游玩时长：{{ formatPlaytime(unassignedPlaytime) }}
       </p>
+      <p v-if="!routeLoading && !routeError && unplacedRouteCount > 0" class="route-unplaced">
+        {{ unplacedRouteCount }} 条线路未放入线路树
+      </p>
       <div v-if="routeLoading" class="route-message">正在加载线路…</div>
       <div v-else-if="routeError" class="route-message error">{{ routeError }}</div>
-      <RouteTree v-else :routes="gameRoutes" />
+      <RouteTree v-else :routes="gameRoutes" :tree="routeTree" />
     </div>
 
     <!-- 角色 -->
@@ -107,6 +110,7 @@
     v-if="uiStore.activeModal === 'route-editor' && game"
     :game-id="game.id"
     :routes="gameRoutes"
+    :tree="routeTree"
     @close="uiStore.activeModal = null"
   />
 </template>
@@ -122,6 +126,7 @@ import { useRoute } from 'vue-router'
 import { useUIStore } from '@/renderer/stores/ui.store';
 import defaultCharacterAvatar from '@/renderer/assets/images/akarin.webp'
 import { useRouteStore } from '@/renderer/stores/route.store'
+import { unplacedRoutes as getUnplacedRoutes } from '@/shared/routeTree'
 import RouteTree from '../routes/RouteTree.vue'
 import RouteEditorModal from '../routes/RouteEditorModal.vue'
 
@@ -135,6 +140,8 @@ const uiStore = useUIStore()
 const routeStore = useRouteStore()
 const gameId = computed(() => route.params.id as string)
 const gameRoutes = computed(() => routeStore.getGameRoutes(gameId.value))
+const routeTree = computed(() => routeStore.getGameTree(gameId.value))
+const unplacedRouteCount = computed(() => getUnplacedRoutes(gameRoutes.value, routeTree.value).length)
 const routeLoading = computed(() => routeStore.loadingByGame[gameId.value] ?? false)
 const routeError = computed(() => routeStore.errorByGame[gameId.value] ?? null)
 
@@ -200,9 +207,10 @@ const openEdit = (type: keyof Game) => {
 .route-message { display: grid; min-height: 116px; place-items: center; color: #98a1b1; font-size: 13px; }
 .route-message.error { color: #c84d5a; }
 .route-unassigned { margin: -7px 0 12px; color: #8c96a6; font-size: 12px; }
+.route-unplaced { margin: -7px 0 12px; color: #8c96a6; font-size: 12px; }
 
 .section h3 {
-  margin: 0 0 17px;
+  margin: 0 0 12px;
   color: #444e60;
   font-size: 15px;
   font-weight: 600;
@@ -233,9 +241,14 @@ const openEdit = (type: keyof Game) => {
   transition: 0.2s ease;
 }
 
-.edit-btn:hover {
+.edit-btn:hover:not(:disabled) {
   color: #4f72c4;
   background: #e9effb;
+}
+
+.edit-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 /* ===== 角色 ===== */

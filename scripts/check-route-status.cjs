@@ -24,13 +24,20 @@ try {
   db.prepare('INSERT INTO games (id, original_title) VALUES (?, ?)').run('other', 'Other')
   const repo = new RouteRepository(db)
   const service = new RouteService(repo)
+  const palette = ['#5d82d8', '#4f9b82', '#d77e9c', '#7b70c9', '#d99a4e', '#4f9bb8', '#c96f6f', '#8fa94e']
+  let colorIndex = 0
   const route = (id, type, gameId = 'game') => ({
-    id, gameId, type, name: id, description: null, color: '', order: 1,
+    id, gameId, type, name: id, description: null,
+    color: palette[colorIndex++ % palette.length],
     lockCondition: null, status: 'NotStarted', playtime: 0
   })
   service.saveGameRoutes('game', [route('a', 'character'), route('b', 'character'),
     route('common', 'common'), route('chapter', 'chapter'), route('main', 'main')])
   service.saveGameRoutes('other', [route('other-route', 'character', 'other')])
+  // 每条线路保存时都必须带自己的颜色。
+  const colors = repo.getByGame('game').map(item => item.color)
+  assert.equal(colors.every(color => /^#[0-9a-f]{6}$/i.test(color)), true)
+  assert.equal(new Set(colors.map(color => color.toLowerCase())).size, colors.length)
   service.updateRouteStatus('other', 'other-route', 'Playing')
   const status = id => repo.getByGame('game').find(item => item.id === id).status
   service.updateRouteStatus('game', 'a', 'Playing')
