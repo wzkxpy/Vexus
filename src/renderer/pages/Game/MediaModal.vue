@@ -15,7 +15,7 @@
           <!-- Cover -->
           <section class="media-section">
             <div class="section-top">
-              <h3>封面图</h3>
+              <h3>横幅图</h3>
             </div>
 
             <div class="preview-card cover-card">
@@ -25,7 +25,7 @@
                 class="preview-image"
               />
               <div v-else class="empty-state">
-                暂无封面图
+                暂无横幅图
               </div>
             </div>
 

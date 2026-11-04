@@ -76,7 +76,7 @@
 
     <!-- 标签 -->
     <div class="section tags-section" v-if="game.tags?.length">
-      <h3>Tag</h3>
+      <h3>游戏标签</h3>
       <button class="edit-btn" aria-label="编辑标签" title="编辑" @click="openEdit('tags')"><Pencil :size="12" /></button>
       <div class="tags">
         <span v-for="tag in game.tags" :key="tag" class="tag">
@@ -87,6 +87,7 @@
 
     <!-- 游戏简介 -->
     <div class="section description">
+      <h3>故事简介</h3>
       <button class="edit-btn" aria-label="编辑游戏简介" title="编辑" @click="openEdit('description')"><Pencil :size="12" /></button>
       <p>{{ game.description || '暂无介绍内容。' }}</p>
     </div>

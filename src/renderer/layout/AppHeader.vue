@@ -34,6 +34,8 @@ const close = () => window.windowAPI.close()
   border: 1px solid rgba(255, 255, 255, 0.5);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   pointer-events: auto;
+  /* 页面顶栏可拖动窗口，但窗口按钮必须接收点击。 */
+  -webkit-app-region: no-drag;
   user-select: none;
 }
 

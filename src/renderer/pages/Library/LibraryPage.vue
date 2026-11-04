@@ -2,36 +2,39 @@
 <template>
   <div class="library-layout">
 
-    <!-- ===== 悬浮顶栏 ===== -->
-    <div class="floating-topbar">
-      <div class="topbar-title">库</div>
+    <header class="drag-region">
+      <h1>Vexus</h1>
+    </header>
+    <main class="main-content">
+      <div class="library-toolbar">
+        <div class="library-actions">
+          <div class="sort-controls">
+            <OptionsMenu :items="sortItems" :selected="gameStore.sortType">
+              <template #button>
+                <button class="sort-button" :aria-label="`排序方式：${sortLabel}`">
+                  {{ sortLabel }}
+                  <ChevronDown :size="14" />
+                </button>
+              </template>
+            </OptionsMenu>
 
-      <div class="sort-controls">
-        <OptionsMenu :items="sortItems" :selected="gameStore.sortType">
-          <template #button>
-            <button class="sort-button" title="选择排序方式" aria-label="选择排序方式">
-              <ArrowUpDown :size="16" />
+            <button
+              class="sort-order-button"
+              @click="gameStore.setSortOrder()"
+              :aria-label="gameStore.sortOrder === 'asc' ? '当前升序，切换为降序' : '当前降序，切换为升序'"
+            >
+              <ArrowUp v-if="gameStore.sortOrder === 'asc'" :size="16" />
+              <ArrowDown v-else :size="16" />
             </button>
-          </template>
-        </OptionsMenu>
+          </div>
 
-        <button
-          class="sort-order-button"
-          @click="gameStore.setSortOrder()"
-          :title="gameStore.sortOrder === 'asc' ? '当前：升序' : '当前：降序'"
-          :aria-label="gameStore.sortOrder === 'asc' ? '当前：升序' : '当前：降序'"
-        >
-          <ArrowUp v-if="gameStore.sortOrder === 'asc'" :size="15" />
-          <ArrowDown v-else :size="15" />
-        </button>
-
+          <button class="add-button" @click="uiStore.activeModal = 'add-game'">
+            <Plus :size="17" />
+            添加游戏
+          </button>
+        </div>
       </div>
 
-    </div>
-
-    <!-- 右侧主内容 -->
-    <main class="main-content">
-      <!-- Grid -->
       <div class="game-grid">
         <GameCard
           v-for="game in gameStore.games"
@@ -42,10 +45,6 @@
 
     </main>
 
-    <!-- 添加游戏弹窗 -->
-    <div class="add-button" title="添加游戏" @click="uiStore.activeModal = 'add-game'">
-      <Plus :size="22" :stroke-width="2" />
-    </div>
     <AddGameModal
       v-if="uiStore.activeModal === 'add-game'"
       @close="uiStore.activeModal = null"
@@ -56,10 +55,11 @@
 
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useGameStore } from '@/renderer/stores/game.store'
 import GameCard from '@/renderer/components/GameCard.vue'
 import AddGameModal from './AddGameModal.vue'
-import { ArrowDown, ArrowUp, ArrowUpDown, Plus } from '@lucide/vue'
+import { ArrowDown, ArrowUp, ChevronDown, Plus } from '@lucide/vue'
 import { useUIStore } from '../../stores/ui.store'
 import OptionsMenu from '@/renderer/components/OptionsMenu.vue'
 
@@ -68,20 +68,22 @@ const uiStore = useUIStore()
 
 
 const sortItems = [
-  { label: '按添加时间排序', value: 'addedAt', action: () => gameStore.setSortType('addedAt') },
-  { label: '按名称排序', value: 'title', action: () => gameStore.setSortType('title') },
-  { label: '按游玩时长排序', value: 'playtime', action: () => gameStore.setSortType('playtime') },
-  { label: '按个人评分排序', value: 'score', action: () => gameStore.setSortType('score') },
-  { label: '按发售时间排序', value: 'releaseDate', action: () => gameStore.setSortType('releaseDate') },
-  { label: '按最近游玩排序', value: 'lastRunAt', action: () => gameStore.setSortType('lastRunAt') },
+  { label: '添加时间', value: 'addedAt', action: () => gameStore.setSortType('addedAt') },
+  { label: '名称', value: 'title', action: () => gameStore.setSortType('title') },
+  { label: '游玩时长', value: 'playtime', action: () => gameStore.setSortType('playtime') },
+  { label: '个人评分', value: 'score', action: () => gameStore.setSortType('score') },
+  { label: '发售时间', value: 'releaseDate', action: () => gameStore.setSortType('releaseDate') },
+  { label: '最近游玩', value: 'lastRunAt', action: () => gameStore.setSortType('lastRunAt') },
   { label: '自定义排序', value: 'custom', action: () => gameStore.setSortType('custom') },
 ]
+const sortLabel = computed(() => sortItems.find(item => item.value === gameStore.sortType)?.label ?? '排序')
 </script>
 
 
 <style scoped>
 /* ===== 全局布局 ===== */
 .library-layout {
+  --library-inset: clamp(20px, 4vw, 50px);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -90,106 +92,98 @@ const sortItems = [
   font-family: system-ui, -apple-system, BlinkMacSystemFont;
 }
 
-/* ===== 悬浮顶栏 ===== */
-.floating-topbar {
+.drag-region {
   position: fixed;
-  top: 14px;
-  left: 28px;
-  right: 148px;
-  z-index: 999;
-
-  -webkit-app-region: drag;
-  user-select: none;
-
+  inset: 0 148px auto 0;
+  height: 52px;
   display: flex;
+  align-items: flex-end;
+  padding-left: var(--library-inset);
+  -webkit-app-region: drag;
+}
+
+.main-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-top: 52px;
+  padding: 12px var(--library-inset) 40px;
+}
+
+.library-toolbar {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  min-height: 44px;
-  padding: 5px 7px 5px 18px;
-  border: 1px solid rgba(226, 230, 238, .92);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, .88);
-  box-shadow: 0 7px 22px rgba(50, 61, 86, .07);
-  backdrop-filter: blur(14px);
+  justify-content: flex-end;
+  gap: 12px 20px;
+  margin-bottom: 20px;
 }
 
-.topbar-title {
-  color: #30394a;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.4;
-  letter-spacing: .01em;
+.drag-region h1 {
+  margin: 0;
+  color: #23324b;
+  font-size: 26px;
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -.045em;
 }
 
+.library-actions,
 .sort-controls {
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 3px;
-  border-radius: 10px;
-  background: #f2f4f8;
-  -webkit-app-region: no-drag;
 }
 
-.sort-button {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
+.library-actions {
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.sort-controls {
+  gap: 2px;
+}
+
+.library-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
   border: 0;
   border-radius: 8px;
-  background: transparent;
-  color: #697486;
-  font-size: 15px;
+  font: inherit;
+  font-size: 13px;
   cursor: pointer;
-  transition: .16s ease;
+  white-space: nowrap;
 }
 
-.sort-button:hover {
-  background: #ffffff;
-  color: #4f72c4;
-  box-shadow: 0 1px 5px rgba(55, 67, 94, .1);
+.library-actions button:focus-visible {
+  outline: 2px solid #5879cd;
+  outline-offset: 2px;
 }
 
+.sort-button,
 .sort-order-button {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: 0;
-  border-radius: 8px;
-  color: #697486;
   background: transparent;
-  font-size: 15px;
-  font-weight: 550;
-  cursor: pointer;
-  transition: .16s ease;
+  color: #465873;
 }
 
+.sort-button:hover,
 .sort-order-button:hover {
-  color: #4f72c4;
-  background: #fff;
-  box-shadow: 0 1px 5px rgba(55, 67, 94, .1);
+  background: #e7ecf5;
+  color: #3156b4;
 }
 
-.sort-order-button:active {
-  transform: scale(.94);
+.library-actions .add-button {
+  padding-inline: 12px;
+  background: #3156b4;
+  color: white;
+  font-weight: 600;
 }
 
-.sort-button:focus-visible,
-.sort-order-button:focus-visible {
-  outline: 2px solid rgba(98, 134, 220, .3);
-  outline-offset: 1px;
-}
-
-/* ===== Main Content ===== */
-.main-content {
-  flex: 1;
-  overflow-y: auto;
-  margin-top: 52px;
-  padding: 32px 50px 40px;
+.add-button:hover {
+  background: #274898;
 }
 
 /* 滚动条 */
@@ -206,27 +200,4 @@ const sortItems = [
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 20px;
 }
-.add-button {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 44px;
-  height: 44px;
-  background: #4c8bf5;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  cursor: pointer;
-  user-select: none;
-}
-
-/* ===== Game Detail 容器 ===== */
-.game-detail {
-  max-width: 720px;
-  margin: 0 auto;
-}
-
 </style>

@@ -1,5 +1,5 @@
 // src/preload/index.ts
-import type { Game, NewGame, Route, RouteStatus, RouteTree, Session } from '@/shared/types'
+import type { Game, NewGame, Route, RouteStatus, RouteTree, Session, Settings } from '@/shared/types'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // 窗口控制 API
@@ -57,9 +57,9 @@ contextBridge.exposeInMainWorld('clipboardAPI', {
 
 // 读取设置 API
 contextBridge.exposeInMainWorld('settingsAPI', {
-  getSettings: () => ipcRenderer.invoke('getSettings'),
-  getSetting: (key: string) => ipcRenderer.invoke('getSetting', key),
-  setSetting: (key: string, value: any) => ipcRenderer.invoke('setSetting', key, value)
+  getSettings: (): Promise<Settings> => ipcRenderer.invoke('getSettings'),
+  getSetting: <K extends keyof Settings>(key: K): Promise<Settings[K]> => ipcRenderer.invoke('getSetting', key),
+  setSetting: <K extends keyof Settings>(key: K, value: Settings[K]): Promise<void> => ipcRenderer.invoke('setSetting', key, value)
 })
 
 // 从数据源获取游戏数据 API

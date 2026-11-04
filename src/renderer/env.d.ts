@@ -2,7 +2,7 @@
 
 /// <reference types="vite/client" />
 export {}
-import type { RouteStatus, RouteTree } from '@/shared/types'
+import type { RouteStatus, RouteTree, Settings } from '@/shared/types'
 
 declare global {
   interface Window {
@@ -48,8 +48,8 @@ declare global {
 
     settingsAPI: {
       getSettings: () => Promise<Settings>
-      getSetting: (key: keyof Settings) => Promise<any>
-      setSetting: (key: keyof Settings, value: any) => Promise<void>
+      getSetting: <K extends keyof Settings>(key: K) => Promise<Settings[K]>
+      setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => Promise<void>
     },
     
     providerAPI: {

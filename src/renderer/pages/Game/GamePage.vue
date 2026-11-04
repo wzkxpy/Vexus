@@ -1,104 +1,133 @@
 <!-- src/renderer/pages/Game/GamePage.vue -->
 <template>
-  <div v-if="game" class="game-page">
+  <div v-if="game" ref="pageElement" class="game-page" :class="{ 'without-banner': !showBanner }" @scroll.passive="handlePageScroll">
     <div class="drag-area"></div>
-    <button class="back-btn" @click="handleBack()"><ArrowLeft :size="15" /> 返回</button>
-
-    <!-- 标题 + 封面 -->
-    <div class="top-section">
-      <!-- 封面 -->
-      <div class="right">
-        <img
-          v-if="game.media?.coverPath"
-          :src="game.media.coverPath"
-          class="cover-img"
-        />
-        <div v-else class="cover-placeholder"><Gamepad2 :size="42" :stroke-width="1.4" /></div>
-      </div>
-
-      <div class="left">
-
-        <div class="title">
-          <span class="title-main">
-            {{ displayTitleParts.main }}
-          </span>
-          <span v-if="displayTitleParts.sub" class="title-sub">
-            {{ displayTitleParts.sub }}
-          </span>
+    <Transition name="compact-header">
+      <header v-if="showCompactHeader" class="compact-header" aria-label="游戏快捷操作">
+        <div class="compact-title" :class="{ 'compact-title-hidden': !titleScrolledPast }" :title="[displayTitleParts.main, displayTitleParts.sub].filter(Boolean).join(' ')">
+          <strong>{{ displayTitleParts.main }}</strong>
+          <span v-if="displayTitleParts.sub">{{ displayTitleParts.sub }}</span>
         </div>
-        
-        <div class="action-row">
-          <button class="launch-btn" :class="{ running: isRunning }" @click="isRunning ? handleStop() : handleLaunch()">
-            <Square v-if="isRunning" :size="13" fill="currentColor" />
-            <Play v-else :size="15" fill="currentColor" />
-            {{ isRunning ? '停止游戏' : '启动游戏' }}
-          </button>
+        <span v-if="playtimeScrolledPast" class="compact-playtime">{{ formattedPlaytime }}</span>
+        <button v-if="launchScrolledPast" class="launch-btn compact-launch" :class="{ running: isRunning }" :disabled="launchPending"
+          :aria-busy="launchPending" :aria-label="launchPending ? '请稍候' : isRunning ? '停止游戏' : '启动游戏'"
+          @click="handleLaunchToggle">
+          <Square v-if="isRunning" :size="13" fill="currentColor" />
+          <Play v-else :size="15" fill="currentColor" />
+        </button>
+      </header>
+    </Transition>
+    <button class="back-btn" aria-label="返回" title="返回" @click="handleBack()"><ArrowLeft :size="19" /></button>
+
+    <div class="page-content">
+      <section v-if="showBanner" class="hero" aria-label="游戏横幅">
+        <img v-if="heroImage" :key="heroImage" :src="heroImage" alt="" class="hero-image"
+          :class="{ 'cover-backdrop': !bannerImage }" @error="handleHeroError" />
+        <div class="hero-shade"></div>
+      </section>
+
+      <!-- 资料卡与封面叠放在横幅下沿，保持标题和操作区域的可读性。 -->
+      <div class="top-section">
+        <!-- 封面 -->
+        <div class="right">
+          <img
+            v-if="coverImage"
+            :src="coverImage"
+            :alt="`${displayTitleParts.main} 封面`"
+            @error="failedCover = coverImage"
+            class="cover-img"
+          />
+          <div v-else class="cover-placeholder"><Gamepad2 :size="42" :stroke-width="1.4" /></div>
+        </div>
+
+        <div class="left">
+          <div v-if="game.basicInfo?.developer" class="game-meta">
+            {{ game.basicInfo.developer }}
+          </div>
+
+          <h1 ref="titleElement" class="title">
+            <span class="title-main">
+              {{ displayTitleParts.main }}
+            </span>
+            <span v-if="displayTitleParts.sub" class="title-sub">
+              {{ displayTitleParts.sub }}
+            </span>
+          </h1>
           
-          <OptionsMenu :items="menuItems" :context="game">
-            <template #button>
-              <button class="settings-btn" aria-label="更多操作" title="更多操作">
-                <Settings :size="16" />
-              </button>
-            </template>
-          </OptionsMenu>
-        </div>
-
-        <!-- 游玩数据 -->
-        <div class="stats-row">
-          <div class="stat-item"><span class="stat-label">游玩状态</span>
-            <OptionsMenu :items="statusItems" :context="game" :selected="game.record.playStatus">
+          <div class="action-row">
+            <button ref="launchElement" class="launch-btn" :class="{ running: isRunning }" :disabled="launchPending" :aria-busy="launchPending" @click="handleLaunchToggle">
+              <Square v-if="isRunning" :size="13" fill="currentColor" />
+              <Play v-else :size="15" fill="currentColor" />
+              {{ launchPending ? '请稍候…' : isRunning ? '停止游戏' : '启动游戏' }}
+            </button>
+            
+            <OptionsMenu :items="menuItems" :context="game">
               <template #button>
-                <button class="status-btn">{{ currentStatus }}</button>
+                <button class="settings-btn" aria-label="更多操作" title="更多操作">
+                  <Settings :size="16" />
+                </button>
               </template>
             </OptionsMenu>
           </div>
-          <div class="stat-item">
-            <span class="stat-label">游玩时长</span>
-            <span
-              class="playtime"
-              @contextmenu.prevent="togglePlaytimeFormat"
-            >
-              {{ formattedPlaytime }}
-            </span>
-          </div>
-          <div class="score-section" v-if="game.externalScore">
-            <span class="score-title">网站评分</span>
-            <div class="score-grid">
-              <div v-if="game.externalScore.erogame">
-                <span class="label">Erogame: </span>
-                {{ game.externalScore.erogame }}
-              </div>
-              <div v-if="game.externalScore.bgm">
-                <span class="label">Bangumi: </span>
-                {{ game.externalScore.bgm }}
-              </div>
-              <div v-if="game.externalScore.vndb">
-                <span class="label">VNDB: </span>
-                {{ game.externalScore.vndb }}
-              </div>
+
+          <!-- 游玩数据 -->
+          <div class="stats-row">
+            <div class="stat-item"><span class="stat-label">游玩状态</span>
+              <OptionsMenu :items="statusItems" :context="game" :selected="game.record.playStatus">
+                <template #button>
+                  <button class="status-btn">{{ currentStatus }}</button>
+                </template>
+              </OptionsMenu>
             </div>
-            <button class="edit-btn" aria-label="编辑评分" title="编辑" @click="openEdit('externalScore')">
-              <Pencil :size="13" />
-            </button>
+            <div class="stat-item">
+              <span class="stat-label">游玩时长</span>
+              <button type="button" title="点击或右键切换时长格式"
+                ref="playtimeElement"
+                class="playtime"
+                @click="togglePlaytimeFormat"
+                @contextmenu.prevent="togglePlaytimeFormat"
+              >
+                {{ formattedPlaytime }}
+              </button>
+            </div>
+            <div class="score-section" v-if="game.externalScore">
+              <span class="score-title">网站评分</span>
+              <div class="score-grid">
+                <div v-if="game.externalScore.erogame != null">
+                  <span class="label">Erogame: </span>
+                  {{ game.externalScore.erogame }}
+                </div>
+                <div v-if="game.externalScore.bgm != null">
+                  <span class="label">Bangumi: </span>
+                  {{ game.externalScore.bgm }}
+                </div>
+                <div v-if="game.externalScore.vndb != null">
+                  <span class="label">VNDB: </span>
+                  {{ game.externalScore.vndb }}
+                </div>
+              </div>
+              <button class="edit-btn" aria-label="编辑评分" title="编辑" @click="openEdit('externalScore')">
+                <Pencil :size="13" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 分割线 -->
-    <div class="divider"></div>
+      <!-- 标签栏的吸附范围随正文延伸，避免受固定页面高度限制。 -->
+      <div class="tab-section">
+        <div class="tabs">
+          <button :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">概览</button>
+          <button :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">统计</button>
+          <button :class="{ active: activeTab === 'guide' }" @click="activeTab = 'guide'">攻略</button>
+        </div>
 
-    <!--  Tab   -->
-    <div class="tabs">
-      <button :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">概览</button>
-      <button :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">统计</button>
-      <button :class="{ active: activeTab === 'guide' }" @click="activeTab = 'guide'">攻略</button>
-    </div>
-
-    <div class="tab-content">
-      <GameOverview v-if="activeTab === 'overview'" />
-      <GameStats v-if="activeTab === 'stats'" />
-      <GameGuide v-if="activeTab === 'guide'" />
+        <div class="tab-content">
+          <GameOverview v-if="activeTab === 'overview'" />
+          <GameStats v-if="activeTab === 'stats'" />
+          <GameGuide v-if="activeTab === 'guide'" />
+        </div>
+      </div>
     </div>
 
     <EditModal
@@ -124,12 +153,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch, watchEffect } from 'vue'
 import { useGameStore } from '@/renderer/stores/game.store'
 import { useSessionStore } from '@/renderer/stores/session.store'
 import { useGameActions } from '@/renderer/composables/useGameActions'
 import { useRuntimeStore } from '@/renderer/stores/runtime.store'
 import { useUIStore } from '@/renderer/stores/ui.store'
+import { useSettingsStore } from '@/renderer/stores/settings.store'
 import OptionsMenu from '@/renderer/components/OptionsMenu.vue'
 import EditModal from './EditModal.vue'
 import GameStats from './tabs/GameStats.vue'
@@ -153,6 +183,51 @@ const game = computed(() => {
   return gameStore.getGameById(id)
 })
 const uiStore = useUIStore()
+const pageElement = ref<HTMLElement | null>(null)
+const titleElement = ref<HTMLElement | null>(null)
+const launchElement = ref<HTMLElement | null>(null)
+const playtimeElement = ref<HTMLElement | null>(null)
+const titleScrolledPast = ref(false)
+const launchScrolledPast = ref(false)
+const playtimeScrolledPast = ref(false)
+
+// 直接比较底边，快速滚动跳过整个元素时也能正确更新顶栏。
+function updateCompactContent() {
+  const root = pageElement.value
+  if (!root) return
+
+  const visibleTop = root.getBoundingClientRect().top + 68
+  const hasScrolledPast = (element: HTMLElement | null) =>
+    element !== null && element.getBoundingClientRect().bottom <= visibleTop
+
+  titleScrolledPast.value = hasScrolledPast(titleElement.value)
+  launchScrolledPast.value = hasScrolledPast(launchElement.value)
+  playtimeScrolledPast.value = hasScrolledPast(playtimeElement.value)
+}
+
+watchEffect(onCleanup => {
+  const root = pageElement.value
+  const title = titleElement.value
+  const launch = launchElement.value
+  const playtime = playtimeElement.value
+  if (!root || !title || !launch || !playtime) return
+
+  const observer = new ResizeObserver(updateCompactContent)
+  observer.observe(root)
+  observer.observe(title)
+  observer.observe(launch)
+  observer.observe(playtime)
+  updateCompactContent()
+  onCleanup(() => observer.disconnect())
+}, { flush: 'post' })
+
+const pageScrollTop = ref(0)
+// 在原返回按钮离开窗口前接管导航，不改变正文高度，避免顶栏出现时跳动。
+const showCompactHeader = computed(() => pageScrollTop.value > 12)
+const handlePageScroll = (event: Event) => {
+  pageScrollTop.value = (event.currentTarget as HTMLElement).scrollTop
+  updateCompactContent()
+}
 
 // 返回
 // 如果有历史记录则返回上一页，否则返回游戏库
@@ -164,9 +239,10 @@ const handleBack = () => {
   }
 }
 
-// 标题设置项
-const gameTitleSetting = ref<'Orig' | 'Local'>('Orig')
-const subTitleSetting = ref(true)
+const settingsStore = useSettingsStore()
+const gameTitleSetting = computed(() => settingsStore.settings?.gameTitle ?? 'Local')
+const subTitleSetting = computed(() => settingsStore.settings?.subTitle ?? true)
+const showBanner = computed(() => settingsStore.settings?.showBanner ?? true)
 
 // 标题拆分显示
 const displayTitleParts = computed(() => {
@@ -194,12 +270,38 @@ const displayTitleParts = computed(() => {
 
 // 游戏启动 / 停止
 const isRunning = computed(() => runtimeStore.isGameRunning(game.value?.id || ''))
-const handleLaunch = async () => {
-  await gameActions.launchGame(game.value!)
-} 
-const handleStop = async () => {
-  await gameActions.stopGame(game.value!)
-} 
+const launchPending = ref(false)
+const handleLaunchToggle = async () => {
+  if (!game.value || launchPending.value) return
+  launchPending.value = true
+  try {
+    if (isRunning.value) await gameActions.stopGame(game.value)
+    else await gameActions.launchGame(game.value)
+  } finally {
+    launchPending.value = false
+  }
+}
+
+// 横幅失效时退回封面，封面也不可用时显示渐变；新地址不受旧失败记录影响。
+const failedBanner = ref('')
+const failedCover = ref('')
+const bannerImage = computed(() => {
+  const path = game.value?.media?.bannerPath
+  return path && path !== failedBanner.value ? path : ''
+})
+const coverImage = computed(() => {
+  const path = game.value?.media?.coverPath
+  return path && path !== failedCover.value ? path : ''
+})
+const heroImage = computed(() => bannerImage.value || coverImage.value)
+const handleHeroError = () => {
+  if (bannerImage.value) failedBanner.value = bannerImage.value
+  else failedCover.value = coverImage.value
+}
+watch(() => game.value?.id, () => {
+  failedBanner.value = ''
+  failedCover.value = ''
+})
 
 // 设置菜单项
 const menuItems = computed(() => [
@@ -228,7 +330,7 @@ const statusItems = [
 ]
 const currentStatus = computed(() => {
   const status = game.value?.record.playStatus as keyof typeof statusMap;
-  return statusMap[status] || { label: '未知', class: '' };
+  return statusMap[status] || '未知';
 });
 
 // 游玩时长
@@ -241,14 +343,15 @@ const totalPlaytime = computed(() =>
 )
 const formattedPlaytime = computed(() => {
   const sec = totalPlaytime.value
+  if (sec <= 0) return '0m'
+  if (sec < 60) return '<1m'
   if (playtimeFormat.value === 'decimal') {
     return `${(sec / 3600).toFixed(1)}h`
   }
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)
   if (h > 0) return `${h}h${m}m`
-  if (m > 0) return `${m}m`
-  return `${sec}s`
+  return `${m}m`
 })
 const togglePlaytimeFormat = () => {
   playtimeFormat.value =
@@ -273,13 +376,6 @@ const openEdit = (type: keyof Game) => {
   uiStore.activeModal = 'edit-' + type
 }
 
-// 加载设置项
-onMounted(async () => {
-  gameTitleSetting.value =
-    await window.settingsAPI.getSetting('gameTitle')
-  subTitleSetting.value =
-    await window.settingsAPI.getSetting('subTitle')
-})
 // 装载 sessions
 watch(
   () => game.value?.id,
@@ -294,380 +390,171 @@ watch(
 
 
 <style scoped>
-/* ===== 页面骨架 ===== */
 .game-page {
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+  --accent: #5879cd;
+  --compact-header-height: 68px;
+  --page-inset: clamp(20px, 4vw, 64px);
+  --page-top: 24px;
+  --back-size: 36px;
+  --back-gap: 12px;
   width: 100%;
   height: 100%;
-  padding: 24px clamp(28px, 5vw, 72px) 56px;
   overflow-x: hidden;
   overflow-y: auto;
-  color: #283142;
+  color: #30394d;
+  background: #f5f6fa;
   user-select: none;
-  background:
-    radial-gradient(circle at 88% 3%, rgba(112, 145, 225, 0.12), transparent 28%),
-    #f5f7fb;
 }
-
-.drag-area {
-  position: fixed;
-  top: 0;
-  right: 138px;
-  left: 0;
-  z-index: 99;
-  height: 52px;
-  /* background: yellow; */
-  -webkit-app-region: drag;
+.page-content {
+  /* 返回按钮固定定位，正文通过顶部内边距预留空间。 */
+  padding: calc(var(--page-top) + var(--back-size) + var(--back-gap)) var(--page-inset) 48px;
 }
-
-.game-page::-webkit-scrollbar {
-  width: 6px;
-}
-
-.game-page::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: #cbd2df;
-}
-
-/* ===== 返回按钮 ===== */
+.drag-area { position: fixed; top: 0; right: 138px; left: 0; z-index: 99; height: 52px; -webkit-app-region: drag; }
+button { font: inherit; cursor: pointer; transition: background .18s, color .18s, box-shadow .18s; }
+button:focus-visible { outline: 3px solid #91b4ff; outline-offset: 4px; }
 .back-btn {
-  z-index: 999;
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  width: auto;
-  margin-bottom: 22px;
-  padding: 7px 11px;
-  gap: 7px;
-  border: 1px solid #e2e6ed;
-  border-radius: 9px;
-  color: #687386;
-  background: #fff;
-  box-shadow: 0 3px 12px rgba(50, 61, 86, 0.05);
-  font-size: 13px;
-  cursor: pointer;
-  transition: 0.18s ease;
+  position: fixed;
+  top: calc((var(--compact-header-height) - 1px - var(--back-size)) / 2);
+  left: var(--page-inset);
+  z-index: 111;
+  display: grid;
+  place-items: center;
+  width: var(--back-size);
+  height: var(--back-size);
+  padding: 0;
+  border: 1px solid #d7deeb;
+  border-radius: 10px;
+  background: white;
+  color: #354966;
   -webkit-app-region: no-drag;
 }
-
-.back-btn:hover {
-  color: #3c65c5;
-  border-color: #cfdaf3;
-  background: #fff;
-  transform: translateX(-2px);
+.back-btn:hover { color: #3156b4; background: #edf2fc; }
+.hero {
+  position: relative;
+  height: clamp(230px, 26vw, 360px);
+  overflow: hidden;
+  border-radius: 22px;
+  background: radial-gradient(ellipse at 75% 15%, #9aa9ca, transparent 65%), linear-gradient(120deg, #334563, #6c789e);
 }
-
-/* ===== 顶部资料区 ===== */
+.hero-image { width: 100%; height: 100%; object-fit: cover; object-position: center 38%; }
+.hero-image.cover-backdrop { filter: blur(18px); transform: scale(1.12); opacity: .7; }
+.hero-shade { position: absolute; inset: 0; background: linear-gradient(180deg, #14203838, transparent 40%, #17233b9c); }
 .top-section {
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  min-height: 220px;
-  gap: 30px;
-}
-
-.left {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  max-width: 760px;
-  margin-bottom: 18px;
-  gap: 7px 10px;
-}
-
-.title-main {
-  color: #20283a;
-  font-size: clamp(24px, 2.6vw, 30px); /* min 24, max 30 */
-  font-weight: 600;
-  line-height: 1.24;
-  letter-spacing: -0.035em;
-}
-
-.title-sub {
-  color: #7f899b;
-  font-size: 20px;
-  font-weight: 400;
-  line-height: 1.4;
-}
-
-.action-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 22px;
-  gap: 9px;
-}
-
-/* ===== 操作按钮 ===== */
-.launch-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-width: 118px;
-  height: 38px;
-  padding: 0 18px;
-  border: 0;
-  border-radius: 9px;
-  color: #fff;
-  background: linear-gradient(135deg, #648be7, #5279dc);
-  box-shadow: 0 7px 17px rgba(77, 115, 207, 0.24);
-  font-size: 14px;
-  font-weight: 550;
-  cursor: pointer;
-  transition: 0.18s ease;
-}
-
-.launch-btn:hover {
-  background: linear-gradient(135deg, #648be7, #5279dc);
-  box-shadow: 0 9px 21px rgba(77, 115, 207, 0.3);
-  transform: translateY(-1px);
-}
-
-.launch-btn.running {
-  background: linear-gradient(135deg, #e36f79, #d65360);
-  box-shadow: 0 7px 17px rgba(202, 76, 89, 0.2);
-}
-
-.settings-btn {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border: 1px solid #e0e4eb;
-  border-radius: 9px;
-  color: #6d7788;
-  background: #f8f9fb;
-  font-size: 14px;
-  cursor: pointer;
-  transition: 0.18s ease;
-}
-
-.settings-btn:hover {
-  color: #4f70bd;
-  border-color: #ccd7ee;
-  background: #f0f4fc;
-}
-
-.edit-btn {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  color: #7c8799;
-  background: #f0f3f8;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.edit-btn:hover {
-  color: #4f72c4;
-  background: #e9effb;
-}
-
-/* ===== 评分与游玩数据 ===== */
-.score-section {
-  display: inline-flex;
-  align-items: center;
-  min-height: 35px;
-  padding: 5px 7px 5px 10px;
-  gap: 12px;
-  border: 1px solid #e8ebf1;
-  border-radius: 9px;
-  background: #fafbfc;
-  white-space: nowrap;
-}
-
-.score-title {
-  color: #8b94a4;
-  font-size: 13px;
-}
-
-.score-grid {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.score-grid > div {
   position: relative;
-  color: #3f4858;
-  font-size: 13px;
-}
-
-.score-grid > div + div::before {
-  content: '';
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: -7px;
-  width: 1px;
-  background: #e2e6ed;
-}
-
-.score-grid .label {
-  margin-right: 3px;
-  color: #8b94a4;
-}
-
-.stats-row {
   display: flex;
-  flex-wrap: nowrap;
-  margin: auto 0 0;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 24px;
+  margin: -52px 24px 0;
+  padding: 0 24px 22px;
+  border: 1px solid #e7eaf1;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 12px 35px #273e6310;
 }
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  min-height: 35px;
-  padding: 5px 10px;
-  gap: 9px;
-  border: 1px solid #e8ebf1;
-  border-radius: 9px;
-  background: #fafbfc;
-}
-
-.stat-label {
-  color: #929aaa;
-  font-size: 12px;
-}
-
-.status-btn {
-  padding: 3px 8px;
-  border: 0;
-  border-radius: 6px;
-  color: #4f72c4;
-  background: #eaf0fc;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.playtime {
-  color: #4f72c4;
-  font-size: 14px;
-  font-weight: 550;
-  cursor: context-menu;
-}
-
-/* ===== 封面 ===== */
-.right {
-  flex: 0 1 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 260px;
-  height: 220px;
-}
-
-.cover-img {
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
-  border-radius: 12px;
-  object-fit: contain;
-  box-shadow: 0 14px 28px rgba(35, 45, 67, 0.18);
-  -webkit-user-drag: none;
-}
-
-.cover-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 154px;
-  height: 205px;
-  border: 1px dashed #d7dce6;
-  border-radius: 12px;
-  color: #a4adbc;
-  background: linear-gradient(145deg, #f2f4f8, #e8ecf3);
-}
-
-/* ===== 内容导航 ===== */
-.divider {
-  height: 1px;
-  margin: 20px 0 0;
-  background: #e4e6eb;
-}
-
+.right { flex: 0 0 144px; width: 144px; margin-top: -26px; }
+.cover-img, .cover-placeholder { display: block; width: 144px; height: 198px; border: 4px solid white; border-radius: 12px; box-shadow: 0 10px 24px #18284126; object-fit: cover; -webkit-user-drag: none; }
+.cover-placeholder { display: grid; place-items: center; color: #8697b6; background: linear-gradient(145deg, #ecf0f8, #dce4f2); }
+.left { flex: 1; min-width: 0; padding-top: 20px; }
+.game-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 9px; color: #8a94a7; font-size: 11px; }
+.title { display: flex; flex-direction: column; gap: 6px; margin: 0 0 16px; overflow-wrap: anywhere; }
+.title-main { color: #26324b; font-size: clamp(23px, 2.4vw, 34px); font-weight: 650; line-height: 1.3; letter-spacing: -.025em; }
+.title-sub { color: #8a94a7; font-size: 15px; font-weight: 400; line-height: 1.5; }
+.action-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.launch-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-width: 148px; height: 42px; padding: 0 23px; border: 0; border-radius: 10px; background: #597bd3; color: white; font-size: 13px; font-weight: 600; box-shadow: 0 5px 14px #597bd330; }
+.launch-btn:hover { background: #496bc2; box-shadow: 0 6px 18px #597bd345; }
+.launch-btn.running { background: #cf6473; }
+.launch-btn:disabled { opacity: .6; cursor: wait; }
+.settings-btn { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid #e4e8f0; border-radius: 10px; color: #7a879e; background: #f8f9fc; }
+.settings-btn:hover, .edit-btn:hover { background: #eaf0fc; color: var(--accent); }
+.stats-row { display: flex; flex-wrap: wrap; gap: 16px 24px; padding-top: 17px; border-top: 1px solid #eef0f5; }
+.stat-item, .score-section { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.stat-label, .score-title { color: #939caf; font-size: 11px; }
+.status-btn { padding: 4px 9px; border: 0; border-radius: 6px; background: #edf2fc; color: var(--accent); font-size: 12px; }
+.playtime { border: 0; padding: 3px 0; background: transparent; color: #4d5e7d; font-size: 13px; font-weight: 600; }
+.score-grid { display: flex; flex-wrap: wrap; gap: 7px 12px; color: #465773; font-size: 12px; }
+.score-grid .label { color: #939caf; font-size: 10px; }
+.edit-btn { display: grid; place-items: center; width: 23px; height: 23px; border: 0; border-radius: 6px; background: #f3f5fa; color: #8b97ad; }
 .tabs {
+  position: sticky;
+  top: var(--compact-header-height);
+  z-index: 10;
   display: flex;
-  margin: 0 0 20px;
-  padding-top: 10px;
-  gap: 4px;
+  gap: 26px;
+  margin: 22px 0;
+  border-bottom: 1px solid #e1e6ef;
+  background: #f5f6fa;
 }
-
-.tabs button {
-  position: relative;
-  padding: 9px 16px;
-  border: 0;
-  border-radius: 0;
-  color: #858e9e;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 450;
-  cursor: pointer;
-  transition: 0.18s ease;
+.tabs button { position: relative; padding: 12px 7px 15px; border: 0; background: transparent; color: #919aab; font-size: 14px; }
+.tabs button:hover { color: var(--accent); }
+.tabs button.active { color: var(--accent); font-weight: 600; }
+.tabs button.active::after { content: ''; position: absolute; bottom: -1px; left: 6px; right: 6px; height: 3px; border-radius: 3px; background: var(--accent); }
+.tab-content { min-height: 200px; }
+.game-page::-webkit-scrollbar { width: 6px; }
+.game-page::-webkit-scrollbar-thumb { background: #cbd2df; border-radius: 6px; }
+@media (max-width: 900px) {
+  .top-section { margin-left: 12px; margin-right: 12px; padding: 0 20px 22px; gap: 20px; }
+  .right { flex-basis: 122px; width: 122px; }
+  .cover-img, .cover-placeholder { width: 122px; height: 170px; }
 }
-
-.tabs button:hover {
-  color: #4d5a70;
-  background: transparent;
+@media (max-width: 600px) {
+  .game-page { --page-inset: 16px; --page-top: 20px; }
+  .page-content { padding-bottom: 32px; }
+  .hero { height: 230px; border-radius: 16px; }
+  .top-section { flex-direction: column; gap: 0; margin: -40px 8px 0; padding: 0 18px 22px; }
+  .right { flex-basis: auto; margin-top: -30px; }
+  .cover-img, .cover-placeholder { width: 90px; height: 124px; }
+  .left { width: 100%; padding-top: 16px; }
+  .stats-row { gap: 14px; }
+  .score-section { flex-basis: 100%; }
+  .tabs { margin-top: 16px; }
 }
-
-.tabs button.active {
-  color: #4d72c8;
-  background: transparent;
-  box-shadow: none;
-  font-weight: 600;
+/* 不展示横幅时取消叠放的负边距，封面和资料从卡片顶部正常排布。 */
+.without-banner { --back-gap: 6px; }
+.without-banner .top-section { margin: 0; padding-block: 16px; }
+.without-banner .title { margin-bottom: 14px; }
+.without-banner .action-row { margin-bottom: 14px; }
+.without-banner .stats-row { padding-top: 12px; }
+.without-banner .tabs { margin-block: 16px; }
+.without-banner .right { margin-top: 0; }
+.without-banner .left { padding-top: 0; }
+@media (max-width: 600px) {
+  .without-banner .top-section { padding-block: 14px; }
+  .without-banner .left { padding-top: 12px; }
 }
-
-.tabs button.active::after {
-  content: '';
-  position: absolute;
-  right: 13px;
-  bottom: -11px;
-  left: 13px;
-  height: 2px;
-  border-radius: 2px;
-  background: #6286dc;
+.compact-header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: var(--compact-header-height);
+  padding: 0 160px 0 calc(var(--page-inset) + 72px);
+  border-bottom: 1px solid #d7deeb;
+  background: rgba(250, 251, 254, .96);
+  box-shadow: 0 4px 18px #24344e0d;
+  backdrop-filter: blur(18px);
+  -webkit-app-region: drag;
 }
-
-.tab-content {
-  min-height: 200px;
+.compact-header button { flex-shrink: 0; -webkit-app-region: no-drag; }
+.compact-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.compact-title-hidden { visibility: hidden; }
+.compact-title strong, .compact-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compact-title strong { font-size: 16px; font-weight: 600; color: #27364f; }
+.compact-title span { font-size: 12px; color: #596b86; }
+.compact-playtime { color: #526580; font-size: 13px; white-space: nowrap; }
+.compact-launch { width: 36px; min-width: 36px; height: 36px; padding: 0; box-shadow: none; }
+.compact-header-enter-active, .compact-header-leave-active { transition: opacity .16s ease, transform .16s ease; }
+.compact-header-enter-from, .compact-header-leave-to { opacity: 0; transform: translateY(-8px); }
+@media (max-width: 900px) {
+  .compact-playtime { display: none; }
 }
-
-/* ===== 窄窗口适配 ===== */
-@media (max-width: 720px) {
-  .game-page {
-    padding-right: 24px;
-    padding-left: 24px;
-  }
-
-  .top-section {
-    gap: 24px;
-  }
-
-  .title-main {
-    font-size: 23px;
-  }
-
-  .right {
-    flex-basis: 180px;
-    width: 180px;
-    height: 180px;
-  }
+@media (max-width: 600px) {
+  .compact-header { gap: 10px; padding-right: 154px; }
+  .compact-title strong { font-size: 14px; }
+  .compact-title span { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .compact-header-enter-active, .compact-header-leave-active { transition: none; }
 }
 </style>

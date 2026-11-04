@@ -7,12 +7,18 @@ import { useSessionStore } from './stores/session.store'
 import { useRuntimeStore } from './stores/runtime.store'
 import { useGameStore } from './stores/game.store'
 import { useRouteStore } from './stores/route.store'
+import { useSettingsStore } from './stores/settings.store'
 
-createApp(App)
-  .use(router)  // 注册路由，用于页面导航
-  .use(createPinia()) // 注册 Pinia，用于状态管理
-  .mount('#app') // 挂载 Vue 应用到 HTML 中的 #app 元素
-  
+const pinia = createPinia()
+const app = createApp(App).use(pinia).use(router)
+const settingsStore = useSettingsStore(pinia)
+
+// 先确定显示偏好再渲染首屏，首次直达游戏详情也不会先显示错误的横幅布局。
+settingsStore.load().catch(() => {
+  console.error('设置初始化失败')
+}).finally(() => {
+  app.mount('#app')
+})
 
 // 🔥 在这里注册 IPC
 const sessionStore = useSessionStore()
