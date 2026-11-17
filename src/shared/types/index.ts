@@ -1,4 +1,5 @@
 export * from './game'
+export * from './metadata'
 export * from './route'
 export * from './routeTree'
 export * from './session'

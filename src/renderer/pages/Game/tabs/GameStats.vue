@@ -30,7 +30,7 @@
 
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, onBeforeUnmount, watch } from 'vue'
 import { Bar } from 'vue-chartjs'
 import {
   Chart,
@@ -63,6 +63,10 @@ const uiStore = useUIStore()
 const gameStore = useGameStore()
 const sessionStore = useSessionStore()
 const routeStore = useRouteStore()
+// 弹窗随标签页卸载，同步清除全局状态，避免切回后重新弹出。
+onBeforeUnmount(() => {
+  if (uiStore.activeModal === 'session') uiStore.activeModal = null
+})
 const game = computed(() => {
   const id = route.params.id as string
   return gameStore.getGameById(id)

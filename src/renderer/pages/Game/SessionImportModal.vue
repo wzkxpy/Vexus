@@ -1,4 +1,5 @@
 <template>
+  <Teleport to="body">
   <div class="import-overlay" @click.self="emit('close')">
     <div class="import-modal">
       <div class="header">
@@ -31,6 +32,7 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -76,7 +78,7 @@ const errorMessage = (reason: unknown) => {
 .import-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2100;
+  z-index: 1010;
   display: flex;
   align-items: center;
   justify-content: center;

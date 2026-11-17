@@ -17,10 +17,11 @@
     </div>
 
     <!-- 角色 -->
-    <div class="section characters-section" v-if="game.characters?.length">
+    <div class="section characters-section">
       <h3>角色</h3>
-      <button class="edit-btn" aria-label="调整角色顺序" title="调整角色顺序" @click="uiStore.activeModal = 'character-sort'"><Pencil :size="12" /></button>
-      <div class="character-grid">
+      <button class="edit-btn" aria-label="编辑角色" title="编辑" @click="uiStore.activeModal = 'character-sort'"><Pencil :size="12" /></button>
+      <p v-if="!game.characters?.length" class="section-empty">暂无角色</p>
+      <div v-else class="character-grid">
         <div
           class="character-card"
           v-for="c in game.characters"
@@ -75,10 +76,11 @@
     </div>
 
     <!-- 标签 -->
-    <div class="section tags-section" v-if="game.tags?.length">
+    <div class="section tags-section">
       <h3>游戏标签</h3>
       <button class="edit-btn" aria-label="编辑标签" title="编辑" @click="openEdit('tags')"><Pencil :size="12" /></button>
-      <div class="tags">
+      <p v-if="!game.tags?.length" class="section-empty">暂无标签</p>
+      <div v-else class="tags">
         <span v-for="tag in game.tags" :key="tag" class="tag">
           {{ tag }}
         </span>
@@ -93,12 +95,6 @@
     </div>
     
   </div>
-
-  <EditModal
-    v-if="uiStore.activeModal?.startsWith('edit-')"
-    :type="uiStore.activeModal.replace('edit-', '') as keyof Game"
-    @close="uiStore.activeModal = null"
-  />
 
   <CharacterSortModal
     v-if="uiStore.activeModal === 'character-sort' && game?.characters"
@@ -119,9 +115,8 @@
 <script setup lang="ts">
 import type { Game } from '@/shared/types';
 import { useGameStore } from '@/renderer/stores/game.store'
-import { computed, watch } from 'vue';
+import { computed, onBeforeUnmount, watch } from 'vue';
 import { Pencil } from '@lucide/vue'
-import EditModal from '../EditModal.vue'
 import CharacterSortModal from '../CharacterSortModal.vue'
 import { useRoute } from 'vue-router'
 import { useUIStore } from '@/renderer/stores/ui.store';
@@ -138,6 +133,12 @@ const game = computed(() => {
   return gameStore.getGameById(id)
 })
 const uiStore = useUIStore()
+// 弹窗随标签页卸载，同步清除全局状态，避免切回后重新弹出。
+onBeforeUnmount(() => {
+  if (uiStore.activeModal === 'route-editor' || uiStore.activeModal === 'character-sort') {
+    uiStore.activeModal = null
+  }
+})
 const routeStore = useRouteStore()
 const gameId = computed(() => route.params.id as string)
 const gameRoutes = computed(() => routeStore.getGameRoutes(gameId.value))
@@ -209,6 +210,7 @@ const openEdit = (type: keyof Game) => {
 .route-message.error { color: #c84d5a; }
 .route-unassigned { margin: -7px 0 12px; color: #8c96a6; font-size: 12px; }
 .route-unplaced { margin: -7px 0 12px; color: #8c96a6; font-size: 12px; }
+.section-empty { margin: 0; color: #98a1b1; font-size: 13px; }
 
 .section h3 {
   margin: 0 0 12px;

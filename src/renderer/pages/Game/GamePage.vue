@@ -1,6 +1,6 @@
 <!-- src/renderer/pages/Game/GamePage.vue -->
 <template>
-  <div v-if="game" ref="pageElement" class="game-page" :class="{ 'without-banner': !showBanner }" @scroll.passive="handlePageScroll">
+  <div v-if="game" ref="pageElement" class="game-page" @scroll.passive="handlePageScroll">
     <div class="drag-area"></div>
     <Transition name="compact-header">
       <header v-if="showCompactHeader" class="compact-header" aria-label="游戏快捷操作">
@@ -20,13 +20,6 @@
     <button class="back-btn" aria-label="返回" title="返回" @click="handleBack()"><ArrowLeft :size="19" /></button>
 
     <div class="page-content">
-      <section v-if="showBanner" class="hero" aria-label="游戏横幅">
-        <img v-if="heroImage" :key="heroImage" :src="heroImage" alt="" class="hero-image"
-          :class="{ 'cover-backdrop': !bannerImage }" @error="handleHeroError" />
-        <div class="hero-shade"></div>
-      </section>
-
-      <!-- 资料卡与封面叠放在横幅下沿，保持标题和操作区域的可读性。 -->
       <div class="top-section">
         <!-- 封面 -->
         <div class="right">
@@ -41,10 +34,6 @@
         </div>
 
         <div class="left">
-          <div v-if="game.basicInfo?.developer" class="game-meta">
-            {{ game.basicInfo.developer }}
-          </div>
-
           <h1 ref="titleElement" class="title">
             <span class="title-main">
               {{ displayTitleParts.main }}
@@ -141,6 +130,12 @@
       @close="uiStore.activeModal = null"
      />
 
+    <ExternalIdsModal
+      v-if="uiStore.activeModal === 'external-ids'"
+      :game="game"
+      @close="uiStore.activeModal = null"
+    />
+
     <TitleSplitModal
       v-if="uiStore.activeModal === 'titleSplit'"
       :original-title="game?.originalTitle || ''"
@@ -170,6 +165,7 @@ import { useRoute } from 'vue-router'
 import { ArrowLeft, Gamepad2, Pencil, Play, Settings, Square } from '@lucide/vue'
 import router from '@/renderer/router'
 import MediaModal from './MediaModal.vue'
+import ExternalIdsModal from './ExternalIdsModal.vue'
 import TitleSplitModal from './TitleSplitModal.vue'
 import { splitTitle } from '@/shared/utils/title'
 
@@ -242,7 +238,6 @@ const handleBack = () => {
 const settingsStore = useSettingsStore()
 const gameTitleSetting = computed(() => settingsStore.settings?.gameTitle ?? 'Local')
 const subTitleSetting = computed(() => settingsStore.settings?.subTitle ?? true)
-const showBanner = computed(() => settingsStore.settings?.showBanner ?? true)
 
 // 标题拆分显示
 const displayTitleParts = computed(() => {
@@ -282,24 +277,13 @@ const handleLaunchToggle = async () => {
   }
 }
 
-// 横幅失效时退回封面，封面也不可用时显示渐变；新地址不受旧失败记录影响。
-const failedBanner = ref('')
+// 封面加载失败时退回占位图，新地址不受旧失败记录影响。
 const failedCover = ref('')
-const bannerImage = computed(() => {
-  const path = game.value?.media?.bannerPath
-  return path && path !== failedBanner.value ? path : ''
-})
 const coverImage = computed(() => {
   const path = game.value?.media?.coverPath
   return path && path !== failedCover.value ? path : ''
 })
-const heroImage = computed(() => bannerImage.value || coverImage.value)
-const handleHeroError = () => {
-  if (bannerImage.value) failedBanner.value = bannerImage.value
-  else failedCover.value = coverImage.value
-}
 watch(() => game.value?.id, () => {
-  failedBanner.value = ''
   failedCover.value = ''
 })
 
@@ -308,6 +292,7 @@ const menuItems = computed(() => [
   { label: '配置游戏路径', action: () => openEdit('exePath') },
   { label: '浏览本地文件', action: () => gameActions.browseFolder(game.value!) },
   { label: '划分主副标题', action: () => uiStore.activeModal = 'titleSplit' },
+  { label: '编辑数据源 ID', action: () => uiStore.activeModal = 'external-ids' },
   // { label: '更新游戏信息', action: () =>  gameActions.updateGameInfo(game.value!) },
   { label: '标记 NSFW', action: () => gameActions.toggleNSFW(game.value!), checked: game.value?.settings?.nsfw },
   { label: '启用 Magpie', action: () => gameActions.toggleMagpie(game.value!), checked: game.value?.settings?.magpie },
@@ -396,7 +381,7 @@ watch(
   --page-inset: clamp(20px, 4vw, 64px);
   --page-top: 24px;
   --back-size: 36px;
-  --back-gap: 12px;
+  --back-gap: 6px;
   width: 100%;
   height: 100%;
   overflow-x: hidden;
@@ -429,44 +414,37 @@ button:focus-visible { outline: 3px solid #91b4ff; outline-offset: 4px; }
   -webkit-app-region: no-drag;
 }
 .back-btn:hover { color: #3156b4; background: #edf2fc; }
-.hero {
-  position: relative;
-  height: clamp(230px, 26vw, 360px);
-  overflow: hidden;
-  border-radius: 22px;
-  background: radial-gradient(ellipse at 75% 15%, #9aa9ca, transparent 65%), linear-gradient(120deg, #334563, #6c789e);
-}
-.hero-image { width: 100%; height: 100%; object-fit: cover; object-position: center 38%; }
-.hero-image.cover-backdrop { filter: blur(18px); transform: scale(1.12); opacity: .7; }
-.hero-shade { position: absolute; inset: 0; background: linear-gradient(180deg, #14203838, transparent 40%, #17233b9c); }
 .top-section {
+  /* 封面在卡片外，卡片高度只由信息区决定，不受封面高度牵制。 */
   position: relative;
   display: flex;
   align-items: flex-start;
   gap: 24px;
-  margin: -52px 24px 0;
-  padding: 0 24px 22px;
+  margin: 0;
+}
+.right { flex: 0 0 144px; width: 144px; margin-top: 0; }
+.cover-img, .cover-placeholder { display: block; width: 144px; height: 198px; border: 4px solid white; border-radius: 12px; box-shadow: 0 10px 24px #18284126; object-fit: cover; -webkit-user-drag: none; }
+.cover-placeholder { display: grid; place-items: center; color: #8697b6; background: linear-gradient(145deg, #ecf0f8, #dce4f2); }
+.left {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 24px;
   border: 1px solid #e7eaf1;
   border-radius: 18px;
   background: white;
   box-shadow: 0 12px 35px #273e6310;
 }
-.right { flex: 0 0 144px; width: 144px; margin-top: -26px; }
-.cover-img, .cover-placeholder { display: block; width: 144px; height: 198px; border: 4px solid white; border-radius: 12px; box-shadow: 0 10px 24px #18284126; object-fit: cover; -webkit-user-drag: none; }
-.cover-placeholder { display: grid; place-items: center; color: #8697b6; background: linear-gradient(145deg, #ecf0f8, #dce4f2); }
-.left { flex: 1; min-width: 0; padding-top: 20px; }
-.game-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 9px; color: #8a94a7; font-size: 11px; }
-.title { display: flex; flex-direction: column; gap: 6px; margin: 0 0 16px; overflow-wrap: anywhere; }
+.title { display: flex; flex-direction: column; gap: 6px; margin: 0 0 14px; overflow-wrap: anywhere; }
 .title-main { color: #26324b; font-size: clamp(23px, 2.4vw, 34px); font-weight: 650; line-height: 1.3; letter-spacing: -.025em; }
 .title-sub { color: #8a94a7; font-size: 15px; font-weight: 400; line-height: 1.5; }
-.action-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.action-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 .launch-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-width: 148px; height: 42px; padding: 0 23px; border: 0; border-radius: 10px; background: #597bd3; color: white; font-size: 13px; font-weight: 600; box-shadow: 0 5px 14px #597bd330; }
 .launch-btn:hover { background: #496bc2; box-shadow: 0 6px 18px #597bd345; }
 .launch-btn.running { background: #cf6473; }
 .launch-btn:disabled { opacity: .6; cursor: wait; }
 .settings-btn { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid #e4e8f0; border-radius: 10px; color: #7a879e; background: #f8f9fc; }
 .settings-btn:hover, .edit-btn:hover { background: #eaf0fc; color: var(--accent); }
-.stats-row { display: flex; flex-wrap: wrap; gap: 16px 24px; padding-top: 17px; border-top: 1px solid #eef0f5; }
+.stats-row { display: flex; flex-wrap: wrap; gap: 16px 24px; padding-top: 12px; border-top: 1px solid #eef0f5; }
 .stat-item, .score-section { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .stat-label, .score-title { color: #939caf; font-size: 11px; }
 .status-btn { padding: 4px 9px; border: 0; border-radius: 6px; background: #edf2fc; color: var(--accent); font-size: 12px; }
@@ -480,7 +458,7 @@ button:focus-visible { outline: 3px solid #91b4ff; outline-offset: 4px; }
   z-index: 10;
   display: flex;
   gap: 26px;
-  margin: 22px 0;
+  margin: 16px 0;
   border-bottom: 1px solid #e1e6ef;
   background: #f5f6fa;
 }
@@ -492,34 +470,21 @@ button:focus-visible { outline: 3px solid #91b4ff; outline-offset: 4px; }
 .game-page::-webkit-scrollbar { width: 6px; }
 .game-page::-webkit-scrollbar-thumb { background: #cbd2df; border-radius: 6px; }
 @media (max-width: 900px) {
-  .top-section { margin-left: 12px; margin-right: 12px; padding: 0 20px 22px; gap: 20px; }
+  .top-section { gap: 20px; }
+  .left { padding: 16px 20px; }
   .right { flex-basis: 122px; width: 122px; }
   .cover-img, .cover-placeholder { width: 122px; height: 170px; }
 }
 @media (max-width: 600px) {
   .game-page { --page-inset: 16px; --page-top: 20px; }
   .page-content { padding-bottom: 32px; }
-  .hero { height: 230px; border-radius: 16px; }
-  .top-section { flex-direction: column; gap: 0; margin: -40px 8px 0; padding: 0 18px 22px; }
-  .right { flex-basis: auto; margin-top: -30px; }
+  .top-section { flex-direction: column; gap: 12px; }
+  .right { flex-basis: auto; margin-top: 0; }
   .cover-img, .cover-placeholder { width: 90px; height: 124px; }
-  .left { width: 100%; padding-top: 16px; }
+  .left { width: 100%; padding: 14px 18px; }
   .stats-row { gap: 14px; }
   .score-section { flex-basis: 100%; }
   .tabs { margin-top: 16px; }
-}
-/* 不展示横幅时取消叠放的负边距，封面和资料从卡片顶部正常排布。 */
-.without-banner { --back-gap: 6px; }
-.without-banner .top-section { margin: 0; padding-block: 16px; }
-.without-banner .title { margin-bottom: 14px; }
-.without-banner .action-row { margin-bottom: 14px; }
-.without-banner .stats-row { padding-top: 12px; }
-.without-banner .tabs { margin-block: 16px; }
-.without-banner .right { margin-top: 0; }
-.without-banner .left { padding-top: 0; }
-@media (max-width: 600px) {
-  .without-banner .top-section { padding-block: 14px; }
-  .without-banner .left { padding-top: 12px; }
 }
 .compact-header {
   position: fixed;

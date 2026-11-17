@@ -2,7 +2,19 @@
 
 /// <reference types="vite/client" />
 export {}
-import type { RouteStatus, RouteTree, Settings } from '@/shared/types'
+import type {
+  CharacterDraft,
+  Game,
+  GameCandidate,
+  GameMetadataSection,
+  NewGame,
+  ProviderSectionResult,
+  Route,
+  RouteStatus,
+  RouteTree,
+  Session,
+  Settings
+} from '@/shared/types'
 
 declare global {
   interface Window {
@@ -18,6 +30,7 @@ declare global {
       addGame: (game: NewGame) => Promise<string>
       deleteGame: (id: string) => Promise<boolean>
       updateGame: (game: Game) => Promise<void>
+      updateCharacters: (gameId: string, characters: CharacterDraft[]) => Promise<Game>
       updateMedia: (gameId: string, type: 'cover' | 'banner' | 'icon', sourcePath: string) => Promise<string>
 
       getGameSessions: (gameid: string) => Promise<Session[]>
@@ -53,9 +66,10 @@ declare global {
     },
     
     providerAPI: {
-      searchGames: (source: string, keyword: string) => Promise<GameSearchResult[]>
-      fetchGame: (source: string, subjectId: string) => Promise<GameSearchResult>
+      searchGames: (source: string, keyword: string) => Promise<GameCandidate[]>
+      fetchGame: (source: string, subjectId: string) => Promise<GameCandidate>
       buildGameFromBangumi: (subject: any) => Promise<NewGame>
+      fetchGameSection: (gameId: string, section: GameMetadataSection) => Promise<ProviderSectionResult>
     },
 
     callbackAPI: {

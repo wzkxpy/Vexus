@@ -1,11 +1,17 @@
 // src/main/services/media.ts
 import * as path from 'path'
 import * as fs from 'fs'
-import { NewGame } from '@/shared/types';
+import { randomUUID } from 'crypto'
+import type { Character, CharacterDraft, NewGame } from '@/shared/types';
 import { downloadFile } from '../utils/file'
 import { app } from 'electron'
 import sharp from 'sharp'
 import { Dispatcher } from 'undici';
+
+export interface PreparedCharacterAvatars {
+  characters: Character[]
+  createdPaths: string[]
+}
 
 export class MediaService {
   private mediaBaseDir = path.join(app.getPath('userData'), 'media')
@@ -63,7 +69,96 @@ export class MediaService {
     return `vexus-media://${gameId}/${fileName}`
   } 
 
+  // 保存角色前准备头像；所有文件成功后才返回，调用方写库失败时用 createdPaths 补偿清理。
+  async prepareCharacterAvatars(
+    gameId: string,
+    characters: CharacterDraft[]
+  ): Promise<PreparedCharacterAvatars> {
+    const gameDir = path.join(this.mediaBaseDir, gameId)
+    const tempDir = path.join(gameDir, `.avatar-${randomUUID()}`)
+    fs.mkdirSync(tempDir, { recursive: true })
+    const createdPaths: string[] = []
+
+    try {
+      const prepared = await Promise.all(characters.map(async (character, index) => {
+        if (character.avatarPath) {
+          return {
+            name: character.name,
+            voiceActor: character.voiceActor,
+            avatarPath: character.avatarPath
+          }
+        }
+        if (!character.avatarUrl) {
+          return {
+            name: character.name,
+            voiceActor: character.voiceActor
+          }
+        }
+
+        this.assertAvatarUrl(character.avatarUrl)
+        const sourcePath = path.join(tempDir, `${index}.image`)
+        await downloadFile(character.avatarUrl, sourcePath, this.getAgent())
+
+        const fileName = `${randomUUID()}_avatar.webp`
+        const targetPath = path.join(gameDir, fileName)
+        createdPaths.push(targetPath)
+        await sharp(sourcePath).webp({ quality: 90 }).toFile(targetPath)
+
+        return {
+          name: character.name,
+          voiceActor: character.voiceActor,
+          avatarPath: `vexus-media://${gameId}/${fileName}`
+        }
+      }))
+
+      return { characters: prepared, createdPaths }
+    } catch (error) {
+      this.discardPreparedMedia(createdPaths)
+      throw error
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true })
+    }
+  }
+
+  discardPreparedMedia(paths: string[]) {
+    for (const filePath of paths) {
+      fs.rmSync(filePath, { force: true })
+    }
+  }
+
+  cleanupUnusedCharacterAvatars(gameId: string, previous: Character[], next: Character[]) {
+    const retained = new Set(next.map(character => character.avatarPath).filter(Boolean))
+    for (const character of previous) {
+      if (!character.avatarPath || retained.has(character.avatarPath)) continue
+      const filePath = this.resolveCharacterAvatarPath(gameId, character.avatarPath)
+      if (filePath) fs.rmSync(filePath, { force: true })
+    }
+  }
+
   // --------- private -------------
+
+  private assertAvatarUrl(value: string) {
+    let url: URL
+    try {
+      url = new URL(value)
+    } catch {
+      throw new Error('无效的角色头像地址')
+    }
+    if (url.protocol !== 'https:' || (url.hostname !== 'bgm.tv' && !url.hostname.endsWith('.bgm.tv'))) {
+      throw new Error('无效的角色头像地址')
+    }
+  }
+
+  private resolveCharacterAvatarPath(gameId: string, mediaPath: string) {
+    const prefix = `vexus-media://${gameId}/`
+    if (!mediaPath.startsWith(prefix)) return undefined
+
+    const fileName = mediaPath.slice(prefix.length)
+    if (fileName !== path.basename(fileName) || !fileName.endsWith('_avatar.webp')) {
+      return undefined
+    }
+    return path.join(this.mediaBaseDir, gameId, fileName)
+  }
 
   private async getAvailableMediaPath(gameId: string, type: string): Promise<string> {
     const gameDir = path.join(this.mediaBaseDir, gameId)

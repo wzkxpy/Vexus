@@ -2,7 +2,6 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 
 import Library from './pages/Library/LibraryPage.vue'
 import GamePage from './pages/Game/GamePage.vue'
-import Categories from './pages/Categories/CategoriesPage.vue'
 import Dashboard from './pages/Dashboard/DashboardPage.vue'
 import Settings from './pages/Settings/SettingsPage.vue'
 
@@ -12,7 +11,6 @@ const router = createRouter({
     { path: '/', redirect: '/library' },
     { path: '/library', component: Library },
     { path: '/game/:id', component: GamePage },
-    { path: '/categories', component: Categories },
     { path: '/dashboard', component: Dashboard },
     { path: '/settings', component: Settings },
   ],

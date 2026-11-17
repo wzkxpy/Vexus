@@ -59,7 +59,7 @@ app.whenReady().then(() => {
   registerClipboardIPC()
   registerLaunchIPC() // Register IPC handlers for launching games
   registerSettingsIPC() // Register IPC handlers for settings management
-  registerProviderIPC() // Register IPC handlers for Bangumi API interactions
+  registerProviderIPC(gameService) // Register IPC handlers for Bangumi API interactions
 });
 
 

@@ -65,6 +65,12 @@ export function registerDBIPC(
   ipcMain.handle('updateGame', (_, game: Game) => {
     return gameService.updateGame(game)
   })
+  ipcMain.handle('updateCharacters', (_, gameId: string, characters) => {
+    if (typeof gameId !== 'string' || !gameId || !Array.isArray(characters)) {
+      throw new Error('Invalid character update request')
+    }
+    return gameService.updateCharacters(gameId, characters)
+  })
   ipcMain.handle('updateMedia', (_, gameId: string, type: 'cover' | 'banner' | 'icon', sourcePath: string) => {
     return gameService.updateMedia(gameId, type, sourcePath)
   })
@@ -124,7 +130,7 @@ export function registerSettingsIPC() {
   })
 }
 
-export function registerProviderIPC() {
+export function registerProviderIPC(gameService: GameService) {
   ipcMain.handle('searchGames', async (_, source: string, keyword: string) => {
     return await searchGames(source, keyword)
   })
@@ -133,5 +139,11 @@ export function registerProviderIPC() {
   })
   ipcMain.handle('buildGameFromBangumi', async (_, subject) => {
     return await buildGameFromBangumi(subject)
+  })
+  ipcMain.handle('fetchGameSection', async (_, gameId: string, section) => {
+    if (typeof gameId !== 'string' || !gameId || typeof section !== 'string') {
+      throw new Error('Invalid metadata section request')
+    }
+    return gameService.fetchMetadataSection(gameId, section)
   })
 }

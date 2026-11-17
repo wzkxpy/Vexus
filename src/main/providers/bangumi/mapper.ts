@@ -1,8 +1,43 @@
 // src/main/providers/bangumi/mapper.ts
-import type { NewGame, GameCandidate } from "@/shared/types"
+import type { Game, NewGame, GameCandidate, CharacterDraft } from "@/shared/types"
 import type { BangumiCharacter, BangumiSubject } from "./types"
 import { randomUUID } from "crypto";
 import { computeTitleSplit } from '@/shared/utils/title'
+
+export function bangumiToBasicInfo(subject: BangumiSubject): Game['basicInfo'] {
+  return {
+    developer: getInfoboxValue(subject.infobox, '开发') || undefined,
+    publisher: getInfoboxValue(subject.infobox, '发行') || undefined,
+    releaseDate: subject.date || undefined,
+  }
+}
+
+export function bangumiToStaff(subject: BangumiSubject): Game['staff'] {
+  return {
+    planner: getInfoboxValue(subject.infobox, '企画') || undefined,
+    scenario: getInfoboxValue(subject.infobox, '剧本') || undefined,
+    artist: getInfoboxValue(subject.infobox, '原画') || undefined,
+    music: getInfoboxValue(subject.infobox, '音乐') || undefined,
+  }
+}
+
+export function bangumiToTags(subject: BangumiSubject): string[] {
+  return subject.tags?.map(tag => tag.name) || []
+}
+
+export function bangumiToDescription(subject: BangumiSubject): string | undefined {
+  return subject.summary || undefined
+}
+
+export function bangumiToCharacterDrafts(characters: BangumiCharacter[]): CharacterDraft[] {
+  return characters
+    .filter(character => character.relation !== '客串')
+    .map(character => ({
+      name: character.name,
+      voiceActor: character.actors?.[0]?.name || '未知',
+      avatarUrl: character.images?.grid || undefined
+    }))
+}
 
 export function bangumiToNewGame(
   subject: BangumiSubject,
@@ -17,15 +52,10 @@ export function bangumiToNewGame(
     originalTitle,
     localizedTitle,
     titleSplit: computeTitleSplit(originalTitle, localizedTitle),
-    description: subject.summary,
-    tags: subject.tags?.map((tag: any) => tag.name) || [],
+    description: bangumiToDescription(subject),
+    tags: bangumiToTags(subject),
 
-    basicInfo: {
-      developer: getInfoboxValue(subject.infobox, '开发') || undefined,
-      publisher: getInfoboxValue(subject.infobox, '发行') || undefined,
-      releaseDate: subject.date || undefined,
-      estimatedTime: undefined,
-    },
+    basicInfo: bangumiToBasicInfo(subject),
 
     externalScore: {
       bgm: subject.rating?.score || undefined,
@@ -39,21 +69,14 @@ export function bangumiToNewGame(
       coverUrl: subject.images?.large || undefined,
     },
 
-    staff: {
-      planner: getInfoboxValue(subject.infobox, '企画') || undefined,
-      scenario: getInfoboxValue(subject.infobox, '剧本') || undefined,
-      artist: getInfoboxValue(subject.infobox, '原画') || undefined,
-      music: getInfoboxValue(subject.infobox, '音乐') || undefined,
-    },
+    staff: bangumiToStaff(subject),
 
-    characters: characters
-    .filter(character => character.relation !== '客串')
-    .map(c => ({
+    characters: bangumiToCharacterDrafts(characters).map(character => ({
       uuid: randomUUID(),
-      name: c.name,
-      voiceActor: c.actors?.[0]?.name || '未知',
-      avatarUrl: c.images?.grid || undefined
-    })) || [],
+      name: character.name,
+      voiceActor: character.voiceActor,
+      avatarUrl: character.avatarUrl
+    })),
 
     settings: {
       nsfw: subject.nsfw || false

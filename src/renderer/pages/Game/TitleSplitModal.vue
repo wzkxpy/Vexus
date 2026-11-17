@@ -1,4 +1,5 @@
 <template>
+  <Teleport to="body">
   <div class="overlay" @click.self="emit('close')">
     <div class="modal">
       <!-- Header -->
@@ -77,6 +78,7 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -239,7 +241,7 @@ function save() {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 9999;
+  z-index: 1000;
 }
 
 .modal {

@@ -15,8 +15,6 @@ const store = new Store<Settings>({
     magpiePath: '',
     magpieHotkey: '',
     subTitle: true,
-    // electron-store 会为已有配置补齐缺失项，保留当前默认展示横幅的行为。
-    showBanner: true,
     proxy: {
       enabled: true,
       protocol: 'http',

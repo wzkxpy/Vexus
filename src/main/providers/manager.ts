@@ -1,9 +1,17 @@
 // src/main/providers/manager.ts
 // import { ProxyAgent } from 'undici'
 import { BangumiClient } from "./bangumi/client";
-import type { NewGame, GameCandidate } from "@/shared/types";
+import type { NewGame, GameCandidate, GameMetadataSection, ProviderSectionResult } from "@/shared/types";
 import type { BangumiSubject } from "./bangumi/types";
-import { bangumiToNewGame, bangumiToSearchResult } from "./bangumi/mapper";
+import {
+  bangumiToBasicInfo,
+  bangumiToCharacterDrafts,
+  bangumiToDescription,
+  bangumiToNewGame,
+  bangumiToSearchResult,
+  bangumiToStaff,
+  bangumiToTags
+} from "./bangumi/mapper";
 import { getSetting, getProxyAgent } from '../settings'
 
 // const bangumiToken = process.env.VEXUS_BANGUMI_TOKEN as string;
@@ -47,9 +55,46 @@ export async function buildGameFromBangumi(subject: BangumiSubject): Promise<New
   // throw new Error(`Unsupported source: ${source}`)
 }
 
+export async function fetchBangumiSection(
+  sourceId: string,
+  section: GameMetadataSection
+): Promise<ProviderSectionResult> {
+  if (!/^\d+$/.test(sourceId)) {
+    throw new Error('Bangumi ID 应为纯数字')
+  }
 
+  const client = new BangumiClient(getBangumiToken(), getProxyAgent())
+  try {
+    if (section === 'characters') {
+      const characters = await client.getCharacters(sourceId)
+      return {
+        section,
+        source: 'bangumi',
+        sourceId,
+        value: bangumiToCharacterDrafts(characters)
+      }
+    }
 
-// 如果你愿意，我还能进一步帮你把 manager.ts 升级成：
-// registerProvider('bangumi')
-// registerProvider('vndb')
-// 插件式架构，以后加数据源几乎零改动。
+    const subject = await client.getSubject(sourceId)
+    switch (section) {
+      case 'basicInfo':
+        return { section, source: 'bangumi', sourceId, value: bangumiToBasicInfo(subject) }
+      case 'staff':
+        return { section, source: 'bangumi', sourceId, value: bangumiToStaff(subject) }
+      case 'tags':
+        return { section, source: 'bangumi', sourceId, value: bangumiToTags(subject) }
+      case 'description':
+        return { section, source: 'bangumi', sourceId, value: bangumiToDescription(subject) }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    if (message.includes('Bangumi API 错误 404')) {
+      throw new Error(`未找到 Bangumi ID ${sourceId} 对应的条目`)
+    }
+    if (message.includes('Bangumi API 错误 401') || message.includes('Bangumi API 错误 403')) {
+      throw new Error('Bangumi 认证失败，请检查访问 Token')
+    }
+    throw error
+  }
+}
+

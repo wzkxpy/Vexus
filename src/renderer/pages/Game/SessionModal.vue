@@ -1,5 +1,6 @@
 <!-- SessionModal.vue -->
 <template>
+  <Teleport to="body">
   <div class="overlay">
     <div class="modal">
       <div class="header">
@@ -154,6 +155,7 @@
       @imported="handleImported"
     />
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -533,7 +535,7 @@ const removeSession = async (s: Session) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 2000;
+  z-index: 1000;
 }
 
 .modal {

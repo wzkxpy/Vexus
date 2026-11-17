@@ -1,4 +1,5 @@
 <template>
+  <Teleport to="body">
   <transition name="fade">
     <div class="media-modal-mask" @click.self="close">
       <div class="media-modal">
@@ -15,7 +16,7 @@
           <!-- Cover -->
           <section class="media-section">
             <div class="section-top">
-              <h3>横幅图</h3>
+              <h3>封面图</h3>
             </div>
 
             <div class="preview-card cover-card">
@@ -25,7 +26,7 @@
                 class="preview-image"
               />
               <div v-else class="empty-state">
-                暂无横幅图
+                暂无封面图
               </div>
             </div>
 
@@ -56,7 +57,7 @@
           <!-- Banner -->
           <section class="media-section">
             <div class="section-top">
-              <h3>背景图</h3>
+              <h3>横幅图</h3>
             </div>
 
             <div class="preview-card banner-card">
@@ -66,7 +67,7 @@
                 class="preview-image"
               />
               <div v-else class="empty-state">
-                暂无背景图
+                暂无横幅图
               </div>
             </div>
 
@@ -99,6 +100,7 @@
       </div>
     </div>
   </transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -176,7 +178,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 1000;
 }
 
 .media-modal {

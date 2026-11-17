@@ -1,4 +1,5 @@
 <template>
+  <Teleport to="body">
   <div class="overlay" @mousedown.self="!saving && emit('close')">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="route-editor-title">
       <div class="modal-header">
@@ -175,6 +176,7 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -654,7 +656,7 @@ const saveRoutes = async () => {
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 99999;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1,5 +1,16 @@
 // src/preload/index.ts
-import type { Game, NewGame, Route, RouteStatus, RouteTree, Session, Settings } from '@/shared/types'
+import type {
+  CharacterDraft,
+  Game,
+  GameMetadataSection,
+  NewGame,
+  ProviderSectionResult,
+  Route,
+  RouteStatus,
+  RouteTree,
+  Session,
+  Settings
+} from '@/shared/types'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // 窗口控制 API
@@ -16,6 +27,8 @@ contextBridge.exposeInMainWorld('databaseAPI', {
   addGame: (game: NewGame): Promise<string> => ipcRenderer.invoke('addGame', game),
   deleteGame: (id: string): Promise<boolean> => ipcRenderer.invoke('deleteGame', id),
   updateGame: (game: Game): Promise<void> => ipcRenderer.invoke('updateGame', game),
+  updateCharacters: (gameId: string, characters: CharacterDraft[]): Promise<Game> =>
+    ipcRenderer.invoke('updateCharacters', gameId, characters),
   updateMedia: (gameId: string, type: 'cover' | 'banner' | 'icon', sourcePath: string):
    Promise<void> => ipcRenderer.invoke('updateMedia', gameId, type, sourcePath),
 
@@ -66,7 +79,9 @@ contextBridge.exposeInMainWorld('settingsAPI', {
 contextBridge.exposeInMainWorld('providerAPI', {
   searchGames: (source: string, keyword: string) => ipcRenderer.invoke('searchGames', source, keyword),
   fetchGame: (source: string, subjectId: string) => ipcRenderer.invoke('fetchGame', source, subjectId),
-  buildGameFromBangumi: (subject: any) => ipcRenderer.invoke('buildGameFromBangumi', subject)
+  buildGameFromBangumi: (subject: any) => ipcRenderer.invoke('buildGameFromBangumi', subject),
+  fetchGameSection: (gameId: string, section: GameMetadataSection): Promise<ProviderSectionResult> =>
+    ipcRenderer.invoke('fetchGameSection', gameId, section)
 })
 
 contextBridge.exposeInMainWorld('callbackAPI', {

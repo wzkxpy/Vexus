@@ -1,12 +1,13 @@
 <template>
-  <div class="overlay" @mousedown.self="emit('close')">
+  <Teleport to="body">
+  <div class="overlay" @mousedown.self="close">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="character-sort-title">
       <div class="modal-header">
         <div>
-          <h3 id="character-sort-title">调整角色顺序</h3>
+          <h3 id="character-sort-title">编辑角色</h3>
           <p>拖动角色，或使用右侧按钮调整位置。</p>
         </div>
-        <button class="close-btn" aria-label="关闭" @click="emit('close')">
+        <button class="close-btn" aria-label="关闭" :disabled="busy" @click="close">
           <X :size="16" />
         </button>
       </div>
@@ -25,7 +26,7 @@
         >
           <span class="drag-handle" title="拖动排序" aria-hidden="true"><GripVertical :size="16" /></span>
           <img
-            :src="character.avatarPath || defaultCharacterAvatar"
+            :src="character.avatarPath || character.avatarUrl || defaultCharacterAvatar"
             :alt="character.name"
             class="avatar"
             draggable="false"
@@ -47,25 +48,31 @@
       <p v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</p>
 
       <div class="modal-actions">
-        <button class="cancel-btn" :disabled="saving" @click="emit('close')">取消</button>
-        <button class="save-btn" :disabled="saving || !changed" @click="saveOrder">
-          {{ saving ? '保存中…' : '保存顺序' }}
+        <button class="update-btn" :disabled="busy" @click="updateFromBangumi">
+          {{ updating ? '正在获取…' : '从 Bangumi 更新' }}
         </button>
+        <div class="action-buttons">
+          <button class="cancel-btn" :disabled="busy" @click="close">取消</button>
+          <button class="save-btn" :disabled="busy || !changed" @click="saveCharacters">
+            {{ saving ? '保存中…' : '保存' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, GripVertical, X } from '@lucide/vue'
-import type { Character } from '@/shared/types'
+import type { CharacterDraft } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
 import defaultCharacterAvatar from '@/renderer/assets/images/akarin.webp'
 
 const props = defineProps<{
   gameId: string
-  characters: Character[]
+  characters: CharacterDraft[]
 }>()
 const emit = defineEmits<{ close: [] }>()
 const gameStore = useGameStore()
@@ -74,19 +81,24 @@ const initialCharacters = props.characters.map(character => ({ ...character }))
 const draftCharacters = ref(initialCharacters.map(character => ({ ...character })))
 const draggedIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
+const updating = ref(false)
 const saving = ref(false)
 const errorMessage = ref('')
+const busy = computed(() => updating.value || saving.value)
 
+const characterSnapshot = (characters: CharacterDraft[]) =>
+  JSON.stringify(characters.map(character => ({
+    name: character.name,
+    voiceActor: character.voiceActor,
+    avatarPath: character.avatarPath ?? null,
+    avatarUrl: character.avatarUrl ?? null
+  })))
 const changed = computed(() =>
-  draftCharacters.value.some((character, index) => character !== initialCharacters[index] && (
-    character.name !== initialCharacters[index]?.name ||
-    character.voiceActor !== initialCharacters[index]?.voiceActor ||
-    character.avatarPath !== initialCharacters[index]?.avatarPath
-  ))
+  characterSnapshot(draftCharacters.value) !== characterSnapshot(initialCharacters)
 )
 
-const characterKey = (character: Character, index: number) =>
-  `${character.avatarPath ?? ''}-${character.name}-${character.voiceActor}-${index}`
+const characterKey = (character: CharacterDraft, index: number) =>
+  `${character.avatarPath ?? ''}-${character.avatarUrl ?? ''}-${character.name}-${character.voiceActor}-${index}`
 
 const moveCharacter = (from: number, to: number) => {
   if (from === to || to < 0 || to >= draftCharacters.value.length) return
@@ -118,17 +130,41 @@ const handleAvatarError = (event: Event) => {
   image.src = defaultCharacterAvatar
 }
 
-const saveOrder = async () => {
+function close() {
+  if (!busy.value) emit('close')
+}
+
+function getErrorMessage(error: unknown) {
+  if (!(error instanceof Error)) return '获取失败，请重试。'
+  return error.message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
+}
+
+async function updateFromBangumi() {
+  if (busy.value) return
+  updating.value = true
+  errorMessage.value = ''
+  try {
+    const result = await window.providerAPI.fetchGameSection(props.gameId, 'characters')
+    if (result.section !== 'characters') throw new Error('信息源返回了错误的角色数据')
+    draftCharacters.value = result.value.map(character => ({ ...character }))
+    resetDrag()
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error)
+  } finally {
+    updating.value = false
+  }
+}
+
+const saveCharacters = async () => {
+  if (busy.value || !changed.value) return
   saving.value = true
   errorMessage.value = ''
   try {
-    await gameStore.updateGame(props.gameId, {
-      characters: draftCharacters.value.map(character => ({ ...character }))
-    })
+    await gameStore.updateCharacters(props.gameId, draftCharacters.value.map(character => ({ ...character })))
     emit('close')
   } catch (error) {
-    console.error('Failed to save character order:', error)
-    errorMessage.value = '保存失败，数据库中的原有顺序未改变，请重试。'
+    console.error('Failed to save characters:', error)
+    errorMessage.value = '保存失败，原有角色未改变，请重试。'
   } finally {
     saving.value = false
   }
@@ -139,7 +175,7 @@ const saveOrder = async () => {
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 99999;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -235,11 +271,14 @@ const saveOrder = async () => {
 .move-actions button:disabled { opacity: 0.35; cursor: default; }
 
 .error-message { margin: 10px 0 0; color: #c84d5a; font-size: 13px; }
-.modal-actions { display: flex; justify-content: flex-end; margin-top: 18px; gap: 9px; }
+.modal-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; gap: 9px; }
+.action-buttons { display: flex; gap: 9px; }
 .modal-actions button { min-width: 82px; padding: 8px 15px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+.update-btn { color: #4f72c4; border: 1px solid #d7e1f5; background: #eef3fc; }
+.update-btn:hover:not(:disabled) { background: #e2ebfb; }
 .cancel-btn { color: #687386; border: 1px solid #dfe3ea; background: #fff; }
 .save-btn { color: #fff; border: 1px solid #557bd3; background: #5d82d8; }
-.modal-actions button:disabled { opacity: 0.5; cursor: default; }
+.modal-actions button:disabled, .close-btn:disabled { opacity: 0.5; cursor: default; }
 
 @media (max-width: 560px) {
   .overlay { padding: 12px; }

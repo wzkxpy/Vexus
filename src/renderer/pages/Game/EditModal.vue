@@ -1,10 +1,11 @@
 <!-- src/renderer/pages/Game/EditModal.vue -->
 <template>
-  <div class="overlay" @click.self="$emit('close')">
+  <Teleport to="body">
+  <div class="overlay" @click.self="close">
     <div class="modal">
       <header class="modal-header">
         <h3>{{ title }}</h3>
-        <CloseButton @click="$emit('close')" />
+        <CloseButton @click="close" />
       </header>
 
       <div class="modal-body">
@@ -45,6 +46,14 @@
 
         <template v-else-if="type === 'basicInfo'">
           <div class="field-grid">
+            <label class="field full">
+              <span class="field-label">原名</span>
+              <input v-model="form.originalTitle" placeholder="请输入游戏原名" />
+            </label>
+            <label class="field full">
+              <span class="field-label">中文名</span>
+              <input v-model="form.localizedTitle" placeholder="留空表示未设置" />
+            </label>
             <label class="field">
               <span class="field-label">开发商</span>
               <input v-model="form.basicInfo!.developer" placeholder="请输入开发商" />
@@ -94,22 +103,38 @@
             </label>
           </div>
         </template>
+
+        <p v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</p>
       </div>
 
       <footer class="modal-footer">
-        <button class="btn ghost" @click="$emit('close')">取消</button>
-        <button class="btn primary" @click="handleSave()">保存</button>
+        <button
+          v-if="canUpdate"
+          class="btn update"
+          :disabled="fetching || saving"
+          @click="updateFromBangumi"
+        >
+          {{ fetching ? '正在获取…' : '从 Bangumi 更新' }}
+        </button>
+        <div class="footer-actions">
+          <button class="btn ghost" :disabled="fetching || saving" @click="close">取消</button>
+          <button class="btn primary" :disabled="fetching || saving" @click="handleSave">
+            {{ saving ? '保存中…' : '保存' }}
+          </button>
+        </div>
       </footer>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { reactive, computed } from 'vue'
-import type { Game } from '@/shared/types'
+import { reactive, computed, ref } from 'vue'
+import type { Game, GameMetadataSection, ProviderSectionResult } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
 import { useRoute } from 'vue-router'
 import CloseButton from '@/renderer/components/CloseButton.vue'
+import { computeTitleSplit } from '@/shared/utils/title'
 
 const route = useRoute()
 const gameStore = useGameStore()
@@ -122,7 +147,11 @@ const props = defineProps<{ type: keyof Game }>()
 const emit = defineEmits(['close'])
 
 const form = reactive<Record<string, any>>({})
-// const form = reactive<Partial<Game>>({})
+const fetching = ref(false)
+const saving = ref(false)
+const errorMessage = ref('')
+const updatableSections: GameMetadataSection[] = ['basicInfo', 'staff', 'tags', 'description']
+const canUpdate = computed(() => updatableSections.includes(props.type as GameMetadataSection))
 
 // 初始化 form 数据
 if (game.value) {
@@ -133,6 +162,11 @@ if (game.value) {
       : { ...value }
   } else {
     form[props.type] = value
+  }
+
+  if (props.type === 'basicInfo') {
+    form.originalTitle = game.value.originalTitle
+    form.localizedTitle = game.value.localizedTitle ?? ''
   }
 }
 
@@ -156,10 +190,84 @@ const title = computed(() => {
   return map[props.type] || ''
 })
 
+function close() {
+  if (!fetching.value && !saving.value) emit('close')
+}
+
+function applySection(result: ProviderSectionResult) {
+  switch (result.section) {
+    case 'basicInfo':
+      form.basicInfo = {
+        ...result.value,
+        estimatedTime: form.basicInfo?.estimatedTime
+      }
+      break
+    case 'staff':
+      form.staff = { ...result.value }
+      break
+    case 'tags':
+      form.tags = [...result.value]
+      break
+    case 'description':
+      form.description = result.value
+      break
+  }
+}
+
+function getErrorMessage(error: unknown) {
+  if (!(error instanceof Error)) return '获取失败，请重试。'
+  return error.message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
+}
+
+async function updateFromBangumi() {
+  if (!game.value || fetching.value || saving.value || !canUpdate.value) return
+  fetching.value = true
+  errorMessage.value = ''
+  try {
+    const result = await window.providerAPI.fetchGameSection(
+      game.value.id,
+      props.type as GameMetadataSection
+    )
+    applySection(result)
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error)
+  } finally {
+    fetching.value = false
+  }
+}
+
 const handleSave = async () => {
-  // console.log(props.type, form)
-  await gameStore.updateGame(game.value!.id, form as Partial<Game>)
-  emit('close')
+  if (!game.value || fetching.value || saving.value) return
+  saving.value = true
+  errorMessage.value = ''
+  try {
+    const payload = { ...form } as Partial<Game>
+    if (props.type === 'basicInfo') {
+      const originalTitle = String(form.originalTitle ?? '').trim()
+      if (!originalTitle) {
+        errorMessage.value = '游戏原名不能为空。'
+        return
+      }
+
+      const localizedTitle = String(form.localizedTitle ?? '').trim() || undefined
+      payload.originalTitle = originalTitle
+      payload.localizedTitle = localizedTitle
+      if (
+        originalTitle !== game.value.originalTitle ||
+        localizedTitle !== (game.value.localizedTitle || undefined)
+      ) {
+        payload.titleSplit = computeTitleSplit(originalTitle, localizedTitle)
+      }
+    }
+
+    await gameStore.updateGame(game.value.id, payload)
+    emit('close')
+  } catch (error) {
+    console.error('Failed to save game metadata:', error)
+    errorMessage.value = '保存失败，请重试。'
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -167,7 +275,7 @@ const handleSave = async () => {
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 99999;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -233,6 +341,10 @@ const handleSave = async () => {
   gap: 7px;
 }
 
+.field.full {
+  grid-column: 1 / -1;
+}
+
 .field-label {
   font-size: 13px;
   font-weight: 550;
@@ -283,11 +395,24 @@ textarea.large {
 
 .modal-footer {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
   padding: 16px 24px 20px;
   border-top: 1px solid #eef1f4;
   background: #fbfcfe;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.error-message {
+  margin: 16px 0 0;
+  color: #c84d5a;
+  font-size: 13px;
 }
 
 .btn {
@@ -322,6 +447,20 @@ textarea.large {
 
 .btn.primary:hover {
   background: #4785f2;
+}
+
+.btn.update {
+  color: #4f72c4;
+  background: #e9effb;
+}
+
+.btn.update:hover:not(:disabled) {
+  background: #dce7fb;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 @media (max-width: 560px) {

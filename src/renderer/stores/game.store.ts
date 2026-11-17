@@ -1,7 +1,7 @@
 // src/renderer/stores/game.store.ts
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { Game, NewGame, GameSortType } from '@/shared/types'
+import type { CharacterDraft, Game, NewGame, GameSortType } from '@/shared/types'
 
 
 
@@ -99,6 +99,18 @@ export const useGameStore = defineStore('game', () => {
       Object.assign(game, snapshot)
       throw error
     }
+  }
+
+  // 角色头像可能需要在主进程落盘，成功后整体替换缓存中的游戏。
+  const updateCharacters = async (gameId: string, characters: CharacterDraft[]) => {
+    const updated = await window.databaseAPI.updateCharacters(
+      gameId,
+      JSON.parse(JSON.stringify(characters))
+    )
+    const index = games.value.findIndex(game => game.id === gameId)
+    if (index !== -1) games.value[index] = updated
+    sortGames()
+    return updated
   }
 
   // 更新媒体资源文件，并刷新游戏数据到状态
@@ -199,7 +211,8 @@ export const useGameStore = defineStore('game', () => {
     refreshGame,
     addGame,
     deleteGame,
-    updateGame
+    updateGame,
+    updateCharacters
     // deleteSelectedGame
   }
 })
