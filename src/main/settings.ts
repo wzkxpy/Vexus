@@ -22,7 +22,8 @@ const store = new Store<Settings>({
       port: 7890
     },
     gameSortType: 'addedAt',
-    gameSortOrder: 'asc'
+    gameSortOrder: 'asc',
+    librarySeriesMode: false
   }
 })
 

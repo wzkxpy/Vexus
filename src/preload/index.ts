@@ -31,6 +31,10 @@ contextBridge.exposeInMainWorld('databaseAPI', {
     ipcRenderer.invoke('updateCharacters', gameId, characters),
   updateMedia: (gameId: string, type: 'cover' | 'banner' | 'icon', sourcePath: string):
    Promise<void> => ipcRenderer.invoke('updateMedia', gameId, type, sourcePath),
+  renameSeries: (oldName: string, newName: string): Promise<void> =>
+    ipcRenderer.invoke('renameSeries', oldName, newName),
+  deleteSeries: (name: string): Promise<void> =>
+    ipcRenderer.invoke('deleteSeries', name),
 
   getGameSessions: (gameid: string): Promise<Session[]> => ipcRenderer.invoke('getGameSessions', gameid),
   addSession: (session: Session): Promise<void> => ipcRenderer.invoke('addSession', session),

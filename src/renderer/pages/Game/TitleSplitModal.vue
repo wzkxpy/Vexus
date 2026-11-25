@@ -331,7 +331,7 @@ function save() {
   gap: 12px;
 }
 
-button {
+.actions button {
   padding: 8px 14px;
   border: none;
   border-radius: 6px;

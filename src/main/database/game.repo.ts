@@ -44,6 +44,27 @@ add(game: NewGame): string {
 
   // patch(id: string, data: Partial<Game>) 
 
+  transaction<T>(work: () => T): T { return this.db.transaction(work)() }
+
+  seriesExists(name: string): boolean {
+    return Boolean(this.db.prepare('SELECT 1 FROM games WHERE series = ? LIMIT 1').get(name))
+  }
+
+  renameSeries(oldName: string, newName: string): number {
+    return this.db.prepare(`
+      UPDATE games
+      SET series = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE series = ?
+    `).run(newName, oldName).changes
+  }
+
+  deleteSeries(name: string): number {
+    return this.db.prepare(`
+      UPDATE games
+      SET series = NULL, updated_at = CURRENT_TIMESTAMP
+      WHERE series = ?
+    `).run(name).changes
+  }
 
   get(id: string): Game | null {
     const stmt = this.db.prepare(`SELECT * FROM games WHERE id = ?`)
@@ -64,6 +85,8 @@ add(game: NewGame): string {
     'sort_num',
     'description',
     'tags',
+    'series',
+    'is_fd',
     'guide',
 
     'developer',

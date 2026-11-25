@@ -66,6 +66,8 @@ export function gameToRow(game: Game) { // update
     title_split: JSON.stringify(game.titleSplit),
     description: game.description ?? null,
     tags: game.tags ? JSON.stringify(game.tags) : null,
+    series: game.series ?? null,
+    is_fd: game.isFanDisc ? 1 : 0,
     guide: game.guide ?? null,
 
     // 基本信息
@@ -124,6 +126,8 @@ export function rowToGame(row: any): Game { // get
 
     description: row.description,
     tags: safeParse(row.tags, []),
+    series: row.series ?? undefined,
+    isFanDisc: Boolean(row.is_fd),
     guide: row.guide,
 
     basicInfo: {

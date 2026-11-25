@@ -10,6 +10,8 @@ export interface Game {
 
   description?: string   // 游戏简介
   tags?: string[]        // 游戏标签
+  series?: string        // 系列名称，空表示未归入系列
+  isFanDisc?: boolean    // Fan Disc 标记
   guide?: string         // 游戏攻略
 
   // 基本信息

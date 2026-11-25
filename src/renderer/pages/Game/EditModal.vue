@@ -54,6 +54,10 @@
               <span class="field-label">中文名</span>
               <input v-model="form.localizedTitle" placeholder="留空表示未设置" />
             </label>
+            <label class="field full">
+              <span class="field-label">系列</span>
+              <input v-model="form.series" placeholder="留空表示未加入系列" />
+            </label>
             <label class="field">
               <span class="field-label">开发商</span>
               <input v-model="form.basicInfo!.developer" placeholder="请输入开发商" />
@@ -167,6 +171,7 @@ if (game.value) {
   if (props.type === 'basicInfo') {
     form.originalTitle = game.value.originalTitle
     form.localizedTitle = game.value.localizedTitle ?? ''
+    form.series = game.value.series ?? ''
   }
 }
 
@@ -252,6 +257,7 @@ const handleSave = async () => {
       const localizedTitle = String(form.localizedTitle ?? '').trim() || undefined
       payload.originalTitle = originalTitle
       payload.localizedTitle = localizedTitle
+      payload.series = String(form.series ?? '').trim() || undefined
       if (
         originalTitle !== game.value.originalTitle ||
         localizedTitle !== (game.value.localizedTitle || undefined)

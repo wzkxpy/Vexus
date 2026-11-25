@@ -19,6 +19,8 @@ export function initDatabase(db: Database) {
       title_split TEXT,             -- 切分主副标题 [orig_main_end,orig_sub_start,loc_main_end,loc_sub_start]
       description TEXT,             -- 游戏简介
       tags TEXT,                    -- 游戏标签
+      series TEXT,                  -- 系列名称，NULL 表示未归入系列
+      is_fd INTEGER DEFAULT 0,      -- Fan Disc 标记
       guide TEXT,                   -- 游戏攻略
 
       -- 基本信息

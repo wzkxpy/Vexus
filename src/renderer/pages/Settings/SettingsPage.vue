@@ -127,7 +127,7 @@ const themeOptions = [
 const settingsStore = useSettingsStore()
 
 // 与主进程 Settings 保持相同结构；默认值仅用于加载期间兜底。
-const form = reactive<Settings>({ autoLaunch: false, theme: 'system', gameTitle: 'Local', subTitle: true, bangumiToken: '', magpiePath: '', magpieHotkey: '', proxy: { enabled: false, protocol: 'http', host: '', port: 7890 }, gameSortType: 'addedAt', gameSortOrder: 'asc' })
+const form = reactive<Settings>({ autoLaunch: false, theme: 'system', gameTitle: 'Local', subTitle: true, bangumiToken: '', magpiePath: '', magpieHotkey: '', proxy: { enabled: false, protocol: 'http', host: '', port: 7890 }, gameSortType: 'addedAt', gameSortOrder: 'asc', librarySeriesMode: false })
 const loading = ref(true), showToken = ref(false), activeSection = ref('general')
 // 页面打开时一次性读取设置；常规保存不显示额外提示。
 onMounted(async () => {

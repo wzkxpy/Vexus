@@ -85,6 +85,21 @@ export const useGameStore = defineStore('game', () => {
     return ok
   }
 
+  // 系列只是 games.series 上的名字分组，成功后同步本地游戏对象。
+  const renameSeries = async (oldName: string, newName: string) => {
+    await window.databaseAPI.renameSeries(oldName, newName)
+    for (const game of games.value) {
+      if (game.series === oldName) game.series = newName
+    }
+  }
+
+  const deleteSeries = async (name: string) => {
+    await window.databaseAPI.deleteSeries(name)
+    for (const game of games.value) {
+      if (game.series === name) game.series = undefined
+    }
+  }
+
   // 更新游戏到数据库，并刷新到状态
   const updateGame = async (id: string, payload: Partial<Game>) => {
     const game = gameMap.value.get(id)
@@ -211,6 +226,8 @@ export const useGameStore = defineStore('game', () => {
     refreshGame,
     addGame,
     deleteGame,
+    renameSeries,
+    deleteSeries,
     updateGame,
     updateCharacters
     // deleteSelectedGame

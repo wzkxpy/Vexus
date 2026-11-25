@@ -30,4 +30,6 @@ export interface Settings {
   // 游戏排序设置
   gameSortType: GameSortType
   gameSortOrder: 'asc' | 'desc'
+  // 游戏库显示设置
+  librarySeriesMode: boolean
 }

@@ -32,6 +32,8 @@ declare global {
       updateGame: (game: Game) => Promise<void>
       updateCharacters: (gameId: string, characters: CharacterDraft[]) => Promise<Game>
       updateMedia: (gameId: string, type: 'cover' | 'banner' | 'icon', sourcePath: string) => Promise<string>
+      renameSeries: (oldName: string, newName: string) => Promise<void>
+      deleteSeries: (name: string) => Promise<void>
 
       getGameSessions: (gameid: string) => Promise<Session[]>
       addSession: (session: Session) => Promise<void>

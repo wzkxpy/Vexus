@@ -129,6 +129,11 @@ export function useGameActions() {
     })
   }
 
+  // 切换 FD 标记
+  const toggleFanDisc = async (game: Game) => {
+    await gameStore.updateGame(game.id, { isFanDisc: !game.isFanDisc })
+  }
+
   return {
     launchGame,
     stopGame,
@@ -139,6 +144,7 @@ export function useGameActions() {
     updateTitleSplit,
     updatePlayStatus,
     toggleNSFW,
-    toggleMagpie
+    toggleMagpie,
+    toggleFanDisc
   }
 }

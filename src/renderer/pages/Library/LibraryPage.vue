@@ -8,6 +8,17 @@
     <main class="main-content">
       <div class="library-toolbar">
         <div class="library-actions">
+          <button
+            class="series-mode-button"
+            :class="{ active: seriesMode }"
+            :aria-pressed="seriesMode"
+            title="按系列合并显示"
+            @click="toggleSeriesMode"
+          >
+            <Layers :size="16" />
+            系列
+          </button>
+
           <div class="sort-controls">
             <OptionsMenu :items="sortItems" :selected="gameStore.sortType">
               <template #button>
@@ -36,11 +47,15 @@
       </div>
 
       <div class="game-grid">
-        <GameCard
-          v-for="game in gameStore.games"
-          :key="game.id"
-          :game="game"
-        />
+        <template v-for="item in libraryItems" :key="item.key">
+          <GameCard
+            v-if="item.kind === 'series'"
+            :game="item.summary.coverGame"
+            :display-title="item.summary.name"
+            :target-game-id="item.summary.targetGame.id"
+          />
+          <GameCard v-else :game="item.game" />
+        </template>
       </div>
 
     </main>
@@ -56,16 +71,153 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { Game } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
 import GameCard from '@/renderer/components/GameCard.vue'
 import AddGameModal from './AddGameModal.vue'
-import { ArrowDown, ArrowUp, ChevronDown, Plus } from '@lucide/vue'
+import { ArrowDown, ArrowUp, ChevronDown, Layers, Plus } from '@lucide/vue'
 import { useUIStore } from '../../stores/ui.store'
+import { useSettingsStore } from '@/renderer/stores/settings.store'
 import OptionsMenu from '@/renderer/components/OptionsMenu.vue'
+import { sortSeriesGames } from '@/shared/utils/series'
 
 const gameStore = useGameStore()
 const uiStore = useUIStore()
+const settingsStore = useSettingsStore()
 
+const seriesMode = computed(() => settingsStore.settings?.librarySeriesMode ?? false)
+
+async function toggleSeriesMode() {
+  try {
+    await settingsStore.save('librarySeriesMode', !seriesMode.value)
+  } catch (error) {
+    console.error('Failed to save series mode:', error)
+  }
+}
+
+interface SeriesSummary {
+  name: string
+  games: Game[]
+  coverGame: Game
+  targetGame: Game
+}
+
+type LibraryItem =
+  | { kind: 'game'; key: string; game: Game }
+  | { kind: 'series'; key: string; summary: SeriesSummary }
+
+// 系列卡合并展示同系列作品，成员顺序与游戏页切换栏保持一致。
+const seriesGroups = computed<SeriesSummary[]>(() => {
+  const groups = new Map<string, Game[]>()
+  for (const game of gameStore.games) {
+    if (!game.series) continue
+    const members = groups.get(game.series)
+    if (members) members.push(game)
+    else groups.set(game.series, [game])
+  }
+
+  return [...groups.entries()].map(([name, members]) => {
+    const ordered = sortSeriesGames(members)
+    return {
+      name,
+      games: ordered,
+      coverGame: ordered[0],
+      targetGame: ordered.find(game => game.record.playStatus === 'Playing') ?? ordered[0]
+    }
+  })
+})
+
+function toTimestamp(value: string | undefined, fallback = '1900-01-01') {
+  return new Date(value ?? fallback).getTime()
+}
+
+function gameSortValue(game: Game): string | number {
+  switch (gameStore.sortType) {
+    case 'addedAt':
+      return toTimestamp(game.record.addedAt)
+    case 'title':
+      return game.localizedTitle || game.originalTitle
+    case 'playtime':
+      return game.record.sessionPlaytime + game.record.extraPlaytime
+    case 'score':
+      return game.record.personalScore ?? -1
+    case 'releaseDate':
+      return toTimestamp(game.basicInfo.releaseDate)
+    case 'lastRunAt':
+      return toTimestamp(game.record.lastRunAt)
+    case 'custom':
+      return game.sortNum ?? 0
+  }
+  return 0
+}
+
+function seriesSortValue(summary: SeriesSummary): string | number {
+  const games = summary.games
+  switch (gameStore.sortType) {
+    case 'addedAt':
+      return Math.max(...games.map(game => toTimestamp(game.record.addedAt)))
+    case 'title':
+      return summary.name
+    case 'playtime':
+      return games.reduce(
+        (sum, game) => sum + game.record.sessionPlaytime + game.record.extraPlaytime,
+        0
+      )
+    case 'score': {
+      const scores = games
+        .map(game => game.record.personalScore)
+        .filter((score): score is number => typeof score === 'number')
+      return scores.length
+        ? scores.reduce((sum, score) => sum + score, 0) / scores.length
+        : -1
+    }
+    case 'releaseDate':
+      return Math.min(...games.map(game => toTimestamp(game.basicInfo.releaseDate)))
+    case 'lastRunAt':
+      return Math.max(...games.map(game => toTimestamp(game.record.lastRunAt)))
+    case 'custom':
+      return Math.min(...games.map(game => game.sortNum ?? 0))
+  }
+  return 0
+}
+
+function compareLibraryItems(a: LibraryItem, b: LibraryItem) {
+  const aValue = a.kind === 'game' ? gameSortValue(a.game) : seriesSortValue(a.summary)
+  const bValue = b.kind === 'game' ? gameSortValue(b.game) : seriesSortValue(b.summary)
+
+  let result: number
+  if (typeof aValue === 'string' && typeof bValue === 'string') {
+    result = aValue.localeCompare(bValue, 'zh-Hans-CN', {
+      numeric: true,
+      sensitivity: 'base'
+    })
+  } else {
+    result = Number(aValue) - Number(bValue)
+  }
+
+  if (result !== 0) return gameStore.sortOrder === 'asc' ? result : -result
+  return a.key.localeCompare(b.key)
+}
+
+const libraryItems = computed<LibraryItem[]>(() => {
+  if (!seriesMode.value) {
+    return gameStore.games.map(game => ({
+      kind: 'game' as const,
+      key: `game:${game.id}`,
+      game
+    }))
+  }
+
+  const items: LibraryItem[] = []
+  for (const game of gameStore.games) {
+    if (game.series) continue
+    items.push({ kind: 'game', key: `game:${game.id}`, game })
+  }
+  for (const summary of seriesGroups.value) {
+    items.push({ kind: 'series', key: `series:${summary.name}`, summary })
+  }
+  return items.sort(compareLibraryItems)
+})
 
 const sortItems = [
   { label: '添加时间', value: 'addedAt', action: () => gameStore.setSortType('addedAt') },
@@ -164,13 +316,16 @@ const sortLabel = computed(() => sortItems.find(item => item.value === gameStore
 }
 
 .sort-button,
-.sort-order-button {
+.sort-order-button,
+.series-mode-button {
   background: transparent;
   color: #465873;
 }
 
 .sort-button:hover,
-.sort-order-button:hover {
+.sort-order-button:hover,
+.series-mode-button:hover,
+.series-mode-button.active {
   background: #e7ecf5;
   color: #3156b4;
 }

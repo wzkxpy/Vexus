@@ -124,4 +124,21 @@ export class GameService {
     return games
   }
 
+  // 系列只是 games.series 上的名字分组，重命名/删除均批量作用于同系列游戏。
+  renameSeries(oldName: string, newName: string) {
+    const from = oldName.trim()
+    const to = newName.trim()
+    if (!from || !to) throw new Error('系列名称不能为空')
+    if (from === to) return
+    this.repo.transaction(() => {
+      if (this.repo.seriesExists(to)) throw new Error('已存在同名系列')
+      this.repo.renameSeries(from, to)
+    })
+  }
+
+  deleteSeries(name: string) {
+    const seriesName = name.trim()
+    if (!seriesName) throw new Error('系列名称不能为空')
+    this.repo.deleteSeries(seriesName)
+  }
 }

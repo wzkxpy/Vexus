@@ -13,7 +13,7 @@
 
     <!-- 标题 -->
     <div class="game-title">
-      {{ game.originalTitle }}
+      {{ displayTitle ?? game.originalTitle }}
     </div>
   </div>
 </template>
@@ -22,10 +22,15 @@
 import type { Game } from '@/shared/types'
 import router from '../router';
 
-const props = defineProps<{ game: Game }>()
+const props = defineProps<{
+  game: Game
+  // 系列卡复用此卡片：显示系列名，点击跳转到代表作品。
+  displayTitle?: string
+  targetGameId?: string
+}>()
 
 function select() {
-  router.push(`/game/${props.game.id}`)
+  router.push(`/game/${props.targetGameId ?? props.game.id}`)
 }
 </script>
 

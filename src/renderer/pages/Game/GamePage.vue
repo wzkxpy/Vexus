@@ -19,7 +19,21 @@
     </Transition>
     <button class="back-btn" aria-label="返回" title="返回" @click="handleBack()"><ArrowLeft :size="19" /></button>
 
-    <div class="page-content">
+    <div class="page-content" :class="{ 'has-series-switch': seriesSwitchItems.length > 1 }">
+      <nav v-if="seriesSwitchItems.length > 1" class="series-switch" aria-label="系列作品切换">
+        <button
+          v-for="item in seriesSwitchItems"
+          :key="item.id"
+          type="button"
+          class="series-segment"
+          :class="{ active: item.id === game.id }"
+          :title="getGameDisplayTitle(item)"
+          :aria-label="`切换到 ${getGameDisplayTitle(item)}`"
+          :aria-current="item.id === game.id ? 'page' : undefined"
+          @click="switchSeriesGame(item.id)"
+        />
+      </nav>
+
       <div class="top-section">
         <!-- 封面 -->
         <div class="right">
@@ -37,6 +51,7 @@
           <h1 ref="titleElement" class="title">
             <span class="title-main">
               {{ displayTitleParts.main }}
+              <span v-if="game.isFanDisc" class="fd-badge" title="Fan Disc">FD</span>
             </span>
             <span v-if="displayTitleParts.sub" class="title-sub">
               {{ displayTitleParts.sub }}
@@ -168,6 +183,7 @@ import MediaModal from './MediaModal.vue'
 import ExternalIdsModal from './ExternalIdsModal.vue'
 import TitleSplitModal from './TitleSplitModal.vue'
 import { splitTitle } from '@/shared/utils/title'
+import { getGameDisplayTitle, sortSeriesGames } from '@/shared/utils/series'
 
 const route = useRoute()
 const gameStore = useGameStore()
@@ -178,6 +194,22 @@ const game = computed(() => {
   const id = route.params.id as string
   return gameStore.getGameById(id)
 })
+
+// 系列内没有手工顺序，按发售日升序排列；仅一部作品时不显示切换栏。
+const seriesSwitchItems = computed(() => {
+  const series = game.value?.series
+  if (!series) return []
+  const members = sortSeriesGames(
+    gameStore.games.filter(item => item.series === series)
+  )
+  return members.some(item => item.id === game.value?.id) ? members : []
+})
+
+function switchSeriesGame(id: string) {
+  if (id === game.value?.id) return
+  // 系列切换视为同一页面内换作品，不累积历史记录。
+  router.replace(`/game/${id}`)
+}
 const uiStore = useUIStore()
 const pageElement = ref<HTMLElement | null>(null)
 const titleElement = ref<HTMLElement | null>(null)
@@ -225,14 +257,9 @@ const handlePageScroll = (event: Event) => {
   updateCompactContent()
 }
 
-// 返回
-// 如果有历史记录则返回上一页，否则返回游戏库
+// 返回固定回到游戏库，不回到系列内的上一部作品。
 const handleBack = () => {
-  if (window.history.length > 1) {
-    router.back()
-  } else {
-    router.push('/library')
-  }
+  router.replace('/library')
 }
 
 const settingsStore = useSettingsStore()
@@ -294,6 +321,7 @@ const menuItems = computed(() => [
   { label: '划分主副标题', action: () => uiStore.activeModal = 'titleSplit' },
   { label: '编辑数据源 ID', action: () => uiStore.activeModal = 'external-ids' },
   // { label: '更新游戏信息', action: () =>  gameActions.updateGameInfo(game.value!) },
+  { label: '标记 FD', action: () => gameActions.toggleFanDisc(game.value!), checked: game.value?.isFanDisc },
   { label: '标记 NSFW', action: () => gameActions.toggleNSFW(game.value!), checked: game.value?.settings?.nsfw },
   { label: '启用 Magpie', action: () => gameActions.toggleMagpie(game.value!), checked: game.value?.settings?.magpie },
   { label: '配置媒体文件', action: () => uiStore.activeModal = 'media' },
@@ -394,6 +422,39 @@ watch(
   /* 返回按钮固定定位，正文通过顶部内边距预留空间。 */
   padding: calc(var(--page-top) + var(--back-size) + var(--back-gap)) var(--page-inset) 48px;
 }
+.page-content.has-series-switch {
+  padding-top: calc(var(--page-top) + var(--back-size) + var(--back-gap) - 8px);
+}
+.series-switch {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  max-width: 320px;
+  height: 10px;
+  margin: 0 auto 6px;
+}
+.series-segment {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.series-segment::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: #d5dbe6;
+}
+.series-segment:hover::after { background: #b3bfd1; }
+.series-segment.active::after { background: var(--accent); }
 .drag-area { position: fixed; top: 0; right: 138px; left: 0; z-index: 99; height: 52px; -webkit-app-region: drag; }
 button { font: inherit; cursor: pointer; transition: background .18s, color .18s, box-shadow .18s; }
 button:focus-visible { outline: 3px solid #91b4ff; outline-offset: 4px; }
@@ -436,6 +497,20 @@ button:focus-visible { outline: 3px solid #91b4ff; outline-offset: 4px; }
 }
 .title { display: flex; flex-direction: column; gap: 6px; margin: 0 0 14px; overflow-wrap: anywhere; }
 .title-main { color: #26324b; font-size: clamp(23px, 2.4vw, 34px); font-weight: 650; line-height: 1.3; letter-spacing: -.025em; }
+.fd-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: #edf1f7;
+  color: #7e899c;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+  letter-spacing: .04em;
+  vertical-align: middle;
+}
 .title-sub { color: #8a94a7; font-size: 15px; font-weight: 400; line-height: 1.5; }
 .action-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 .launch-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-width: 148px; height: 42px; padding: 0 23px; border: 0; border-radius: 10px; background: #597bd3; color: white; font-size: 13px; font-weight: 600; box-shadow: 0 5px 14px #597bd330; }
@@ -478,6 +553,9 @@ button:focus-visible { outline: 3px solid #91b4ff; outline-offset: 4px; }
 @media (max-width: 600px) {
   .game-page { --page-inset: 16px; --page-top: 20px; }
   .page-content { padding-bottom: 32px; }
+  .page-content.has-series-switch {
+    padding-top: calc(var(--page-top) + var(--back-size) + var(--back-gap) - 4px);
+  }
   .top-section { flex-direction: column; gap: 12px; }
   .right { flex-basis: auto; margin-top: 0; }
   .cover-img, .cover-placeholder { width: 90px; height: 124px; }
@@ -502,7 +580,7 @@ button:focus-visible { outline: 3px solid #91b4ff; outline-offset: 4px; }
   -webkit-app-region: drag;
 }
 .compact-header button { flex-shrink: 0; -webkit-app-region: no-drag; }
-.compact-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.compact-title { flex: 1; min-width: 0; display: flex; flex-direction: row; align-items: baseline; gap: 8px; }
 .compact-title-hidden { visibility: hidden; }
 .compact-title strong, .compact-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .compact-title strong { font-size: 16px; font-weight: 600; color: #27364f; }

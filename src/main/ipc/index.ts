@@ -5,7 +5,8 @@
 import { ipcMain, BrowserWindow, clipboard } from 'electron'
 import { GameService } from '../database/game.service'
 import { SessionService } from '../database/session.service'
-import { Game, NewGame, Route, RouteStatus, RouteTree, Session } from '@/shared/types'
+import { Game, NewGame, Route, RouteStatus, RouteTree, Session, GAME_METADATA_SECTIONS } from '@/shared/types'
+import type { GameMetadataSection } from '@/shared/types'
 import { SessionImportService } from '../services/sessionImport'
 import { searchGames, fetchGame, buildGameFromBangumi } from '../providers/manager'
 import { launchGame, stopGame, openFolder } from '../services/launch'
@@ -74,6 +75,18 @@ export function registerDBIPC(
   ipcMain.handle('updateMedia', (_, gameId: string, type: 'cover' | 'banner' | 'icon', sourcePath: string) => {
     return gameService.updateMedia(gameId, type, sourcePath)
   })
+  ipcMain.handle('renameSeries', (_, oldName: string, newName: string) => {
+    if (typeof oldName !== 'string' || typeof newName !== 'string' || !oldName.trim() || !newName.trim()) {
+      throw new Error('Invalid series rename request')
+    }
+    return gameService.renameSeries(oldName, newName)
+  })
+  ipcMain.handle('deleteSeries', (_, name: string) => {
+    if (typeof name !== 'string' || !name.trim()) {
+      throw new Error('Invalid series delete request')
+    }
+    return gameService.deleteSeries(name)
+  })
   // Session
   ipcMain.handle('getGameSessions', (_, gameid: string) => {
     return sessionService.getGameSessions(gameid)
@@ -140,10 +153,19 @@ export function registerProviderIPC(gameService: GameService) {
   ipcMain.handle('buildGameFromBangumi', async (_, subject) => {
     return await buildGameFromBangumi(subject)
   })
-  ipcMain.handle('fetchGameSection', async (_, gameId: string, section) => {
-    if (typeof gameId !== 'string' || !gameId || typeof section !== 'string') {
+  ipcMain.handle('fetchGameSection', async (_, gameId: string, section: unknown) => {
+    if (
+      typeof gameId !== 'string' ||
+      !gameId ||
+      typeof section !== 'string' ||
+      !isGameMetadataSection(section)
+    ) {
       throw new Error('Invalid metadata section request')
     }
     return gameService.fetchMetadataSection(gameId, section)
   })
+}
+
+function isGameMetadataSection(value: string): value is GameMetadataSection {
+  return (GAME_METADATA_SECTIONS as readonly string[]).includes(value)
 }
