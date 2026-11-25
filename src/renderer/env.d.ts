@@ -65,6 +65,7 @@ declare global {
       getSettings: () => Promise<Settings>
       getSetting: <K extends keyof Settings>(key: K) => Promise<Settings[K]>
       setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => Promise<void>
+      openVoiceActorAliasesFile: () => Promise<void>
     },
     
     providerAPI: {

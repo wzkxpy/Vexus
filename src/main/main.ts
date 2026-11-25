@@ -18,6 +18,7 @@ import { RouteRepository } from './database/route.repo';
 import { RouteService } from './database/route.service';
 import { RouteTreeFileStore } from './services/routeTreeFile';
 import { RouteTreeService } from './services/routeTree';
+import { VoiceActorAliasService } from './services/voiceActorAlias';
 
 
 app.whenReady().then(() => {
@@ -27,9 +28,12 @@ app.whenReady().then(() => {
   initDatabase(db)
   
   const mediaService = new MediaService(getProxyAgent)
+  const voiceActorAliasService = new VoiceActorAliasService(
+    path.join(app.getPath('userData'), 'voice-actor-aliases.json')
+  )
 
   const gameRepo = new GameRepository(db)
-  const gameService = new GameService(gameRepo, mediaService)
+  const gameService = new GameService(gameRepo, mediaService, voiceActorAliasService)
   const routeRepo = new RouteRepository(db)
   const routeService = new RouteService(routeRepo)
   const routeTreeService = new RouteTreeService(
@@ -58,7 +62,7 @@ app.whenReady().then(() => {
   registerFileIPC()
   registerClipboardIPC()
   registerLaunchIPC() // Register IPC handlers for launching games
-  registerSettingsIPC() // Register IPC handlers for settings management
+  registerSettingsIPC(voiceActorAliasService) // Register IPC handlers for settings management
   registerProviderIPC(gameService) // Register IPC handlers for Bangumi API interactions
 });
 

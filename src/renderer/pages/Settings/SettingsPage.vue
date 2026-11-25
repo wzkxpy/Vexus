@@ -64,6 +64,11 @@
                   @blur="save('bangumiToken')" @keydown.enter="blurInput"><button
                   :aria-label="showToken ? '隐藏 Token' : '显示 Token'" :aria-pressed="showToken" @click="showToken = !showToken"><EyeOff v-if="showToken" :size="16" /><Eye v-else :size="16" /></button></div>
             </SettingRow>
+            <SettingRow title="声优马甲映射">
+              <button class="file-btn" type="button" :disabled="openingFile" @click="openVoiceActorAliasesFile">
+                {{ openingFile ? '打开中…' : '打开文件' }}
+              </button>
+            </SettingRow>
             <SettingRow title="使用代理">
               <label class="switch"><input aria-label="使用代理" v-model="form.proxy.enabled" type="checkbox"
                   @change="saveProxy"><span /></label>
@@ -81,6 +86,7 @@
                   type="number" min="1" max="65535" @blur="saveProxy"></label>
             </div>
           </div>
+          <p v-if="aliasError" class="alias-error" role="alert">{{ aliasError }}</p>
         </section>
 
         <!-- 第三方辅助工具配置 -->
@@ -129,6 +135,21 @@ const settingsStore = useSettingsStore()
 // 与主进程 Settings 保持相同结构；默认值仅用于加载期间兜底。
 const form = reactive<Settings>({ autoLaunch: false, theme: 'system', gameTitle: 'Local', subTitle: true, bangumiToken: '', magpiePath: '', magpieHotkey: '', proxy: { enabled: false, protocol: 'http', host: '', port: 7890 }, gameSortType: 'addedAt', gameSortOrder: 'asc', librarySeriesMode: false })
 const loading = ref(true), showToken = ref(false), activeSection = ref('general')
+const aliasError = ref(''), openingFile = ref(false)
+// 主进程确保文件存在后交给系统默认程序打开；映射只影响之后新增或更新的角色数据。
+async function openVoiceActorAliasesFile() {
+  if (openingFile.value) return
+  openingFile.value = true
+  aliasError.value = ''
+  try {
+    await window.settingsAPI.openVoiceActorAliasesFile()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    aliasError.value = message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '') || '打开声优马甲映射文件失败'
+  } finally {
+    openingFile.value = false
+  }
+}
 // 页面打开时一次性读取设置；常规保存不显示额外提示。
 onMounted(async () => {
   try {
@@ -229,6 +250,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .proxy-grid label { display: flex; flex-direction: column; gap: 8px; min-width: 0; color: #45546b; font-size: 14px; font-weight: 500; }
 .proxy-grid input, .proxy-grid select { width: 100%; background: white !important; }
 .proxy-grid.disabled input, .proxy-grid.disabled select { background: #edf0f5 !important; color: #536078; border-color: #aeb9ca; }
+.file-btn { min-height: 38px; padding: 0 14px; border: 1px solid #d7e1f5; border-radius: 8px; color: #4f72c4; background: #eef3fc; font-size: 14px; }
+.file-btn:hover:not(:disabled) { background: #e2ebfb; }
+.file-btn:disabled { opacity: .5; cursor: default; }
+.alias-error { margin: 10px 2px 0; color: #c84d5a; font-size: 13px; }
 .full-input { width: 100%; }
 .hotkey-input { width: 220px; }
 .loading-card { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 180px; color: #4c5d77; }

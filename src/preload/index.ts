@@ -76,7 +76,8 @@ contextBridge.exposeInMainWorld('clipboardAPI', {
 contextBridge.exposeInMainWorld('settingsAPI', {
   getSettings: (): Promise<Settings> => ipcRenderer.invoke('getSettings'),
   getSetting: <K extends keyof Settings>(key: K): Promise<Settings[K]> => ipcRenderer.invoke('getSetting', key),
-  setSetting: <K extends keyof Settings>(key: K, value: Settings[K]): Promise<void> => ipcRenderer.invoke('setSetting', key, value)
+  setSetting: <K extends keyof Settings>(key: K, value: Settings[K]): Promise<void> => ipcRenderer.invoke('setSetting', key, value),
+  openVoiceActorAliasesFile: (): Promise<void> => ipcRenderer.invoke('openVoiceActorAliasesFile')
 })
 
 // 从数据源获取游戏数据 API

@@ -8,18 +8,26 @@ import type {
   NewGame
 } from '@/shared/types'
 import { MediaService } from '../services/media'
+import { VoiceActorAliasService } from '../services/voiceActorAlias'
 import { fetchBangumiSection } from '../providers/manager'
 
 
 export class GameService {
-  constructor(private repo: GameRepository, private mediaService: MediaService) {}
+  constructor(
+    private repo: GameRepository,
+    private mediaService: MediaService,
+    private voiceActorAliases: VoiceActorAliasService
+  ) {}
 
   // private mediaBaseDir = path.join(app.getPath('userData'), 'media')
 
   async addGame(newGame: NewGame): Promise<string> {
     const { id, media, characters } = newGame;
-    await this.mediaService.initMedia(id, media, characters);
-    return this.repo.add(newGame);
+    const normalizedCharacters = characters
+      ? this.voiceActorAliases.normalizeCharacters(characters)
+      : characters
+    await this.mediaService.initMedia(id, media, normalizedCharacters);
+    return this.repo.add({ ...newGame, characters: normalizedCharacters });
   }
 
   
@@ -45,7 +53,11 @@ export class GameService {
     if (!sourceId) {
       throw new Error('未设置 Bangumi ID，请先编辑数据源 ID')
     }
-    return fetchBangumiSection(sourceId, section)
+    const result = await fetchBangumiSection(sourceId, section)
+    if (result.section === 'characters') {
+      return { ...result, value: this.voiceActorAliases.normalizeCharacters(result.value) }
+    }
+    return result
   }
 
   async updateCharacters(gameId: string, characters: CharacterDraft[]): Promise<Game> {
@@ -70,7 +82,8 @@ export class GameService {
       }
     }
 
-    const prepared = await this.mediaService.prepareCharacterAvatars(gameId, characters)
+    const normalizedCharacters = this.voiceActorAliases.normalizeCharacters(characters)
+    const prepared = await this.mediaService.prepareCharacterAvatars(gameId, normalizedCharacters)
     try {
       const updatedGame: Game = { ...game, characters: prepared.characters }
       this.repo.update(updatedGame)

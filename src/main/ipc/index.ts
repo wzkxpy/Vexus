@@ -13,6 +13,7 @@ import { launchGame, stopGame, openFolder } from '../services/launch'
 import { getSettings, getSetting, setSetting, Settings } from '../settings'
 import { RouteService } from '../database/route.service'
 import { RouteTreeService } from '../services/routeTree'
+import type { VoiceActorAliasService } from '../services/voiceActorAlias'
 // export function registerAllIPC() {
   
 // }
@@ -131,7 +132,7 @@ export function registerLaunchIPC() {
   })
 }
 
-export function registerSettingsIPC() {
+export function registerSettingsIPC(voiceActorAliasService: VoiceActorAliasService) {
   ipcMain.handle('getSettings', () => {
     return getSettings()
   })
@@ -140,6 +141,9 @@ export function registerSettingsIPC() {
   })
   ipcMain.handle('setSetting', (_, key: keyof Settings, value: any) => {
     return setSetting(key, value)
+  })
+  ipcMain.handle('openVoiceActorAliasesFile', () => {
+    return voiceActorAliasService.openFile()
   })
 }
 
