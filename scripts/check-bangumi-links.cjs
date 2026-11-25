@@ -7,7 +7,7 @@ const { buildSync } = require('esbuild')
 const root = path.resolve(__dirname, '..')
 const compiled = buildSync({
   stdin: {
-    contents: `export { bangumiToLinkedIds, bangumiToNewGame } from './src/main/providers/bangumi/mapper';`,
+    contents: `export { bangumiToBasicInfo, bangumiToLinkedIds, bangumiToNewGame } from './src/main/providers/bangumi/mapper';`,
     resolveDir: root
   },
   bundle: true,
@@ -21,7 +21,7 @@ const fixture = new Module(path.join(root, 'bangumi-links-fixture.cjs'), module)
 fixture.paths = module.paths
 fixture._compile(compiled, path.join(root, 'bangumi-links-fixture.cjs'))
 
-const { bangumiToLinkedIds, bangumiToNewGame } = fixture.exports
+const { bangumiToBasicInfo, bangumiToLinkedIds, bangumiToNewGame } = fixture.exports
 
 const baseSubject = {
   id: 123456,
@@ -58,6 +58,20 @@ const linked = bangumiToLinkedIds(subject)
 assert.equal(linked.vndbId, 'v47937')
 assert.equal(linked.erogameId, '35435')
 assert.equal(linked.steamId, '488392')
+
+const basicInfo = bangumiToBasicInfo({
+  ...baseSubject,
+  infobox: [
+    { key: '游戏开发商', value: [{ v: 'ゆずソフト' }, { v: 'NekoNyan' }] },
+    { key: '发行', value: 'ゆずソフト' }
+  ]
+})
+assert.equal(basicInfo.developer, 'ゆずソフト、NekoNyan')
+assert.equal(basicInfo.publisher, 'ゆずソフト')
+assert.equal(
+  bangumiToBasicInfo({ ...baseSubject, infobox: [{ key: '开发', value: 'Key' }] }).developer,
+  'Key'
+)
 
 const game = bangumiToNewGame(subject, [])
 assert.equal(game.externalIds.bgmId, '123456')
@@ -132,4 +146,4 @@ assert.equal(noLinks.vndbId, undefined)
 assert.equal(noLinks.erogameId, undefined)
 assert.equal(noLinks.steamId, undefined)
 
-console.log('Passed: Bangumi linked VNDB, ErogameScape and Steam ID extraction')
+console.log('Passed: Bangumi basic info and linked VNDB, ErogameScape and Steam ID extraction')

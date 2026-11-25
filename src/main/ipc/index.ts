@@ -181,6 +181,12 @@ export function registerProviderIPC(gameService: GameService) {
     const provider = requireProviderSource(source)
     return gameService.fetchMetadataSection(gameId, section, provider)
   })
+  ipcMain.handle('fetchGameScores', async (_, gameId: unknown) => {
+    if (typeof gameId !== 'string' || !gameId) {
+      throw new Error('Invalid game scores request')
+    }
+    return gameService.fetchExternalScores(gameId)
+  })
 }
 
 function isGameMetadataSection(value: string): value is GameMetadataSection {

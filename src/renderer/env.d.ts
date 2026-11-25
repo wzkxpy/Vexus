@@ -4,6 +4,7 @@
 export {}
 import type {
   CharacterDraft,
+  ExternalScoreFetchResult,
   Game,
   GameCandidate,
   GameMetadataSection,
@@ -74,6 +75,7 @@ declare global {
       fetchGame: (source: ProviderSource, subjectId: string) => Promise<GameCandidate>
       buildGame: (source: ProviderSource, sourceId: string) => Promise<NewGame>
       fetchGameSection: (gameId: string, section: GameMetadataSection, source: ProviderSource) => Promise<ProviderSectionResult>
+      fetchGameScores: (gameId: string) => Promise<ExternalScoreFetchResult>
     },
 
     callbackAPI: {

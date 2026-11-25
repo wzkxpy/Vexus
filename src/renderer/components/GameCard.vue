@@ -13,13 +13,15 @@
 
     <!-- 标题 -->
     <div class="game-title">
-      {{ displayTitle ?? game.originalTitle }}
+      {{ title }}
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Game } from '@/shared/types'
+import { useSettingsStore } from '@/renderer/stores/settings.store'
 import router from '../router';
 
 const props = defineProps<{
@@ -28,6 +30,13 @@ const props = defineProps<{
   displayTitle?: string
   targetGameId?: string
 }>()
+
+const settingsStore = useSettingsStore()
+const title = computed(() => {
+  if (props.displayTitle) return props.displayTitle
+  const preferLocalized = (settingsStore.settings?.gameTitle ?? 'Local') === 'Local'
+  return (preferLocalized && props.game.localizedTitle) || props.game.originalTitle
+})
 
 function select() {
   router.push(`/game/${props.targetGameId ?? props.game.id}`)

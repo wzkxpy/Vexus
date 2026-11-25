@@ -3,6 +3,7 @@ import { GameRepository } from './game.repo'
 import { GAME_METADATA_SECTIONS } from '@/shared/types'
 import type {
   CharacterDraft,
+  ExternalScoreFetchResult,
   Game,
   GameMetadataSection,
   NewGame,
@@ -10,7 +11,7 @@ import type {
 } from '@/shared/types'
 import { MediaService } from '../services/media'
 import { VoiceActorAliasService } from '../services/voiceActorAlias'
-import { fetchProviderSection } from '../providers/manager'
+import { fetchGameScores, fetchProviderSection } from '../providers/manager'
 
 
 export class GameService {
@@ -66,6 +67,12 @@ export class GameService {
       return { ...result, value: this.voiceActorAliases.normalizeCharacters(result.value) }
     }
     return result
+  }
+
+  async fetchExternalScores(gameId: string): Promise<ExternalScoreFetchResult> {
+    const game = this.repo.get(gameId)
+    if (!game) throw new Error('Game not found')
+    return fetchGameScores(game.externalIds)
   }
 
   async updateCharacters(gameId: string, characters: CharacterDraft[]): Promise<Game> {

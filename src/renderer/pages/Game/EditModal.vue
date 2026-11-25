@@ -28,16 +28,16 @@
         </template>
 
         <template v-else-if="type === 'externalScore'">
-          <div class="field-grid">
-            <label class="field">
+          <div class="score-fields">
+            <label class="score-field">
               <span class="field-label">批评空间</span>
               <input v-model="form.externalScore!.erogame" placeholder="0 – 100" />
             </label>
-            <label class="field">
+            <label class="score-field">
               <span class="field-label">Bangumi</span>
               <input v-model="form.externalScore!.bgm" placeholder="0 – 10" />
             </label>
-            <label class="field">
+            <label class="score-field">
               <span class="field-label">VNDB</span>
               <input v-model="form.externalScore!.vndb" placeholder="0 – 10" />
             </label>
@@ -109,11 +109,12 @@
         </template>
 
         <p v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</p>
+        <p v-if="hintMessage" class="hint-message">{{ hintMessage }}</p>
       </div>
 
       <footer class="modal-footer">
         <div v-if="canUpdate" class="update-group">
-          <div class="source-switch" role="group" aria-label="更新数据源">
+          <div v-if="type !== 'externalScore'" class="source-switch" role="group" aria-label="更新数据源">
             <button
               v-for="provider in availableSources"
               :key="provider"
@@ -127,7 +128,7 @@
           <button
             class="btn update"
             :disabled="fetching || saving"
-            @click="updateFromProvider"
+            @click="handleUpdate"
           >
             {{ fetching ? '正在获取…' : '更新' }}
           </button>
@@ -146,7 +147,13 @@
 
 <script setup lang="ts">
 import { reactive, computed, ref } from 'vue'
-import type { Game, GameMetadataSection, ProviderSectionResult, ProviderSource } from '@/shared/types'
+import type {
+  ExternalScoreKey,
+  Game,
+  GameMetadataSection,
+  ProviderSectionResult,
+  ProviderSource
+} from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
 import { useRoute } from 'vue-router'
 import CloseButton from '@/renderer/components/CloseButton.vue'
@@ -166,6 +173,7 @@ const form = reactive<Record<string, any>>({})
 const fetching = ref(false)
 const saving = ref(false)
 const errorMessage = ref('')
+const hintMessage = ref('')
 const updatableSections: GameMetadataSection[] = ['basicInfo', 'staff', 'tags', 'description']
 const availableSources = computed<ProviderSource[]>(() => {
   const current = game.value
@@ -176,11 +184,28 @@ const availableSources = computed<ProviderSource[]>(() => {
   return sources
 })
 const updateSource = ref<ProviderSource>(game.value?.externalIds.bgmId ? 'bangumi' : 'vndb')
-const canUpdate = computed(
-  () =>
+
+const scoreLabels: Record<ExternalScoreKey, string> = {
+  erogame: '批评空间',
+  bgm: 'Bangumi',
+  vndb: 'VNDB'
+}
+const scoreIdFields: Record<ExternalScoreKey, keyof Game['externalIds']> = {
+  erogame: 'erogameId',
+  bgm: 'bgmId',
+  vndb: 'vndbId'
+}
+const scoreKeys = Object.keys(scoreLabels) as ExternalScoreKey[]
+
+const canUpdate = computed(() => {
+  if (props.type === 'externalScore') {
+    return scoreKeys.some(key => Boolean(game.value?.externalIds[scoreIdFields[key]]))
+  }
+  return (
     updatableSections.includes(props.type as GameMetadataSection) &&
     availableSources.value.length > 0
-)
+  )
+})
 
 // 初始化 form 数据
 if (game.value) {
@@ -268,6 +293,49 @@ async function updateFromProvider() {
   }
 }
 
+async function updateScores() {
+  if (!game.value || fetching.value || saving.value || !canUpdate.value) return
+  fetching.value = true
+  errorMessage.value = ''
+  hintMessage.value = ''
+  try {
+    const result = await window.providerAPI.fetchGameScores(game.value.id)
+    form.externalScore = { ...form.externalScore, ...result.scores }
+
+    if (result.errors.length > 0) {
+      errorMessage.value = result.errors
+        .map(error => `${scoreLabels[error.key]}：${error.message}`)
+        .join('；')
+    }
+    if (result.skipped.length > 0) {
+      const labels = result.skipped.map(key => scoreLabels[key]).join('、')
+      hintMessage.value = `未设置 ${labels} ID，已跳过`
+    }
+  } catch (error) {
+    errorMessage.value = getErrorMessage(error)
+  } finally {
+    fetching.value = false
+  }
+}
+
+async function handleUpdate() {
+  if (props.type === 'externalScore') {
+    await updateScores()
+    return
+  }
+  await updateFromProvider()
+}
+
+function parseScore(value: unknown, label: string, max: number): number | undefined {
+  const text = String(value ?? '').trim()
+  if (!text) return undefined
+  const score = Number(text)
+  if (!Number.isFinite(score) || score < 0 || score > max) {
+    throw new Error(`${label}评分应为 0–${max} 的数字。`)
+  }
+  return score
+}
+
 const handleSave = async () => {
   if (!game.value || fetching.value || saving.value) return
   saving.value = true
@@ -290,6 +358,20 @@ const handleSave = async () => {
         localizedTitle !== (game.value.localizedTitle || undefined)
       ) {
         payload.titleSplit = computeTitleSplit(originalTitle, localizedTitle)
+      }
+    }
+
+    if (props.type === 'externalScore') {
+      const scores = form.externalScore ?? {}
+      try {
+        payload.externalScore = {
+          erogame: parseScore(scores.erogame, '批评空间', 100),
+          bgm: parseScore(scores.bgm, 'Bangumi', 10),
+          vndb: parseScore(scores.vndb, 'VNDB', 10)
+        }
+      } catch (error) {
+        errorMessage.value = error instanceof Error ? error.message : '评分格式不正确。'
+        return
       }
     }
 
@@ -366,6 +448,28 @@ const handleSave = async () => {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+.score-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.score-field {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.score-field .field-label {
+  flex: 0 0 68px;
+  white-space: nowrap;
+}
+
+.score-field input {
+  flex: 1;
+  min-width: 0;
 }
 
 .field {
@@ -482,6 +586,16 @@ textarea.large {
   margin: 16px 0 0;
   color: #c84d5a;
   font-size: 13px;
+}
+
+.hint-message {
+  margin: 16px 0 0;
+  color: #8a94a7;
+  font-size: 13px;
+}
+
+.error-message + .hint-message {
+  margin-top: 8px;
 }
 
 .btn {

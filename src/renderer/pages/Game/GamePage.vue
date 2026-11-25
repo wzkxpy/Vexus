@@ -96,20 +96,7 @@
             </div>
             <div class="score-section" v-if="game.externalScore">
               <span class="score-title">网站评分</span>
-              <div class="score-grid">
-                <div v-if="game.externalScore.erogame != null">
-                  <span class="label">Erogame: </span>
-                  {{ game.externalScore.erogame }}
-                </div>
-                <div v-if="game.externalScore.bgm != null">
-                  <span class="label">Bangumi: </span>
-                  {{ game.externalScore.bgm }}
-                </div>
-                <div v-if="game.externalScore.vndb != null">
-                  <span class="label">VNDB: </span>
-                  {{ game.externalScore.vndb }}
-                </div>
-              </div>
+              <span class="score-values">{{ scoreLine }}</span>
               <button class="edit-btn" aria-label="编辑评分" title="编辑" @click="openEdit('externalScore')">
                 <Pencil :size="13" />
               </button>
@@ -288,6 +275,24 @@ const displayTitleParts = computed(() => {
   const mainEnd = useLocal ? split[2] : split[0]
   const subStart = useLocal ? split[3] : split[1]
   return splitTitle(title, mainEnd, subStart)
+})
+
+// 固定按批评空间 / Bangumi / VNDB 的顺序展示；Bangumi 与 VNDB 保留一位小数。
+const scoreLine = computed(() => {
+  const score = game.value?.externalScore
+  if (!score) return ''
+
+  const format = (value: number | null | undefined, digits: number) => {
+    if (value == null) return '-'
+    const numeric = Number(value)
+    return Number.isFinite(numeric) ? numeric.toFixed(digits) : String(value)
+  }
+
+  return [
+    format(score.erogame, 0),
+    format(score.bgm, 1),
+    format(score.vndb, 1)
+  ].join('/')
 })
 
 // 游戏启动 / 停止
@@ -524,8 +529,7 @@ button:focus-visible { outline: 3px solid #91b4ff; outline-offset: 4px; }
 .stat-label, .score-title { color: #939caf; font-size: 11px; }
 .status-btn { padding: 4px 9px; border: 0; border-radius: 6px; background: #edf2fc; color: var(--accent); font-size: 12px; }
 .playtime { border: 0; padding: 3px 0; background: transparent; color: #4d5e7d; font-size: 13px; font-weight: 600; }
-.score-grid { display: flex; flex-wrap: wrap; gap: 7px 12px; color: #465773; font-size: 12px; }
-.score-grid .label { color: #939caf; font-size: 10px; }
+.score-values { color: #465773; font-size: 12px; font-variant-numeric: tabular-nums; }
 .edit-btn { display: grid; place-items: center; width: 23px; height: 23px; border: 0; border-radius: 6px; background: #f3f5fa; color: #8b97ad; }
 .tabs {
   position: sticky;

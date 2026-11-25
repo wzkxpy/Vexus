@@ -1,4 +1,4 @@
-import type { Character, Game } from './game'
+import type { Character, ExternalScore, Game } from './game'
 import type { ProviderSource } from './search'
 
 export const GAME_METADATA_SECTIONS = [
@@ -31,3 +31,16 @@ export type ProviderSectionResult = {
     value: GameMetadataSectionMap[Section]
   }
 }[GameMetadataSection]
+
+export type ExternalScoreKey = keyof ExternalScore
+
+export interface ExternalScoreFetchError {
+  key: ExternalScoreKey
+  message: string
+}
+
+export interface ExternalScoreFetchResult {
+  scores: ExternalScore
+  errors: ExternalScoreFetchError[]
+  skipped: ExternalScoreKey[]
+}

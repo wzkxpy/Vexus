@@ -1,6 +1,9 @@
 // src/main/providers/manager.ts
 import { BangumiClient } from './bangumi/client'
 import type {
+  ExternalScoreFetchResult,
+  ExternalScoreKey,
+  Game,
   GameCandidate,
   GameMetadataSection,
   NewGame,
@@ -20,6 +23,7 @@ import { VndbApiError, VndbClient, VNDB_FIELDS } from './vndb/client'
 import { normalizeVndbId } from '@/shared/utils/vndb'
 import type { VndbVn } from './vndb/types'
 import {
+  vndbRatingToScore,
   vndbToBasicInfo,
   vndbToCharacterDrafts,
   vndbToDescription,
@@ -28,6 +32,8 @@ import {
   vndbToStaff,
   vndbToTags
 } from './vndb/mapper'
+import { ErogameScapeClient } from './erogame/client'
+import { isTransientNetworkError } from '../utils/network'
 import { getProxyAgent, getSetting } from '../settings'
 
 function getBangumiToken() {
@@ -141,6 +147,92 @@ export async function fetchProviderSection(
     return fetchBangumiSection(sourceId, section)
   }
   return fetchVndbSection(sourceId, section)
+}
+
+// 分数来自三个独立站点，任一项失败只记录错误，不阻断其他来源。
+export async function fetchGameScores(
+  externalIds: Game['externalIds']
+): Promise<ExternalScoreFetchResult> {
+  const result: ExternalScoreFetchResult = { scores: {}, errors: [], skipped: [] }
+  const tasks: Promise<void>[] = []
+
+  const collect = (key: ExternalScoreKey, fetcher: () => Promise<number | undefined>) => {
+    tasks.push(
+      fetcher()
+        .then(score => {
+          if (score == null) {
+            result.errors.push({ key, message: '暂无评分' })
+          } else {
+            result.scores[key] = score
+          }
+        })
+        .catch(error => {
+          result.errors.push({ key, message: toScoreErrorMessage(error) })
+        })
+    )
+  }
+
+  if (externalIds.erogameId) {
+    collect('erogame', () => fetchErogameScore(externalIds.erogameId!))
+  } else {
+    result.skipped.push('erogame')
+  }
+  if (externalIds.bgmId) {
+    collect('bgm', () => fetchBangumiScore(externalIds.bgmId!))
+  } else {
+    result.skipped.push('bgm')
+  }
+  if (externalIds.vndbId) {
+    collect('vndb', () => fetchVndbScore(externalIds.vndbId!))
+  } else {
+    result.skipped.push('vndb')
+  }
+
+  await Promise.all(tasks)
+  return result
+}
+
+async function fetchBangumiScore(sourceId: string): Promise<number | undefined> {
+  if (!/^\d+$/.test(sourceId)) {
+    throw new Error('Bangumi ID 应为纯数字')
+  }
+
+  try {
+    const subject = await createBangumiClient().getSubject(sourceId)
+    return subject.rating?.score || undefined
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    if (message.includes('Bangumi API 错误 404')) {
+      throw new Error(`未找到 Bangumi ID ${sourceId} 对应的条目`)
+    }
+    if (message.includes('Bangumi API 错误 401') || message.includes('Bangumi API 错误 403')) {
+      throw new Error('Bangumi 认证失败，请检查访问 Token')
+    }
+    if (isTransientNetworkError(error)) {
+      throw new Error('无法连接 Bangumi，请检查网络或代理设置')
+    }
+    throw error
+  }
+}
+
+async function fetchVndbScore(sourceId: string): Promise<number | undefined> {
+  try {
+    const vn = await getVndbVn(createVndbClient(), normalizeVndbId(sourceId), VNDB_FIELDS.score)
+    return vndbRatingToScore(vn.rating)
+  } catch (error) {
+    throw mapVndbIdError(error)
+  }
+}
+
+async function fetchErogameScore(sourceId: string): Promise<number | undefined> {
+  return new ErogameScapeClient(getProxyAgent()).getMedianScore(sourceId)
+}
+
+function toScoreErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+  return '请求失败，请稍后重试'
 }
 
 async function fetchBangumiSection(

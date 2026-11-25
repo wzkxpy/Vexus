@@ -7,7 +7,7 @@ import { computeTitleSplit } from '@/shared/utils/title'
 
 export function bangumiToBasicInfo(subject: BangumiSubject): Game['basicInfo'] {
   return {
-    developer: getInfoboxValue(subject.infobox, '开发') || undefined,
+    developer: getInfoboxText(subject.infobox, ['开发', '游戏开发商', '开发商']),
     publisher: getInfoboxValue(subject.infobox, '发行') || undefined,
     releaseDate: subject.date || undefined,
   }
@@ -124,6 +124,35 @@ function getInfoboxValue(
   if (!infobox) return undefined
 
   return infobox.find(item => item.key === targetKey)?.value
+}
+
+// 开发商字段的键名在不同条目中不一致，且值可能是字符串或 [{ v }] 数组。
+function getInfoboxText(
+  infobox: { key: string; value: any }[] | undefined,
+  targetKeys: string[]
+): string | undefined {
+  for (const key of targetKeys) {
+    const value = getInfoboxValue(infobox, key)
+    const text = infoboxValueToText(value)
+    if (text) return text
+  }
+  return undefined
+}
+
+function infoboxValueToText(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    return value.trim() || undefined
+  }
+  if (!Array.isArray(value)) return undefined
+
+  const text = value
+    .map(entry =>
+      typeof entry === 'string' ? entry : typeof entry?.v === 'string' ? entry.v : undefined
+    )
+    .filter((entry): entry is string => Boolean(entry?.trim()))
+    .join('、')
+
+  return text || undefined
 }
 
 function getLinkValue(links: unknown, targetKey: string): string | undefined {

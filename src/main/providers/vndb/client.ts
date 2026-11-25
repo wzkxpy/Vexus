@@ -10,6 +10,7 @@ const VNDB_BASE_URL = 'https://api.vndb.org/kana'
 // 按用途拆分字段，避免一次请求携带全部嵌套数据触发 “Too much data selected”。
 export const VNDB_FIELDS = {
   search: 'id,title,alttitle,titles{lang,title,latin,official,main},image{url,thumbnail},released,developers{id,name,original,type},rating,votecount',
+  score: 'id,rating',
   basicInfo: 'id,released,developers{id,name,original,type},length_minutes',
   staff: 'id,staff{id,name,original,role}',
   tags: 'id,tags{id,name,rating,spoiler,lie,category}',

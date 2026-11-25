@@ -1,6 +1,7 @@
 // src/preload/index.ts
 import type {
   CharacterDraft,
+  ExternalScoreFetchResult,
   Game,
   GameCandidate,
   GameMetadataSection,
@@ -95,7 +96,9 @@ contextBridge.exposeInMainWorld('providerAPI', {
     section: GameMetadataSection,
     source: ProviderSource
   ): Promise<ProviderSectionResult> =>
-    ipcRenderer.invoke('fetchGameSection', gameId, section, source)
+    ipcRenderer.invoke('fetchGameSection', gameId, section, source),
+  fetchGameScores: (gameId: string): Promise<ExternalScoreFetchResult> =>
+    ipcRenderer.invoke('fetchGameScores', gameId)
 })
 
 contextBridge.exposeInMainWorld('callbackAPI', {
