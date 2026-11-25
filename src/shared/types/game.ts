@@ -19,7 +19,7 @@ export interface Game {
     developer?: string      // 开发商
     publisher?: string      // 发行商
     releaseDate?: string    // 发行时间 yyyy-mm-dd
-    estimatedTime?: string  // 预计游戏时长，-h-m
+    estimatedTime?: string  // 预计游戏时长，xxhxxm；不足 1 小时为 xxm，分钟为 0 时仅 xxh
   }
   // 外部评分
   externalScore: {
@@ -32,8 +32,8 @@ export interface Game {
   externalIds: {
     bgmId?: string
     vndbId?: string
+    erogameId?: string
     steamId?: string
-    ymgalId?: string
   }
 
   // 安装路径
@@ -99,8 +99,8 @@ export interface NewGame {
   externalIds: {
     bgmId?: string
     vndbId?: string
+    erogameId?: string
     steamId?: string
-    ymgalId?: string
   }
   // 媒体资源路径
   media: {

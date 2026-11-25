@@ -42,6 +42,7 @@
 import { reactive, ref } from 'vue'
 import { X } from '@lucide/vue'
 import type { Game } from '@/shared/types'
+import { normalizeVndbId } from '@/shared/utils/vndb'
 import { useGameStore } from '@/renderer/stores/game.store'
 
 type ExternalIdKey = keyof Game['externalIds']
@@ -53,20 +54,25 @@ const gameStore = useGameStore()
 const fields: { key: ExternalIdKey; label: string }[] = [
   { key: 'bgmId', label: 'Bangumi' },
   { key: 'vndbId', label: 'VNDB' },
-  { key: 'steamId', label: 'Steam' },
-  { key: 'ymgalId', label: 'YmGal' }
+  { key: 'erogameId', label: '批评空间' },
+  { key: 'steamId', label: 'Steam' }
 ]
 
 const form = reactive<Record<ExternalIdKey, string>>({
   bgmId: props.game.externalIds.bgmId ?? '',
   vndbId: props.game.externalIds.vndbId ?? '',
-  steamId: props.game.externalIds.steamId ?? '',
-  ymgalId: props.game.externalIds.ymgalId ?? ''
+  erogameId: props.game.externalIds.erogameId ?? '',
+  steamId: props.game.externalIds.steamId ?? ''
 })
 const saving = ref(false)
 const errorMessage = ref('')
 
 const normalize = (value: string) => value.trim() || undefined
+
+function normalizeVndbIdInput(value: string): string | undefined {
+  const trimmed = value.trim()
+  return trimmed ? normalizeVndbId(trimmed) : undefined
+}
 
 function close() {
   if (!saving.value) emit('close')
@@ -86,14 +92,28 @@ async function save() {
     return
   }
 
+  let vndbId: string | undefined
+  try {
+    vndbId = normalizeVndbIdInput(form.vndbId)
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'VNDB ID 格式不正确。'
+    return
+  }
+
+  const erogameId = normalize(form.erogameId)
+  if (erogameId && !/^\d+$/.test(erogameId)) {
+    errorMessage.value = '批评空间 ID 应为纯数字。'
+    return
+  }
+
   saving.value = true
   try {
     await gameStore.updateGame(props.game.id, {
       externalIds: {
         bgmId,
-        vndbId: normalize(form.vndbId),
-        steamId: normalize(form.steamId),
-        ymgalId: normalize(form.ymgalId)
+        vndbId,
+        erogameId,
+        steamId: normalize(form.steamId)
       }
     })
     emit('close')

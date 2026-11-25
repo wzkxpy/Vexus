@@ -44,11 +44,31 @@ export function setSetting<K extends keyof Settings>(
   store.set(key, value)
 }
 
+let cachedProxyAgent: ProxyAgent | undefined
+let cachedProxyUrl: string | undefined
+
+function closeCachedProxyAgent() {
+  if (!cachedProxyAgent) return
+  void cachedProxyAgent.close().catch(() => {})
+  cachedProxyAgent = undefined
+  cachedProxyUrl = undefined
+}
+
+// 复用同一个 ProxyAgent，避免每个请求都新建连接池。
 export function getProxyAgent() {
   const proxy = getSetting('proxy')
   if (!proxy.enabled || !proxy.host.trim()) {
+    closeCachedProxyAgent()
     return undefined
   }
+
   const url = `${proxy.protocol}://${proxy.host}:${proxy.port}`
-  return new ProxyAgent(url)
+  if (cachedProxyAgent && cachedProxyUrl === url) {
+    return cachedProxyAgent
+  }
+
+  closeCachedProxyAgent()
+  cachedProxyAgent = new ProxyAgent(url)
+  cachedProxyUrl = url
+  return cachedProxyAgent
 }

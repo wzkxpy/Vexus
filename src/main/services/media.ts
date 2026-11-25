@@ -4,9 +4,12 @@ import * as fs from 'fs'
 import { randomUUID } from 'crypto'
 import type { Character, CharacterDraft, NewGame } from '@/shared/types';
 import { downloadFile } from '../utils/file'
+import { mapWithConcurrency } from '../utils/async'
 import { app } from 'electron'
 import sharp from 'sharp'
 import { Dispatcher } from 'undici';
+
+const MEDIA_DOWNLOAD_CONCURRENCY = 3
 
 export interface PreparedCharacterAvatars {
   characters: Character[]
@@ -22,38 +25,45 @@ export class MediaService {
   // 新增游戏时 初始化媒体资源 将游戏/角色图片下载到本地
   async initMedia(gameId: string, media: NewGame['media'], characters: NewGame['characters']) {
     const gameDir = path.join(this.mediaBaseDir, gameId);
+    const gameDirExisted = fs.existsSync(gameDir)
     const tempDir = path.join(gameDir, 'temp');
-    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true })
+    fs.mkdirSync(tempDir, { recursive: true })
 
-    const downloadTasks: Promise<string | void>[] = [];
-    for (const type of ['cover', 'banner', 'icon'] as const) {
-      if (media[`${type}Url`]) {
-        const localPath = path.join(tempDir, `${type}.jpg`);
-        downloadTasks.push(downloadFile(media[`${type}Url`]!, localPath, this.getAgent()));
+    try {
+      const downloadTasks: Array<() => Promise<string>> = []
+      for (const type of ['cover', 'banner', 'icon'] as const) {
+        const url = media[`${type}Url`]
+        if (!url) continue
+        const localPath = path.join(tempDir, `${type}.jpg`)
+        downloadTasks.push(() => downloadFile(url, localPath, this.getAgent()))
       }
+      for (const character of characters ?? []) {
+        if (!character.avatarUrl) continue
+        const localPath = path.join(tempDir, `${character.uuid}_avatar.jpg`)
+        downloadTasks.push(() => downloadFile(character.avatarUrl, localPath, this.getAgent()))
+      }
+
+      // 图片站和代理对突发连接较敏感，限制同时下载的数量。
+      await mapWithConcurrency(downloadTasks, MEDIA_DOWNLOAD_CONCURRENCY, task => task())
+
+      const files = fs.readdirSync(tempDir)
+      await mapWithConcurrency(files, MEDIA_DOWNLOAD_CONCURRENCY, async (file) => {
+        const inputPath = path.join(tempDir, file)
+        // 获取不带后缀的文件名，准备输出为 .webp
+        const fileNameNoExt = path.parse(file).name
+        const outputPath = path.join(gameDir, `${fileNameNoExt}.webp`)
+        await sharp(inputPath).webp({ quality: 90 }).toFile(outputPath)
+      })
+    } catch (error) {
+      // 只清理本次新建的目录，避免异常路径下删除已有游戏的媒体文件。
+      if (!gameDirExisted) {
+        fs.rmSync(gameDir, { recursive: true, force: true })
+      }
+      console.error('Failed to initialize game media:', error)
+      throw new Error('下载或处理游戏图片失败，请检查网络或代理设置后重试')
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true })
     }
-    if (characters && characters.length > 0) {
-      characters.forEach((char) => {
-        if (char.avatarUrl) {
-          const charFileName = `${char.uuid}_avatar.jpg`; 
-          const localPath = path.join(tempDir, charFileName);          
-          downloadTasks.push(downloadFile(char.avatarUrl, localPath, this.getAgent()));
-        }
-      });
-    }
-    await Promise.all(downloadTasks); // 并行下载
-    // 转换 WebP (读取 temp 目录下的所有文件并转换)
-    const files = fs.readdirSync(tempDir);
-    const convertTasks = files.map(async (file) => {
-      const inputPath = path.join(tempDir, file);
-      // 获取不带后缀的文件名，准备输出为 .webp
-      const fileNameNoExt = path.parse(file).name;
-      const outputPath = path.join(gameDir, `${fileNameNoExt}.webp`);
-      await sharp(inputPath).webp({ quality: 90 }).toFile(outputPath)
-    });
-    await Promise.all(convertTasks); // 并行转换
-    // 清理：递归删除临时文件夹
-    fs.rmSync(tempDir, { recursive: true, force: true });
   }
 
 
@@ -80,36 +90,40 @@ export class MediaService {
     const createdPaths: string[] = []
 
     try {
-      const prepared = await Promise.all(characters.map(async (character, index) => {
-        if (character.avatarPath) {
+      const prepared = await mapWithConcurrency(
+        characters,
+        MEDIA_DOWNLOAD_CONCURRENCY,
+        async (character, index) => {
+          if (character.avatarPath) {
+            return {
+              name: character.name,
+              voiceActor: character.voiceActor,
+              avatarPath: character.avatarPath
+            }
+          }
+          if (!character.avatarUrl) {
+            return {
+              name: character.name,
+              voiceActor: character.voiceActor
+            }
+          }
+
+          this.assertAvatarUrl(character.avatarUrl)
+          const sourcePath = path.join(tempDir, `${index}.image`)
+          await downloadFile(character.avatarUrl, sourcePath, this.getAgent())
+
+          const fileName = `${randomUUID()}_avatar.webp`
+          const targetPath = path.join(gameDir, fileName)
+          createdPaths.push(targetPath)
+          await sharp(sourcePath).webp({ quality: 90 }).toFile(targetPath)
+
           return {
             name: character.name,
             voiceActor: character.voiceActor,
-            avatarPath: character.avatarPath
+            avatarPath: `vexus-media://${gameId}/${fileName}`
           }
         }
-        if (!character.avatarUrl) {
-          return {
-            name: character.name,
-            voiceActor: character.voiceActor
-          }
-        }
-
-        this.assertAvatarUrl(character.avatarUrl)
-        const sourcePath = path.join(tempDir, `${index}.image`)
-        await downloadFile(character.avatarUrl, sourcePath, this.getAgent())
-
-        const fileName = `${randomUUID()}_avatar.webp`
-        const targetPath = path.join(gameDir, fileName)
-        createdPaths.push(targetPath)
-        await sharp(sourcePath).webp({ quality: 90 }).toFile(targetPath)
-
-        return {
-          name: character.name,
-          voiceActor: character.voiceActor,
-          avatarPath: `vexus-media://${gameId}/${fileName}`
-        }
-      }))
+      )
 
       return { characters: prepared, createdPaths }
     } catch (error) {
@@ -144,7 +158,11 @@ export class MediaService {
     } catch {
       throw new Error('无效的角色头像地址')
     }
-    if (url.protocol !== 'https:' || (url.hostname !== 'bgm.tv' && !url.hostname.endsWith('.bgm.tv'))) {
+    const allowedHost =
+      url.hostname === 'bgm.tv' ||
+      url.hostname.endsWith('.bgm.tv') ||
+      url.hostname === 't.vndb.org'
+    if (url.protocol !== 'https:' || !allowedHost) {
       throw new Error('无效的角色头像地址')
     }
   }

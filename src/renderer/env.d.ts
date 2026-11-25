@@ -9,6 +9,7 @@ import type {
   GameMetadataSection,
   NewGame,
   ProviderSectionResult,
+  ProviderSource,
   Route,
   RouteStatus,
   RouteTree,
@@ -69,10 +70,10 @@ declare global {
     },
     
     providerAPI: {
-      searchGames: (source: string, keyword: string) => Promise<GameCandidate[]>
-      fetchGame: (source: string, subjectId: string) => Promise<GameCandidate>
-      buildGameFromBangumi: (subject: any) => Promise<NewGame>
-      fetchGameSection: (gameId: string, section: GameMetadataSection) => Promise<ProviderSectionResult>
+      searchGames: (source: ProviderSource, keyword: string) => Promise<GameCandidate[]>
+      fetchGame: (source: ProviderSource, subjectId: string) => Promise<GameCandidate>
+      buildGame: (source: ProviderSource, sourceId: string) => Promise<NewGame>
+      fetchGameSection: (gameId: string, section: GameMetadataSection, source: ProviderSource) => Promise<ProviderSectionResult>
     },
 
     callbackAPI: {

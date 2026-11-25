@@ -5,11 +5,12 @@ import type {
   CharacterDraft,
   Game,
   GameMetadataSection,
-  NewGame
+  NewGame,
+  ProviderSource
 } from '@/shared/types'
 import { MediaService } from '../services/media'
 import { VoiceActorAliasService } from '../services/voiceActorAlias'
-import { fetchBangumiSection } from '../providers/manager'
+import { fetchProviderSection } from '../providers/manager'
 
 
 export class GameService {
@@ -41,19 +42,26 @@ export class GameService {
     this.repo.update(game)
   }
 
-  async fetchMetadataSection(gameId: string, section: GameMetadataSection) {
+  async fetchMetadataSection(
+    gameId: string,
+    section: GameMetadataSection,
+    source: ProviderSource
+  ) {
     if (!GAME_METADATA_SECTIONS.includes(section)) {
       throw new Error('不支持的信息分区')
+    }
+    if (source !== 'bangumi' && source !== 'vndb') {
+      throw new Error('不支持的数据源')
     }
 
     const game = this.repo.get(gameId)
     if (!game) throw new Error('Game not found')
 
-    const sourceId = game.externalIds.bgmId
+    const sourceId = source === 'bangumi' ? game.externalIds.bgmId : game.externalIds.vndbId
     if (!sourceId) {
-      throw new Error('未设置 Bangumi ID，请先编辑数据源 ID')
+      throw new Error(`未设置 ${source === 'bangumi' ? 'Bangumi' : 'VNDB'} ID，请先编辑数据源 ID`)
     }
-    const result = await fetchBangumiSection(sourceId, section)
+    const result = await fetchProviderSection(source, sourceId, section)
     if (result.section === 'characters') {
       return { ...result, value: this.voiceActorAliases.normalizeCharacters(result.value) }
     }

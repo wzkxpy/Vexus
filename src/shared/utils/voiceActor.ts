@@ -1,4 +1,5 @@
 // 声优马甲映射来自用户手工维护的 JSON：{ "别名": "显示名" }。
+// 名称在导入时已统一空格格式，这里只做去首尾空白后的精确匹配。
 
 export function parseVoiceActorAliasMap(raw: unknown): Map<string, string> {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {

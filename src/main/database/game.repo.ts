@@ -99,8 +99,8 @@ add(game: NewGame): string {
 
     'bgm_id',
     'vndb_id',
+    'erogame_id',
     'steam_id',
-    'ymgal_id',
 
     'exe_path',
     'cover_path',

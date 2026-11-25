@@ -112,14 +112,26 @@
       </div>
 
       <footer class="modal-footer">
-        <button
-          v-if="canUpdate"
-          class="btn update"
-          :disabled="fetching || saving"
-          @click="updateFromBangumi"
-        >
-          {{ fetching ? '正在获取…' : '从 Bangumi 更新' }}
-        </button>
+        <div v-if="canUpdate" class="update-group">
+          <div class="source-switch" role="group" aria-label="更新数据源">
+            <button
+              v-for="provider in availableSources"
+              :key="provider"
+              :class="{ active: updateSource === provider }"
+              :disabled="fetching || saving"
+              @click="updateSource = provider"
+            >
+              {{ provider === 'bangumi' ? 'Bangumi' : 'VNDB' }}
+            </button>
+          </div>
+          <button
+            class="btn update"
+            :disabled="fetching || saving"
+            @click="updateFromProvider"
+          >
+            {{ fetching ? '正在获取…' : '更新' }}
+          </button>
+        </div>
         <div class="footer-actions">
           <button class="btn ghost" :disabled="fetching || saving" @click="close">取消</button>
           <button class="btn primary" :disabled="fetching || saving" @click="handleSave">
@@ -134,7 +146,7 @@
 
 <script setup lang="ts">
 import { reactive, computed, ref } from 'vue'
-import type { Game, GameMetadataSection, ProviderSectionResult } from '@/shared/types'
+import type { Game, GameMetadataSection, ProviderSectionResult, ProviderSource } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
 import { useRoute } from 'vue-router'
 import CloseButton from '@/renderer/components/CloseButton.vue'
@@ -155,7 +167,20 @@ const fetching = ref(false)
 const saving = ref(false)
 const errorMessage = ref('')
 const updatableSections: GameMetadataSection[] = ['basicInfo', 'staff', 'tags', 'description']
-const canUpdate = computed(() => updatableSections.includes(props.type as GameMetadataSection))
+const availableSources = computed<ProviderSource[]>(() => {
+  const current = game.value
+  if (!current) return []
+  const sources: ProviderSource[] = []
+  if (current.externalIds.bgmId) sources.push('bangumi')
+  if (current.externalIds.vndbId) sources.push('vndb')
+  return sources
+})
+const updateSource = ref<ProviderSource>(game.value?.externalIds.bgmId ? 'bangumi' : 'vndb')
+const canUpdate = computed(
+  () =>
+    updatableSections.includes(props.type as GameMetadataSection) &&
+    availableSources.value.length > 0
+)
 
 // 初始化 form 数据
 if (game.value) {
@@ -204,7 +229,8 @@ function applySection(result: ProviderSectionResult) {
     case 'basicInfo':
       form.basicInfo = {
         ...result.value,
-        estimatedTime: form.basicInfo?.estimatedTime
+        publisher: result.value.publisher ?? form.basicInfo?.publisher,
+        estimatedTime: result.value.estimatedTime ?? form.basicInfo?.estimatedTime
       }
       break
     case 'staff':
@@ -224,14 +250,15 @@ function getErrorMessage(error: unknown) {
   return error.message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
 }
 
-async function updateFromBangumi() {
+async function updateFromProvider() {
   if (!game.value || fetching.value || saving.value || !canUpdate.value) return
   fetching.value = true
   errorMessage.value = ''
   try {
     const result = await window.providerAPI.fetchGameSection(
       game.value.id,
-      props.type as GameMetadataSection
+      props.type as GameMetadataSection,
+      updateSource.value
     )
     applySection(result)
   } catch (error) {
@@ -401,12 +428,48 @@ textarea.large {
 
 .modal-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding: 16px 24px 20px;
   border-top: 1px solid #eef1f4;
   background: #fbfcfe;
+}
+
+.update-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.source-switch {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: #eef1f6;
+}
+
+.source-switch button {
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 6px;
+  color: #6b7688;
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.source-switch button.active {
+  color: #456bc3;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(61, 88, 146, 0.14);
+}
+
+.source-switch button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .footer-actions {

@@ -2,9 +2,11 @@
 import type {
   CharacterDraft,
   Game,
+  GameCandidate,
   GameMetadataSection,
   NewGame,
   ProviderSectionResult,
+  ProviderSource,
   Route,
   RouteStatus,
   RouteTree,
@@ -82,11 +84,18 @@ contextBridge.exposeInMainWorld('settingsAPI', {
 
 // 从数据源获取游戏数据 API
 contextBridge.exposeInMainWorld('providerAPI', {
-  searchGames: (source: string, keyword: string) => ipcRenderer.invoke('searchGames', source, keyword),
-  fetchGame: (source: string, subjectId: string) => ipcRenderer.invoke('fetchGame', source, subjectId),
-  buildGameFromBangumi: (subject: any) => ipcRenderer.invoke('buildGameFromBangumi', subject),
-  fetchGameSection: (gameId: string, section: GameMetadataSection): Promise<ProviderSectionResult> =>
-    ipcRenderer.invoke('fetchGameSection', gameId, section)
+  searchGames: (source: ProviderSource, keyword: string): Promise<GameCandidate[]> =>
+    ipcRenderer.invoke('searchGames', source, keyword),
+  fetchGame: (source: ProviderSource, subjectId: string): Promise<GameCandidate> =>
+    ipcRenderer.invoke('fetchGame', source, subjectId),
+  buildGame: (source: ProviderSource, sourceId: string): Promise<NewGame> =>
+    ipcRenderer.invoke('buildGame', source, sourceId),
+  fetchGameSection: (
+    gameId: string,
+    section: GameMetadataSection,
+    source: ProviderSource
+  ): Promise<ProviderSectionResult> =>
+    ipcRenderer.invoke('fetchGameSection', gameId, section, source)
 })
 
 contextBridge.exposeInMainWorld('callbackAPI', {

@@ -1,4 +1,5 @@
 import type { Character, Game } from './game'
+import type { ProviderSource } from './search'
 
 export const GAME_METADATA_SECTIONS = [
   'basicInfo',
@@ -25,7 +26,7 @@ export interface GameMetadataSectionMap {
 export type ProviderSectionResult = {
   [Section in GameMetadataSection]: {
     section: Section
-    source: 'bangumi'
+    source: ProviderSource
     sourceId: string
     value: GameMetadataSectionMap[Section]
   }

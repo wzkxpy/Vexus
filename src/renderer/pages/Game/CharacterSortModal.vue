@@ -48,9 +48,22 @@
       <p v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</p>
 
       <div class="modal-actions">
-        <button class="update-btn" :disabled="busy" @click="updateFromBangumi">
-          {{ updating ? '正在获取…' : '从 Bangumi 更新' }}
-        </button>
+        <div v-if="canUpdate" class="update-group">
+          <div class="source-switch" role="group" aria-label="更新数据源">
+            <button
+              v-for="provider in availableSources"
+              :key="provider"
+              :class="{ active: updateSource === provider }"
+              :disabled="busy"
+              @click="updateSource = provider"
+            >
+              {{ provider === 'bangumi' ? 'Bangumi' : 'VNDB' }}
+            </button>
+          </div>
+          <button class="update-btn" :disabled="busy" @click="updateFromProvider">
+            {{ updating ? '正在获取…' : '更新' }}
+          </button>
+        </div>
         <div class="action-buttons">
           <button class="cancel-btn" :disabled="busy" @click="close">取消</button>
           <button class="save-btn" :disabled="busy || !changed" @click="saveCharacters">
@@ -66,7 +79,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, GripVertical, X } from '@lucide/vue'
-import type { CharacterDraft } from '@/shared/types'
+import type { CharacterDraft, ProviderSource } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
 import defaultCharacterAvatar from '@/renderer/assets/images/akarin.webp'
 
@@ -76,6 +89,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ close: [] }>()
 const gameStore = useGameStore()
+const game = computed(() => gameStore.getGameById(props.gameId))
 
 const initialCharacters = props.characters.map(character => ({ ...character }))
 const draftCharacters = ref(initialCharacters.map(character => ({ ...character })))
@@ -85,6 +99,16 @@ const updating = ref(false)
 const saving = ref(false)
 const errorMessage = ref('')
 const busy = computed(() => updating.value || saving.value)
+const availableSources = computed<ProviderSource[]>(() => {
+  const current = game.value
+  if (!current) return []
+  const sources: ProviderSource[] = []
+  if (current.externalIds.bgmId) sources.push('bangumi')
+  if (current.externalIds.vndbId) sources.push('vndb')
+  return sources
+})
+const updateSource = ref<ProviderSource>(game.value?.externalIds.bgmId ? 'bangumi' : 'vndb')
+const canUpdate = computed(() => availableSources.value.length > 0)
 
 const characterSnapshot = (characters: CharacterDraft[]) =>
   JSON.stringify(characters.map(character => ({
@@ -139,12 +163,16 @@ function getErrorMessage(error: unknown) {
   return error.message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
 }
 
-async function updateFromBangumi() {
-  if (busy.value) return
+async function updateFromProvider() {
+  if (busy.value || !canUpdate.value) return
   updating.value = true
   errorMessage.value = ''
   try {
-    const result = await window.providerAPI.fetchGameSection(props.gameId, 'characters')
+    const result = await window.providerAPI.fetchGameSection(
+      props.gameId,
+      'characters',
+      updateSource.value
+    )
     if (result.section !== 'characters') throw new Error('信息源返回了错误的角色数据')
     draftCharacters.value = result.value.map(character => ({ ...character }))
     resetDrag()
@@ -271,9 +299,14 @@ const saveCharacters = async () => {
 .move-actions button:disabled { opacity: 0.35; cursor: default; }
 
 .error-message { margin: 10px 0 0; color: #c84d5a; font-size: 13px; }
-.modal-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; gap: 9px; }
-.action-buttons { display: flex; gap: 9px; }
+.modal-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-top: 18px; gap: 9px; }
+.update-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.action-buttons { display: flex; gap: 9px; margin-left: auto; }
 .modal-actions button { min-width: 82px; padding: 8px 15px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+.source-switch { display: inline-flex; padding: 2px; border-radius: 8px; background: #eef1f6; }
+.source-switch button { min-width: 0; padding: 5px 9px; border: 0; border-radius: 6px; color: #6b7688; background: transparent; font-size: 12px; }
+.source-switch button.active { color: #456bc3; background: #ffffff; box-shadow: 0 1px 3px rgba(61, 88, 146, 0.14); }
+.source-switch button:disabled { opacity: 0.5; cursor: default; }
 .update-btn { color: #4f72c4; border: 1px solid #d7e1f5; background: #eef3fc; }
 .update-btn:hover:not(:disabled) { background: #e2ebfb; }
 .cancel-btn { color: #687386; border: 1px solid #dfe3ea; background: #fff; }

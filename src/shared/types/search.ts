@@ -1,8 +1,9 @@
 // src/shared/types/search.ts
 
+export type ProviderSource = 'bangumi' | 'vndb'
 
 export interface GameCandidate {
-  source: string
+  source: ProviderSource
   sourceId: string
 
   originalTitle?: string
@@ -11,6 +12,4 @@ export interface GameCandidate {
   releaseDate?: string
   developer?: string
   score?: number
-
-  raw?: unknown
 }

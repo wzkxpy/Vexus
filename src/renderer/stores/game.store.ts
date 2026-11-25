@@ -140,13 +140,10 @@ export const useGameStore = defineStore('game', () => {
 
   // 添加新游戏时进行重复检测
   const isDuplicateGame = (newGame: NewGame) => {
-    return games.value.some(g =>
-      g.externalIds.bgmId === newGame.externalIds.bgmId
-      // vndb会合并版本，其余待定
-      // || g.externalIds.vndbId === newGame.externalIds.vndbId
-      // || g.externalIds.steamId === newGame.externalIds.steamId
-      // || g.externalIds.ymgalId === newGame.externalIds.ymgalId
-    )
+    const bgmId = newGame.externalIds.bgmId
+    // VNDB 会合并版本，同一条目可能对应多个本地版本，不能按 vndbId 判重。
+    if (!bgmId) return false
+    return games.value.some(g => g.externalIds.bgmId === bgmId)
   }
 
   // 修改排序方式，并保存到全局设置

@@ -155,20 +155,19 @@
 
 <script setup lang="ts">
 import CloseButton from '@/renderer/components/CloseButton.vue'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useGameStore } from '@/renderer/stores/game.store'
-import { GameCandidate } from '@/shared/types'
+import type { GameCandidate, ProviderSource } from '@/shared/types'
 
 const gameStore = useGameStore()
 
 const emit = defineEmits<{ (e: 'close'): void }>()
 
-type Source = 'bangumi' | 'vndb' | 'steam' | 'ymgal'
+type Source = ProviderSource | 'steam'
 const sources = [
   { key: 'bangumi', label: 'Bangumi' },
   { key: 'vndb', label: 'VNDB' },
-  { key: 'steam', label: 'Steam' },
-  { key: 'ymgal', label: 'YmGal' }
+  { key: 'steam', label: 'Steam' }
 ] as const
 
 const source = ref<Source>('bangumi') // 数据源 默认选中 Bangumi
@@ -183,6 +182,15 @@ const results = ref<GameCandidate[]>([]) // 名称搜索的结果（可能有多
 const savingId = ref<string | null>(null) // 正在添加的游戏的 sourceId，用于禁用对应的添加按钮
 const addedIds = ref(new Set<string>()) //  已经添加的游戏的 sourceId 集合，用于显示已添加状态
 
+// 切换数据源后旧结果不再有对应 ID，必须清空，避免用 Bangumi ID 去请求 VNDB。
+watch(source, () => {
+  result.value = null
+  results.value = []
+  error.value = null
+  savingId.value = null
+  addedIds.value = new Set()
+})
+
 const placeholder = computed(() => {
   switch (source.value) {
     case 'bangumi':
@@ -191,16 +199,24 @@ const placeholder = computed(() => {
       return '输入游戏名或 VNDB ID'
     case 'steam':
       return '输入游戏名或 Steam AppID'
-    case 'ymgal':
-      return '输入游戏名或 YMgal ID'
   }
 })
+
+function getErrorMessage(error: unknown) {
+  if (!(error instanceof Error)) return '获取失败，请重试。'
+  return error.message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
+}
 
 // 点击或回车搜索
 async function handleSearch() {
   const q = query.value.trim()
   if (!q) return
-  if (source.value !== 'bangumi') return // 目前仅支持 Bangumi 搜索
+
+  const provider = source.value
+  if (provider !== 'bangumi' && provider !== 'vndb') {
+    error.value = '该数据源暂未支持'
+    return
+  }
 
   loading.value = true
   error.value = null
@@ -208,13 +224,16 @@ async function handleSearch() {
   results.value = []
 
   try {
-    if (/^\d+$/.test(q)) {  // ID 查询
-      result.value = await window.providerAPI.fetchGame(source.value, q)
+    const isId = provider === 'vndb' ? /^v?\d+$/i.test(q) : /^\d+$/.test(q)
+    if (isId) {  // ID 查询
+      const candidate = await window.providerAPI.fetchGame(provider, q)
+      if (source.value === provider) result.value = candidate
     } else {  // 名称搜索
-      results.value = await window.providerAPI.searchGames(source.value, q)
+      const candidates = await window.providerAPI.searchGames(provider, q)
+      if (source.value === provider) results.value = candidates
     }
-  } catch (e: any) {
-    error.value = e.message || '获取失败'
+  } catch (e: unknown) {
+    if (source.value === provider) error.value = getErrorMessage(e)
   } finally {
     loading.value = false
   }
@@ -226,16 +245,11 @@ async function handleAddGame(item: GameCandidate) {
 
   try {
     savingId.value = item.sourceId
-    const newGame =
-      await window.providerAPI.buildGameFromBangumi(
-        JSON.parse(JSON.stringify(item.raw))
-      )
-    await gameStore.addGame(
-      JSON.parse(JSON.stringify(newGame))
-    )
-    addedIds.value.add(item.sourceId)
-  } catch (e: any) {
-    alert(e.message || '添加失败')
+    const newGame = await window.providerAPI.buildGame(item.source, item.sourceId)
+    await gameStore.addGame(newGame)
+    if (source.value === item.source) addedIds.value.add(item.sourceId)
+  } catch (e: unknown) {
+    alert(getErrorMessage(e))
   } finally {
     savingId.value = null
   }

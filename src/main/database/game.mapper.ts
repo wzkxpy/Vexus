@@ -24,8 +24,8 @@ export function newGameToRow(game: NewGame) { // add
     // 外部 ID
     bgm_id: game.externalIds.bgmId ?? null,
     vndb_id: game.externalIds.vndbId ?? null,
+    erogame_id: game.externalIds.erogameId ?? null,
     steam_id: game.externalIds.steamId ?? null,
-    ymgal_id: game.externalIds.ymgalId ?? null,
 
     // 媒体路径
     cover_path: game.media.coverUrl ? `vexus-media://${game.id}/cover.webp` : null,
@@ -83,8 +83,8 @@ export function gameToRow(game: Game) { // update
     // 外部 ID
     bgm_id: game.externalIds.bgmId ?? null,
     vndb_id: game.externalIds.vndbId ?? null,
+    erogame_id: game.externalIds.erogameId ?? null,
     steam_id: game.externalIds.steamId ?? null,
-    ymgal_id: game.externalIds.ymgalId ?? null,
 
     // 安装路径
     exe_path: game.exePath ?? null,
@@ -146,8 +146,8 @@ export function rowToGame(row: any): Game { // get
     externalIds: {
       bgmId: row.bgm_id,
       vndbId: row.vndb_id,
+      erogameId: row.erogame_id,
       steamId: row.steam_id,
-      ymgalId: row.ymgal_id,
     },
 
     exePath: row.exe_path,

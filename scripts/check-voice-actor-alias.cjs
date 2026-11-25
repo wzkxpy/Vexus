@@ -34,6 +34,16 @@ assert.equal(resolveVoiceActorName(' みる ', aliases), '小野涼子')
 assert.equal(resolveVoiceActorName('小野 涼子', aliases), '小野涼子')
 assert.equal(resolveVoiceActorName('未知', aliases), '未知')
 
+// 名称导入时已统一空格格式，马甲匹配只做去首尾空白后的精确匹配。
+const exactNames = parseVoiceActorAliasMap({
+  '小野涼子': '小野涼子（别名）',
+  'Kotomine Kirei': '言峰綺礼'
+})
+assert.equal(resolveVoiceActorName(' 小野涼子 ', exactNames), '小野涼子（别名）')
+assert.equal(resolveVoiceActorName('小野 涼子', exactNames), '小野 涼子')
+assert.equal(resolveVoiceActorName('Kotomine Kirei', exactNames), '言峰綺礼')
+assert.equal(resolveVoiceActorName('KotomineKirei', exactNames), 'KotomineKirei')
+
 // 支持链式映射，并保证解析到终点、重复执行结果不变。
 const chain = parseVoiceActorAliasMap({ A: 'B', B: 'C' })
 assert.equal(resolveVoiceActorName('A', chain), 'C')
@@ -81,4 +91,4 @@ try {
   fs.rmSync(tempDir, { recursive: true, force: true })
 }
 
-console.log('Passed: alias parsing, trimming, chains, cycles, validation, normalization, idempotency and file handling')
+console.log('Passed: alias parsing, exact matching after trimming, chains, cycles, validation, idempotency and file handling')

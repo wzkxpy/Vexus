@@ -19,7 +19,7 @@ export function initDatabase(db: Database) {
       title_split TEXT,             -- 切分主副标题 [orig_main_end,orig_sub_start,loc_main_end,loc_sub_start]
       description TEXT,             -- 游戏简介
       tags TEXT,                    -- 游戏标签
-      series TEXT,                  -- 系列名称，NULL 表示未归入系列
+      series TEXT,                  -- 系列名称 NULL 表示未归入系列
       is_fd INTEGER DEFAULT 0,      -- Fan Disc 标记
       guide TEXT,                   -- 游戏攻略
 
@@ -27,7 +27,7 @@ export function initDatabase(db: Database) {
       developer TEXT,        -- 开发商
       publisher TEXT,        -- 发行商
       release_date TEXT,     -- 发行时间 yyyy-mm-dd
-      estimated_time TEXT,   -- 预计游戏时长 -h-m
+      estimated_time TEXT,   -- 预计游戏时长 xxhxxm 不足 1 小时为 xxm 分钟为 0 时仅 xxh
       erogame_score INTEGER, -- 0 - 100
       bgm_score REAL,        -- 0.0 - 10.0
       vndb_score REAL,       -- 0.0 - 10.0
@@ -35,8 +35,8 @@ export function initDatabase(db: Database) {
       -- 外部信息源 ID
       bgm_id TEXT UNIQUE,   -- bangumi.tv
       vndb_id TEXT,         -- vndb.org
+      erogame_id TEXT,      -- erogamescape.org
       steam_id TEXT,        -- steampowered.com
-      ymgal_id TEXT,        -- ymgal.games
 
       -- 安装路径
       exe_path TEXT,    -- 可执行文件路径

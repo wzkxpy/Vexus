@@ -6,9 +6,9 @@ import { ipcMain, BrowserWindow, clipboard } from 'electron'
 import { GameService } from '../database/game.service'
 import { SessionService } from '../database/session.service'
 import { Game, NewGame, Route, RouteStatus, RouteTree, Session, GAME_METADATA_SECTIONS } from '@/shared/types'
-import type { GameMetadataSection } from '@/shared/types'
+import type { GameMetadataSection, ProviderSource } from '@/shared/types'
 import { SessionImportService } from '../services/sessionImport'
-import { searchGames, fetchGame, buildGameFromBangumi } from '../providers/manager'
+import { searchGames, fetchGame, buildGame } from '../providers/manager'
 import { launchGame, stopGame, openFolder } from '../services/launch'
 import { getSettings, getSetting, setSetting, Settings } from '../settings'
 import { RouteService } from '../database/route.service'
@@ -148,16 +148,28 @@ export function registerSettingsIPC(voiceActorAliasService: VoiceActorAliasServi
 }
 
 export function registerProviderIPC(gameService: GameService) {
-  ipcMain.handle('searchGames', async (_, source: string, keyword: string) => {
-    return await searchGames(source, keyword)
+  ipcMain.handle('searchGames', async (_, source: unknown, keyword: unknown) => {
+    const provider = requireProviderSource(source)
+    if (typeof keyword !== 'string') {
+      throw new Error('Invalid search request')
+    }
+    return await searchGames(provider, keyword)
   })
-  ipcMain.handle('fetchGame', async (_, source, subjectId) => {
-      return await fetchGame(source, subjectId)
+  ipcMain.handle('fetchGame', async (_, source: unknown, subjectId: unknown) => {
+    const provider = requireProviderSource(source)
+    if (typeof subjectId !== 'string' || !subjectId.trim()) {
+      throw new Error('Invalid game lookup request')
+    }
+    return await fetchGame(provider, subjectId)
   })
-  ipcMain.handle('buildGameFromBangumi', async (_, subject) => {
-    return await buildGameFromBangumi(subject)
+  ipcMain.handle('buildGame', async (_, source: unknown, sourceId: unknown) => {
+    const provider = requireProviderSource(source)
+    if (typeof sourceId !== 'string' || !sourceId.trim()) {
+      throw new Error('Invalid build game request')
+    }
+    return await buildGame(provider, sourceId)
   })
-  ipcMain.handle('fetchGameSection', async (_, gameId: string, section: unknown) => {
+  ipcMain.handle('fetchGameSection', async (_, gameId: unknown, section: unknown, source: unknown) => {
     if (
       typeof gameId !== 'string' ||
       !gameId ||
@@ -166,10 +178,22 @@ export function registerProviderIPC(gameService: GameService) {
     ) {
       throw new Error('Invalid metadata section request')
     }
-    return gameService.fetchMetadataSection(gameId, section)
+    const provider = requireProviderSource(source)
+    return gameService.fetchMetadataSection(gameId, section, provider)
   })
 }
 
 function isGameMetadataSection(value: string): value is GameMetadataSection {
   return (GAME_METADATA_SECTIONS as readonly string[]).includes(value)
+}
+
+function isProviderSource(value: string): value is ProviderSource {
+  return value === 'bangumi' || value === 'vndb'
+}
+
+function requireProviderSource(value: unknown): ProviderSource {
+  if (typeof value !== 'string' || !isProviderSource(value)) {
+    throw new Error('Invalid provider source')
+  }
+  return value
 }
