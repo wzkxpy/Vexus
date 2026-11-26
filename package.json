@@ -6,15 +6,56 @@
   "scripts": {
     "start": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder --win nsis",
+    "postinstall": "electron-builder install-app-deps"
   },
   "author": "forary",
   "license": "MIT",
+  "build": {
+    "appId": "com.forary.vexus",
+    "productName": "Vexus",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**",
+      "node_modules/sharp/**",
+      "node_modules/@img/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "Vexus-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Vexus",
+      "deleteAppDataOnUninstall": false
+    }
+  },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
     "@types/ps-tree": "^1.1.6",
     "@vitejs/plugin-vue": "^6.0.4",
     "electron": "^39.5.0",
+    "electron-builder": "^26.18.0",
     "vite": "^6.4.1",
     "vite-plugin-electron": "^0.29.0",
     "vite-plugin-electron-renderer": "^0.14.6"
