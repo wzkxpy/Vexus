@@ -1,6 +1,6 @@
 // src/main/main.ts
 // import 'dotenv/config' // 创建环境变量
-import { app, protocol } from 'electron';
+import { app, BrowserWindow, Menu, nativeImage, protocol, Tray } from 'electron';
 import { createWindow } from './window';
 import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerSettingsIPC, registerFileIPC, registerClipboardIPC } from './ipc';
 import Database from 'better-sqlite3'
@@ -21,8 +21,49 @@ import { RouteTreeFileStore } from './services/routeTreeFile';
 import { RouteTreeService } from './services/routeTree';
 import { VoiceActorAliasService } from './services/voiceActorAlias';
 
+let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
+let isQuitting = false
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+function createTray() {
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'icon.ico')
+    : path.join(app.getAppPath(), 'build', 'icon.ico')
+  const icon = nativeImage.createFromPath(iconPath)
+  if (icon.isEmpty()) {
+    console.warn('[Tray] icon not found:', iconPath)
+    return
+  }
+
+  tray = new Tray(icon)
+  tray.setToolTip('Vexus')
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: '显示 Vexus', click: showMainWindow },
+    { type: 'separator' },
+    { label: '退出', click: () => app.quit() }
+  ]))
+  tray.on('click', showMainWindow)
+}
+
+app.on('second-instance', showMainWindow)
+app.on('before-quit', () => {
+  isQuitting = true
+})
 
 app.whenReady().then(() => {
+  // 单实例：第二次启动时唤起已有窗口，避免两个进程同时写 SQLite。
+  if (!app.requestSingleInstanceLock()) {
+    app.quit()
+    return
+  }
+
   // 初始化数据库和服务
   const dbPath = path.join(app.getPath('userData'), 'vexus.db')
   const db = new Database(dbPath)
@@ -69,7 +110,16 @@ app.whenReady().then(() => {
   })
 
   // 创建主窗口
-  const win = createWindow() // Create the main application window 
+  const win = createWindow()
+  mainWindow = win
+  createTray()
+  // 关闭按钮只隐藏到托盘，真正退出走托盘菜单。
+  win.on('close', event => {
+    if (isQuitting || !tray) return
+    event.preventDefault()
+    win.hide()
+  })
+
   // 注册 IPC 处理器
   registerWindowIPC(win)  // Register IPC handlers for the window
   registerDBIPC(gameService, sessionService, sessionImportService, routeService, routeTreeService) // Register database-related IPC handlers

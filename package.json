@@ -30,6 +30,12 @@
       "node_modules/sharp/**",
       "node_modules/@img/**"
     ],
+    "extraResources": [
+      {
+        "from": "build/icon.ico",
+        "to": "icon.ico"
+      }
+    ],
     "win": {
       "target": [
         {
