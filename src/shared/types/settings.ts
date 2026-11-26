@@ -15,6 +15,7 @@ export interface Settings {
   theme: 'light' | 'dark' | 'system' // 主题
   gameTitle: 'Orig' | 'Local' // 游戏标题显示原名 or 译名
   subTitle: boolean // 是否区分展示主副标题
+  playtimeFormat: 'detail' | 'decimal' // 总时长展示格式：XhYm 或 X.Xh
   // 账号设置
   bangumiToken: string
   // 工具设置

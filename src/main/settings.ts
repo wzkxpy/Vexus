@@ -11,6 +11,7 @@ const store = new Store<Settings>({
     autoLaunch: false,
     theme: 'system',
     gameTitle: 'Local',
+    playtimeFormat: 'detail',
     bangumiToken: '',
     magpiePath: '',
     magpieHotkey: '',

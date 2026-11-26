@@ -631,21 +631,19 @@ const saveRoutes = async () => {
       ? '剧情锁存在循环依赖，请检查前置线路，不能互相等待解锁。'
       : message.includes('Prerequisite route must exist in the same game')
         ? '前置线路不存在，请重新选择剧情锁条件。'
-        : message.includes('Route names must be unique')
-          ? '线路名称不能重复。'
-          : message.includes('Route color required')
-            ? '请为每条线路选择颜色。'
-            : message.includes('Route appears more than once in the route tree')
+        : message.includes('Route color required')
+          ? '请为每条线路选择颜色。'
+          : message.includes('Route appears more than once in the route tree')
             ? '同一条线路在树中出现多次。'
             : message.includes('Route tree root must be a route point')
-                ? '线路树的根必须是线路节点。'
-                : message.includes('Invalid route tree coordinates')
-                  ? '线路位置数据无效，请重试。'
-                  : message.includes('Unsupported route tree version')
-                    ? '线路树版本不受支持，请重新创建线路树。'
-                    : message.includes('Route tree references an unknown route')
-                      ? '线路树引用了不存在的线路。'
-                      : '保存失败，原有线路未改变，请重试。'
+              ? '线路树的根必须是线路节点。'
+              : message.includes('Invalid route tree coordinates')
+                ? '线路位置数据无效，请重试。'
+                : message.includes('Unsupported route tree version')
+                  ? '线路树版本不受支持，请重新创建线路树。'
+                  : message.includes('Route tree references an unknown route')
+                    ? '线路树引用了不存在的线路。'
+                    : '保存失败，原有线路未改变，请重试。'
   } finally {
     saving.value = false
   }

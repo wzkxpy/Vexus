@@ -32,7 +32,7 @@ try {
     lockCondition: null, status: 'NotStarted', playtime: 0
   })
   service.saveGameRoutes('game', [route('a', 'character'), route('b', 'character'),
-    route('common', 'common'), route('chapter', 'chapter'), route('main', 'main')])
+    route('common', 'common'), route('chapter', 'chapter'), route('main', 'main'), route('ending', 'ending')])
   service.saveGameRoutes('other', [route('other-route', 'character', 'other')])
   // 每条线路保存时都必须带自己的颜色。
   const colors = repo.getByGame('game').map(item => item.color)
@@ -48,7 +48,7 @@ try {
   service.saveGameRoutes('game', staleDraft)
   assert.equal(status('a'), 'OnHold')
   assert.equal(status('b'), 'Playing')
-  for (const type of ['common', 'chapter', 'main']) {
+  for (const type of ['common', 'chapter', 'main', 'ending']) {
     service.updateRouteStatus('game', type, 'Playing')
     service.updateRouteStatus('game', 'b', 'Playing')
     assert.equal(status(type), 'Completed')

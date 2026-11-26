@@ -207,5 +207,15 @@ export function initDatabase(db: Database) {
         SET route_tag = OLD.name
         WHERE route_id = OLD.id AND route_tag IS NULL;
     END;
+
+    -- 5. 自动游玩记录结束后更新游戏的最后运行时间。
+    CREATE TRIGGER IF NOT EXISTS update_game_last_run_after_insert
+    AFTER INSERT ON sessions
+    WHEN NEW.source = 'auto' AND NEW.ended_at IS NOT NULL
+    BEGIN
+        UPDATE games
+        SET last_run_at = NEW.ended_at
+        WHERE id = NEW.game_id;
+    END;
   `)
 }

@@ -5,7 +5,7 @@
     <header class="drag-region">
       <h1>Vexus</h1>
     </header>
-    <main class="main-content">
+    <main ref="contentElement" class="main-content" @scroll.passive="handleContentScroll">
       <div class="library-toolbar">
         <div class="library-actions">
           <button
@@ -70,7 +70,7 @@
 
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import type { Game } from '@/shared/types'
 import { useGameStore } from '@/renderer/stores/game.store'
 import GameCard from '@/renderer/components/GameCard.vue'
@@ -84,6 +84,21 @@ import { sortSeriesGames } from '@/shared/utils/series'
 const gameStore = useGameStore()
 const uiStore = useUIStore()
 const settingsStore = useSettingsStore()
+
+// 页面被 KeepAlive 缓存后实例仍在；模块级变量同时兜底组件重建的情况。
+const contentElement = ref<HTMLElement | null>(null)
+let savedScrollTop = 0
+
+function handleContentScroll() {
+  if (contentElement.value) savedScrollTop = contentElement.value.scrollTop
+}
+
+function restoreContentScroll() {
+  if (contentElement.value) contentElement.value.scrollTop = savedScrollTop
+}
+
+onMounted(restoreContentScroll)
+onActivated(restoreContentScroll)
 
 const seriesMode = computed(() => settingsStore.settings?.librarySeriesMode ?? false)
 

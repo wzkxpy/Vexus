@@ -10,15 +10,31 @@
 
       <div class="modal-body">
         <template v-if="type === 'exePath'">
-          <label class="field">
-            <span class="field-label">可执行文件路径</span>
-            <input v-model="form.exePath" placeholder="请输入游戏可执行文件路径" />
-          </label>
+          <div class="field">
+            <div class="path-picker">
+              <input v-model="form.exePath" placeholder="请输入游戏可执行文件路径" />
+              <button
+                type="button"
+                class="path-picker-btn"
+                aria-label="选择可执行文件"
+                title="选择可执行文件"
+                @click="pickExecutable"
+              >
+                <FolderOpen :size="16" />
+              </button>
+            </div>
+            <input
+              ref="exeInputRef"
+              type="file"
+              accept=".exe"
+              hidden
+              @change="onSelectExecutable"
+            />
+          </div>
         </template>
 
         <template v-else-if="type === 'description'">
           <label class="field">
-            <span class="field-label">简介内容</span>
             <textarea
               v-model="form.description"
               class="large"
@@ -71,7 +87,7 @@
               <input v-model="form.basicInfo!.releaseDate" placeholder="yyyy-mm-dd" />
             </label>
             <label class="field">
-              <span class="field-label">游戏时长</span>
+              <span class="field-label">预计时长</span>
               <input v-model="form.basicInfo!.estimatedTime" placeholder="-h-m" />
             </label>
           </div>
@@ -79,7 +95,6 @@
 
         <template v-else-if="type === 'tags'">
           <label class="field">
-            <span class="field-label">标签</span>
             <textarea
               v-model="tagsInput"
               placeholder="多个标签用逗号分隔"
@@ -157,6 +172,7 @@ import type {
 import { useGameStore } from '@/renderer/stores/game.store'
 import { useRoute } from 'vue-router'
 import CloseButton from '@/renderer/components/CloseButton.vue'
+import { FolderOpen } from '@lucide/vue'
 import { computeTitleSplit } from '@/shared/utils/title'
 
 const route = useRoute()
@@ -247,6 +263,27 @@ const title = computed(() => {
 
 function close() {
   if (!fetching.value && !saving.value) emit('close')
+}
+
+// 复用渲染进程的文件输入：选中后取系统绝对路径，输入框仍可手动粘贴修改。
+const exeInputRef = ref<HTMLInputElement | null>(null)
+
+function pickExecutable() {
+  exeInputRef.value?.click()
+}
+
+async function onSelectExecutable(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // 清空以便再次选择同一个文件也能触发 change。
+  input.value = ''
+  if (!file) return
+  try {
+    form.exePath = await window.fileAPI.getFilePath(file)
+  } catch (error) {
+    console.error('Failed to read executable path:', error)
+    errorMessage.value = '读取文件路径失败，请重试。'
+  }
 }
 
 function applySection(result: ProviderSectionResult) {
@@ -480,6 +517,40 @@ const handleSave = async () => {
 
 .field.full {
   grid-column: 1 / -1;
+}
+
+.path-picker {
+  display: flex;
+  gap: 8px;
+}
+
+.path-picker input {
+  flex: 1;
+  min-width: 0;
+}
+
+.path-picker-btn {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 39px;
+  border: 1px solid #dde3ec;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #5b6678;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.path-picker-btn:hover {
+  border-color: #c8d2e1;
+  background: #eef2f8;
+  color: #4668b8;
+}
+
+.path-picker-btn:focus-visible {
+  outline: 2px solid #7899e2;
+  outline-offset: 2px;
 }
 
 .field-label {

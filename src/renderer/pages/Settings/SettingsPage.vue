@@ -133,7 +133,7 @@ const themeOptions = [
 const settingsStore = useSettingsStore()
 
 // 与主进程 Settings 保持相同结构；默认值仅用于加载期间兜底。
-const form = reactive<Settings>({ autoLaunch: false, theme: 'system', gameTitle: 'Local', subTitle: true, bangumiToken: '', magpiePath: '', magpieHotkey: '', proxy: { enabled: false, protocol: 'http', host: '', port: 7890 }, gameSortType: 'addedAt', gameSortOrder: 'asc', librarySeriesMode: false })
+const form = reactive<Settings>({ autoLaunch: false, theme: 'system', gameTitle: 'Local', subTitle: true, playtimeFormat: 'detail', bangumiToken: '', magpiePath: '', magpieHotkey: '', proxy: { enabled: false, protocol: 'http', host: '', port: 7890 }, gameSortType: 'addedAt', gameSortOrder: 'asc', librarySeriesMode: false })
 const loading = ref(true), showToken = ref(false), activeSection = ref('general')
 const aliasError = ref(''), openingFile = ref(false)
 // 主进程确保文件存在后交给系统默认程序打开；映射只影响之后新增或更新的角色数据。

@@ -5,7 +5,6 @@
       <div class="modal-header">
         <div>
           <h3 id="character-sort-title">编辑角色</h3>
-          <p>拖动角色，或使用右侧按钮调整位置。</p>
         </div>
         <button class="close-btn" aria-label="关闭" :disabled="busy" @click="close">
           <X :size="16" />

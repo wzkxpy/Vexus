@@ -2,11 +2,14 @@
 <template>
   <div class="app">
     <router-view v-slot="{ Component, route }">
-      <component
-        :is="Component"
-        :key="route.path"
-        class="page-view"
-      />
+      <!-- 游戏库保活：返回时复用已有卡片 DOM 与滚动容器，避免封面重新加载。 -->
+      <KeepAlive :include="['LibraryPage']">
+        <component
+          :is="Component"
+          :key="route.path"
+          class="page-view"
+        />
+      </KeepAlive>
     </router-view>
     <PageNavigator />
   </div>

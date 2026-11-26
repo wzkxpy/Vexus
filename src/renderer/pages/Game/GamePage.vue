@@ -1,6 +1,6 @@
 <!-- src/renderer/pages/Game/GamePage.vue -->
 <template>
-  <div v-if="game" ref="pageElement" class="game-page" @scroll.passive="handlePageScroll">
+  <div v-if="game" ref="pageElement" class="game-page" :class="{ 'modal-open': uiStore.activeModal !== null }" @scroll.passive="handlePageScroll">
     <div class="drag-area"></div>
     <Transition name="compact-header">
       <header v-if="showCompactHeader" class="compact-header" aria-label="游戏快捷操作">
@@ -326,7 +326,7 @@ const menuItems = computed(() => [
   { label: '划分主副标题', action: () => uiStore.activeModal = 'titleSplit' },
   { label: '编辑数据源 ID', action: () => uiStore.activeModal = 'external-ids' },
   // { label: '更新游戏信息', action: () =>  gameActions.updateGameInfo(game.value!) },
-  { label: '标记 FD', action: () => gameActions.toggleFanDisc(game.value!), checked: game.value?.isFanDisc },
+  { label: '标记为 FD', action: () => gameActions.toggleFanDisc(game.value!), checked: game.value?.isFanDisc },
   { label: '标记 NSFW', action: () => gameActions.toggleNSFW(game.value!), checked: game.value?.settings?.nsfw },
   { label: '启用 Magpie', action: () => gameActions.toggleMagpie(game.value!), checked: game.value?.settings?.magpie },
   { label: '配置媒体文件', action: () => uiStore.activeModal = 'media' },
@@ -352,7 +352,7 @@ const currentStatus = computed(() => {
 });
 
 // 游玩时长
-const playtimeFormat = ref<'detail' | 'decimal'>('detail')
+const playtimeFormat = computed(() => settingsStore.settings?.playtimeFormat ?? 'detail')
 const totalPlaytime = computed(() =>
   game.value
     ? game.value.record.sessionPlaytime +
@@ -371,11 +371,15 @@ const formattedPlaytime = computed(() => {
   if (h > 0) return `${h}h${m}m`
   return `${m}m`
 })
-const togglePlaytimeFormat = () => {
-  playtimeFormat.value =
-    playtimeFormat.value === 'detail'
-      ? 'decimal'
-      : 'detail'
+const togglePlaytimeFormat = async () => {
+  try {
+    await settingsStore.save(
+      'playtimeFormat',
+      playtimeFormat.value === 'detail' ? 'decimal' : 'detail'
+    )
+  } catch (error) {
+    console.error('Failed to save playtime format:', error)
+  }
 }
 
 // 用于手动标题划分保存
@@ -461,6 +465,9 @@ watch(
 .series-segment:hover::after { background: #b3bfd1; }
 .series-segment.active::after { background: var(--accent); }
 .drag-area { position: fixed; top: 0; right: 138px; left: 0; z-index: 99; height: 52px; -webkit-app-region: drag; }
+/* 拖动区域不遵循弹窗的层级，弹窗打开时必须关闭，否则重叠处只能拖动窗口。 */
+.game-page.modal-open .drag-area,
+.game-page.modal-open .compact-header { -webkit-app-region: no-drag; }
 button { font: inherit; cursor: pointer; transition: background .18s, color .18s, box-shadow .18s; }
 button:focus-visible { outline: 3px solid #91b4ff; outline-offset: 4px; }
 .back-btn {

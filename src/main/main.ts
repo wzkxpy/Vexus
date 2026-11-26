@@ -8,6 +8,7 @@ import { initDatabase } from './database/index'
 import { GameRepository } from './database/game.repo'
 import { GameService } from './database/game.service'
 import { MediaService } from './services/media'
+import * as fs from 'fs'
 import * as path from 'path'
 import { SessionService } from './database/session.service';
 import { SessionRepository } from './database/session.repo';
@@ -46,12 +47,25 @@ app.whenReady().then(() => {
   container.register('sessionService', sessionService)
   container.register('routeRepo', routeRepo)
   // 注册自定义协议用于加载媒体文件
-  protocol.handle('vexus-media', (request) => {
-    const url = request.url.replace('vexus-media://', '')
-    const filePath = path.join(app.getPath('userData'), 'media', url)
-    return new Response(
-      require('fs').readFileSync(filePath)
-    )
+  const mediaDir = path.join(app.getPath('userData'), 'media')
+  protocol.handle('vexus-media', async (request) => {
+    const relativePath = request.url.replace('vexus-media://', '')
+    const filePath = path.resolve(mediaDir, relativePath)
+    // 校验解析后的路径，阻止 ../ 逃逸出媒体目录
+    if (!filePath.startsWith(mediaDir + path.sep)) {
+      return new Response(null, { status: 404 })
+    }
+    try {
+      return new Response(await fs.promises.readFile(filePath), {
+        headers: {
+          'Content-Type': 'image/webp',
+          // 媒体文件名不复用，可长期缓存；再次展示封面时无需重新读盘。
+          'Cache-Control': 'public, max-age=31536000, immutable'
+        }
+      })
+    } catch {
+      return new Response(null, { status: 404 })
+    }
   })
 
   // 创建主窗口

@@ -76,8 +76,9 @@ const pointSize = (point: RouteTreePoint, routesById: Map<string, Route>,
 }
 
 // 每个点都保存坐标；这里只把结构解析为可渲染节点和边。
+// bottomPadding 供编辑器画布保留拖放空间，概览页可由调用方去掉。
 export function buildRouteLayout(tree: RouteTree, routesById: Map<string, Route>,
-  measure: (text: string, size: number) => number): RouteTreeLayout {
+  measure: (text: string, size: number) => number, bottomPadding = CANVAS_PADDING): RouteTreeLayout {
   const nodes: RouteLayoutNode[] = []
   const edges: RouteTreeEdge[] = []
 
@@ -123,7 +124,7 @@ export function buildRouteLayout(tree: RouteTree, routesById: Map<string, Route>
     nodes,
     edges,
     width: nodes.length ? maxRight + CANVAS_PADDING : 0,
-    height: nodes.length ? maxBottom + CANVAS_PADDING : 0,
+    height: nodes.length ? maxBottom + bottomPadding : 0,
     fontSize: ROUTE_FONT_SIZE,
     padding: ROUTE_PADDING
   }

@@ -129,7 +129,8 @@ const measureName = (text: string, size: number) => {
   return textContext.measureText(text).width
 }
 const routesById = computed(() => new Map(props.routes.map(route => [route.id, route])))
-const layout = computed(() => buildRouteLayout(props.tree, routesById.value, measureName))
+// 概览区块自身已有内边距，画布止于最低节点，不再额外补底部空白。
+const layout = computed(() => buildRouteLayout(props.tree, routesById.value, measureName, 0))
 const routeNodes = computed(() => layout.value.nodes.filter(node => !node.isFork))
 const forkNodes = computed(() => layout.value.nodes.filter(node => node.isFork))
 const nodeStatus = (node: RouteLayoutNode): RouteStatus => node.route?.status ?? 'NotStarted'
