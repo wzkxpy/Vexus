@@ -1,5 +1,7 @@
 // src/preload/index.ts
 import type {
+  BackupExportResult,
+  BackupProgress,
   CharacterDraft,
   ExternalScoreFetchResult,
   Game,
@@ -73,6 +75,15 @@ contextBridge.exposeInMainWorld('fileAPI', {
 
 contextBridge.exposeInMainWorld('clipboardAPI', {
   writeText: (text: string): Promise<void> => ipcRenderer.invoke('clipboard:writeText', text)
+})
+
+contextBridge.exposeInMainWorld('backupAPI', {
+  exportBackup: (): Promise<BackupExportResult> => ipcRenderer.invoke('backup:export'),
+  onProgress: (callback: (progress: BackupProgress) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, progress: BackupProgress) => callback(progress)
+    ipcRenderer.on('backup:progress', listener)
+    return () => ipcRenderer.removeListener('backup:progress', listener)
+  }
 })
 
 // 读取设置 API

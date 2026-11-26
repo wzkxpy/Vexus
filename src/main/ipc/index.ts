@@ -2,11 +2,12 @@
 // Electron IPC 
 // 负责注册主进程的 IPC 事件处理器, 供 preload 暴露给渲染进程调用
 
-import { ipcMain, BrowserWindow, clipboard } from 'electron'
+import { app, dialog, ipcMain, BrowserWindow, clipboard } from 'electron'
+import * as path from 'path'
 import { GameService } from '../database/game.service'
 import { SessionService } from '../database/session.service'
 import { Game, NewGame, Route, RouteStatus, RouteTree, Session, GAME_METADATA_SECTIONS } from '@/shared/types'
-import type { GameMetadataSection, ProviderSource } from '@/shared/types'
+import type { BackupExportResult, GameMetadataSection, ProviderSource } from '@/shared/types'
 import { SessionImportService } from '../services/sessionImport'
 import { searchGames, fetchGame, buildGame } from '../providers/manager'
 import { launchGame, stopGame, openFolder } from '../services/launch'
@@ -14,6 +15,7 @@ import { getSettings, getSetting, setSetting, Settings } from '../settings'
 import { RouteService } from '../database/route.service'
 import { RouteTreeService } from '../services/routeTree'
 import type { VoiceActorAliasService } from '../services/voiceActorAlias'
+import type { BackupService } from '../services/backup'
 // export function registerAllIPC() {
   
 // }
@@ -187,6 +189,36 @@ export function registerProviderIPC(gameService: GameService) {
     }
     return gameService.fetchExternalScores(gameId)
   })
+}
+
+export function registerBackupIPC(backupService: BackupService) {
+  ipcMain.handle('backup:export', async (event): Promise<BackupExportResult> => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const options = {
+      title: '导出备份',
+      defaultPath: path.join(app.getPath('documents'), backupFileName(new Date())),
+      filters: [{ name: 'Vexus 备份', extensions: ['zip'] }]
+    }
+    const result = win
+      ? await dialog.showSaveDialog(win, options)
+      : await dialog.showSaveDialog(options)
+    if (result.canceled || !result.filePath) return { canceled: true }
+
+    const exported = await backupService.export(result.filePath, progress => {
+      if (event.sender.isDestroyed()) return
+      try {
+        event.sender.send('backup:progress', progress)
+      } catch {
+        // 窗口在导出期间关闭时忽略进度发送失败。
+      }
+    })
+    return { canceled: false, path: exported.path, bytes: exported.bytes }
+  })
+}
+
+function backupFileName(now: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `Vexus-Backup-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}.zip`
 }
 
 function isGameMetadataSection(value: string): value is GameMetadataSection {

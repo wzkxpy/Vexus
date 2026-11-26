@@ -1,3 +1,4 @@
+export * from './backup'
 export * from './game'
 export * from './metadata'
 export * from './route'

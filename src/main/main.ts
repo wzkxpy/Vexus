@@ -2,7 +2,7 @@
 // import 'dotenv/config' // 创建环境变量
 import { app, BrowserWindow, Menu, nativeImage, protocol, Tray } from 'electron';
 import { createWindow } from './window';
-import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerSettingsIPC, registerFileIPC, registerClipboardIPC } from './ipc';
+import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerSettingsIPC, registerFileIPC, registerClipboardIPC, registerBackupIPC } from './ipc';
 import Database from 'better-sqlite3'
 import { initDatabase } from './database/index'
 import { GameRepository } from './database/game.repo'
@@ -20,6 +20,7 @@ import { RouteService } from './database/route.service';
 import { RouteTreeFileStore } from './services/routeTreeFile';
 import { RouteTreeService } from './services/routeTree';
 import { VoiceActorAliasService } from './services/voiceActorAlias';
+import { BackupService } from './services/backup';
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -85,6 +86,7 @@ app.whenReady().then(() => {
   const sessionRepo = new SessionRepository(db)
   const sessionService = new SessionService(sessionRepo, routeRepo)
   const sessionImportService = new SessionImportService(sessionService)
+  const backupService = new BackupService(db, app.getPath('userData'), app.getVersion())
   container.register('sessionService', sessionService)
   container.register('routeRepo', routeRepo)
   // 注册自定义协议用于加载媒体文件
@@ -123,6 +125,7 @@ app.whenReady().then(() => {
   // 注册 IPC 处理器
   registerWindowIPC(win)  // Register IPC handlers for the window
   registerDBIPC(gameService, sessionService, sessionImportService, routeService, routeTreeService) // Register database-related IPC handlers
+  registerBackupIPC(backupService)
   registerFileIPC()
   registerClipboardIPC()
   registerLaunchIPC() // Register IPC handlers for launching games

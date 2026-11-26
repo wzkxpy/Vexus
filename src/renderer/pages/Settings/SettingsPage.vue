@@ -69,6 +69,11 @@
                 {{ openingFile ? '打开中…' : '打开文件' }}
               </button>
             </SettingRow>
+            <SettingRow title="数据备份">
+              <button class="file-btn" type="button" :disabled="exporting" @click="exportBackup">
+                {{ exporting ? exportLabel : '导出' }}
+              </button>
+            </SettingRow>
             <SettingRow title="使用代理">
               <label class="switch"><input aria-label="使用代理" v-model="form.proxy.enabled" type="checkbox"
                   @change="saveProxy"><span /></label>
@@ -87,6 +92,8 @@
             </div>
           </div>
           <p v-if="aliasError" class="alias-error" role="alert">{{ aliasError }}</p>
+          <p v-if="backupMessage" class="backup-status" role="status">{{ backupMessage }}</p>
+          <p v-if="backupError" class="alias-error" role="alert">{{ backupError }}</p>
         </section>
 
         <!-- 第三方辅助工具配置 -->
@@ -107,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineComponent, h, onMounted, reactive, ref, toRaw } from 'vue'
+import { computed, defineComponent, h, onBeforeUnmount, onMounted, reactive, ref, toRaw } from 'vue'
 import { ChevronRight, Eye, EyeOff, Globe2, Monitor, Moon, PanelsTopLeft, SlidersHorizontal, Sun, Wrench } from '@lucide/vue'
 import type { Settings } from '@/shared/types'
 import { useSettingsStore } from '@/renderer/stores/settings.store'
@@ -136,6 +143,42 @@ const settingsStore = useSettingsStore()
 const form = reactive<Settings>({ autoLaunch: false, theme: 'system', gameTitle: 'Local', subTitle: true, playtimeFormat: 'detail', bangumiToken: '', magpiePath: '', magpieHotkey: '', proxy: { enabled: false, protocol: 'http', host: '', port: 7890 }, gameSortType: 'addedAt', gameSortOrder: 'asc', librarySeriesMode: false })
 const loading = ref(true), showToken = ref(false), activeSection = ref('general')
 const aliasError = ref(''), openingFile = ref(false)
+const exporting = ref(false), backupPercent = ref<number | null>(null)
+const backupMessage = ref(''), backupError = ref('')
+let disposeBackupProgress: (() => void) | undefined
+const exportLabel = computed(() =>
+  backupPercent.value === null ? '导出中…' : `导出中 ${backupPercent.value}%`
+)
+// 进度只在导出期间订阅；取消或失败时回到普通状态。
+async function exportBackup() {
+  if (exporting.value) return
+  exporting.value = true
+  backupPercent.value = null
+  backupMessage.value = ''
+  backupError.value = ''
+  disposeBackupProgress = window.backupAPI.onProgress(progress => {
+    if (progress.totalBytes <= 0) return
+    backupPercent.value = Math.min(100, Math.round(progress.processedBytes / progress.totalBytes * 100))
+  })
+  try {
+    const result = await window.backupAPI.exportBackup()
+    if (!result.canceled && result.path) {
+      backupMessage.value = `已保存到 ${result.path}`
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    backupError.value = message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '') || '导出备份失败'
+  } finally {
+    disposeBackupProgress?.()
+    disposeBackupProgress = undefined
+    exporting.value = false
+    backupPercent.value = null
+  }
+}
+onBeforeUnmount(() => {
+  disposeBackupProgress?.()
+  disposeBackupProgress = undefined
+})
 // 主进程确保文件存在后交给系统默认程序打开；映射只影响之后新增或更新的角色数据。
 async function openVoiceActorAliasesFile() {
   if (openingFile.value) return
@@ -254,6 +297,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .file-btn:hover:not(:disabled) { background: #e2ebfb; }
 .file-btn:disabled { opacity: .5; cursor: default; }
 .alias-error { margin: 10px 2px 0; color: #c84d5a; font-size: 13px; }
+.backup-status { margin: 10px 2px 0; color: #3f6b4f; font-size: 13px; word-break: break-all; }
 .full-input { width: 100%; }
 .hotkey-input { width: 220px; }
 .loading-card { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 180px; color: #4c5d77; }

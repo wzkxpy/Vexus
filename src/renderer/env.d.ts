@@ -3,6 +3,8 @@
 /// <reference types="vite/client" />
 export {}
 import type {
+  BackupExportResult,
+  BackupProgress,
   CharacterDraft,
   ExternalScoreFetchResult,
   Game,
@@ -24,6 +26,11 @@ declare global {
       minimize: () => void
       maximize: () => void
       close: () => void
+    },
+
+    backupAPI: {
+      exportBackup: () => Promise<BackupExportResult>
+      onProgress: (callback: (progress: BackupProgress) => void) => () => void
     },
 
     databaseAPI: {

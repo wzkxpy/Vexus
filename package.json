@@ -58,6 +58,7 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
+    "@types/archiver": "^8.0.0",
     "@types/ps-tree": "^1.1.6",
     "@vitejs/plugin-vue": "^6.0.4",
     "electron": "^39.5.0",
@@ -68,6 +69,7 @@
   },
   "dependencies": {
     "@lucide/vue": "^1.64.0",
+    "archiver": "^8.0.0",
     "axios": "^1.15.0",
     "better-sqlite3": "^12.6.2",
     "chart.js": "^4.5.1",
