@@ -81,6 +81,10 @@ export class GameMonitor {
     return this.active
   }
 
+  public getGameId() {
+    return this.gameId
+  }
+
   public stop() {
     if (!this.active) return
     this.finalize()
@@ -156,7 +160,7 @@ export class GameMonitor {
     }
   }
   
-  // ps-tree 依赖已被新版 Windows 移除的 wmic.exe，改用 PowerShell CIM 枚举进程表。
+  // 进程发现不能依赖新版 Windows 已移除的 wmic.exe，改用 PowerShell CIM 枚举进程表。
   private findChildPids(pid: number): Promise<number[]> {
     const command = 'Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId | Select-Object ProcessId,ParentProcessId | ConvertTo-Json -Compress'
     return new Promise((resolve, reject) => {

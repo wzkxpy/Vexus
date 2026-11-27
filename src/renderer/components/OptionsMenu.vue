@@ -30,6 +30,7 @@
           }"
           type="button"
           role="menuitem"
+          :disabled="item.disabled"
           @click="handleClick(item)"
         >
           <span class="indicator" />
@@ -49,6 +50,7 @@ interface MenuItem<T = any> {
   checked?: boolean  // 多选状态用, 是否选中
   action: (context?: T) => void | Promise<void>
   danger?: boolean
+  disabled?: boolean
 }
 
 const props = defineProps<{
@@ -64,6 +66,7 @@ const toggleMenu = () => (showMenu.value = !showMenu.value)
 const closeMenu = () => (showMenu.value = false)
 
 const handleClick = async (item: MenuItem) => {
+  if (item.disabled) return
   await item.action(props.context)
   closeMenu()
 }
@@ -206,8 +209,8 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.menu-item:hover,
-.menu-item:focus-visible {
+.menu-item:not(:disabled):hover,
+.menu-item:not(:disabled):focus-visible {
   color: #0f172a;
   background: #f1f5f9;
   outline: none;
@@ -218,10 +221,16 @@ onBeforeUnmount(() => {
   color: #dc2626;
 }
 
-.menu-item.danger:hover,
-.menu-item.danger:focus-visible {
+.menu-item.danger:not(:disabled):hover,
+.menu-item.danger:not(:disabled):focus-visible {
   color: #b91c1c;
   background: #fee2e2;
+}
+
+.menu-item:disabled {
+  color: #b8bfca;
+  background: transparent;
+  cursor: default;
 }
 
 .menu-pop-enter-active,

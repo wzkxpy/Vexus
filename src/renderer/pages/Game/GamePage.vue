@@ -9,8 +9,9 @@
           <span v-if="displayTitleParts.sub">{{ displayTitleParts.sub }}</span>
         </div>
         <span v-if="playtimeScrolledPast" class="compact-playtime">{{ formattedPlaytime }}</span>
-        <button v-if="launchScrolledPast" class="launch-btn compact-launch" :class="{ running: isRunning }" :disabled="launchPending"
-          :aria-busy="launchPending" :aria-label="launchPending ? '请稍候' : isRunning ? '停止游戏' : '启动游戏'"
+        <button v-if="launchScrolledPast" class="launch-btn compact-launch" :class="{ running: isRunning }" :disabled="launchPending || launchBlocked"
+          :aria-busy="launchPending"
+          :aria-label="launchPending ? '请稍候' : isRunning ? '停止游戏' : launchBlocked ? '已有游戏在运行中，无法启动' : '启动游戏'"
           @click="handleLaunchToggle">
           <Square v-if="isRunning" :size="13" fill="currentColor" />
           <Play v-else :size="15" fill="currentColor" />
@@ -59,7 +60,7 @@
           </h1>
           
           <div class="action-row">
-            <button ref="launchElement" class="launch-btn" :class="{ running: isRunning }" :disabled="launchPending" :aria-busy="launchPending" @click="handleLaunchToggle">
+            <button ref="launchElement" class="launch-btn" :class="{ running: isRunning }" :disabled="launchPending || launchBlocked" :aria-busy="launchPending" @click="handleLaunchToggle">
               <Square v-if="isRunning" :size="13" fill="currentColor" />
               <Play v-else :size="15" fill="currentColor" />
               {{ launchPending ? '请稍候…' : isRunning ? '停止游戏' : '启动游戏' }}
@@ -297,9 +298,10 @@ const scoreLine = computed(() => {
 
 // 游戏启动 / 停止
 const isRunning = computed(() => runtimeStore.isGameRunning(game.value?.id || ''))
+const launchBlocked = computed(() => runtimeStore.isRunning && !isRunning.value)
 const launchPending = ref(false)
 const handleLaunchToggle = async () => {
-  if (!game.value || launchPending.value) return
+  if (!game.value || launchPending.value || launchBlocked.value) return
   launchPending.value = true
   try {
     if (isRunning.value) await gameActions.stopGame(game.value)
@@ -330,7 +332,7 @@ const menuItems = computed(() => [
   { label: '标记 NSFW', action: () => gameActions.toggleNSFW(game.value!), checked: game.value?.settings?.nsfw },
   { label: '启用 Magpie', action: () => gameActions.toggleMagpie(game.value!), checked: game.value?.settings?.magpie },
   { label: '配置媒体文件', action: () => uiStore.activeModal = 'media' },
-  { label: '移除游戏', action: () => gameActions.removeGame(game.value!), danger: true }
+  { label: '移除游戏', action: () => gameActions.removeGame(game.value!), danger: true, disabled: isRunning.value }
 ])
 
 // 游玩状态
@@ -528,7 +530,7 @@ button:focus-visible { outline: 3px solid #91b4ff; outline-offset: 4px; }
 .launch-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-width: 148px; height: 42px; padding: 0 23px; border: 0; border-radius: 10px; background: #597bd3; color: white; font-size: 13px; font-weight: 600; box-shadow: 0 5px 14px #597bd330; }
 .launch-btn:hover { background: #496bc2; box-shadow: 0 6px 18px #597bd345; }
 .launch-btn.running { background: #cf6473; }
-.launch-btn:disabled { opacity: .6; cursor: wait; }
+.launch-btn:disabled { background: #e4e8f0; color: #9aa3b2; box-shadow: none; cursor: default; }
 .settings-btn { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid #e4e8f0; border-radius: 10px; color: #7a879e; background: #f8f9fc; }
 .settings-btn:hover, .edit-btn:hover { background: #eaf0fc; color: var(--accent); }
 .stats-row { display: flex; flex-wrap: wrap; gap: 16px 24px; padding-top: 12px; border-top: 1px solid #eef0f5; }

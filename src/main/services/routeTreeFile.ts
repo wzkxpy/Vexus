@@ -50,4 +50,10 @@ export class RouteTreeFileStore {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     }
   }
+
+  remove(gameId: string): void {
+    const filePath = this.pathFor(gameId)
+    fs.rmSync(filePath, { force: true })
+    fs.rmSync(`${filePath}.tmp`, { force: true })
+  }
 }

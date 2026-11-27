@@ -41,7 +41,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "build/icon.ico",
@@ -59,11 +61,9 @@
     }
   },
   "devDependencies": {
-    "@electron/rebuild": "^4.0.3",
     "@types/archiver": "^8.0.0",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.20.7",
-    "@types/ps-tree": "^1.1.6",
     "@vitejs/plugin-vue": "^6.0.4",
     "electron": "^39.5.0",
     "electron-builder": "^26.18.0",
@@ -76,18 +76,12 @@
   "dependencies": {
     "@lucide/vue": "^1.64.0",
     "archiver": "^8.0.0",
-    "axios": "^1.15.0",
     "better-sqlite3": "^12.6.2",
     "chart.js": "^4.5.1",
-    "dotenv": "^17.4.2",
     "electron-store": "^11.0.2",
-    "https-proxy-agent": "^9.0.0",
     "pinia": "^3.0.4",
-    "ps-tree": "^1.2.0",
     "sharp": "^0.34.5",
-    "tree-kill": "^1.2.2",
     "undici": "^8.3.0",
-    "uuid": "^13.0.0",
     "vue": "^3.5.27",
     "vue-chartjs": "^5.3.3",
     "vue-router": "^5.0.2"

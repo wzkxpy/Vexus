@@ -48,9 +48,26 @@ export function useGameActions() {
 
   // 删除游戏
   const removeGame = async (game: Game) => {
-    const ok = confirm(`确定删除游戏「${game.originalTitle}」吗？`)
+    // 删除入口在运行中已禁用；这里再兜底，不打断用户。
+    if (runtimeStore.isGameRunning(game.id)) return
+
+    const ok = confirm(
+      `确定删除游戏「${game.originalTitle}」吗？\n\n` +
+      '封面、角色头像和线路树会一并删除，游戏本体和存档不会删除。'
+    )
     if (!ok) return
-    await gameStore.deleteGame(game.id)
+
+    try {
+      const deleted = await gameStore.deleteGame(game.id)
+      if (!deleted) return
+    } catch (err: unknown) {
+      const message = err instanceof Error
+        ? err.message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
+        : ''
+      alert(message || '删除失败')
+      return
+    }
+
     if (window.history.length > 1) {
       router.back()
     } else {

@@ -12,7 +12,7 @@ import { Game, NewGame, Route, RouteStatus, RouteTree, Session, GAME_METADATA_SE
 import type { BackupExportResult, GameMetadataSection, ProviderSource } from '@/shared/types'
 import { SessionImportService } from '../services/sessionImport'
 import { searchGames, fetchGame, buildGame } from '../providers/manager'
-import { launchGame, stopGame, openFolder } from '../services/launch'
+import { launchGame, stopGame, openFolder, isGameRunning } from '../services/launch'
 import { getSettings, getSetting, setSetting, Settings } from '../settings'
 import { RouteService } from '../database/route.service'
 import { RouteTreeService } from '../services/routeTree'
@@ -154,6 +154,7 @@ export function registerDBIPC(
     return gameService.addGame(newgame)
   })
   handle('deleteGame', (_, id: string) => {
+    if (isGameRunning(id)) throw new UserError('请先停止游戏')
     return gameService.deleteGame(id)
   })
   handle('getGame', (_, id: string) => {

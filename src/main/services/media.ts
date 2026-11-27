@@ -143,6 +143,16 @@ export class MediaService {
     }
   }
 
+  // 删除整款游戏的媒体目录；校验解析后的路径仍是 media 根目录的直接子项。
+  deleteGameMedia(gameId: string) {
+    const mediaRoot = path.resolve(this.mediaBaseDir)
+    const gameDir = path.resolve(mediaRoot, gameId)
+    if (path.dirname(gameDir) !== mediaRoot) {
+      throw new Error('Invalid game id')
+    }
+    fs.rmSync(gameDir, { recursive: true, force: true })
+  }
+
   cleanupUnusedCharacterAvatars(gameId: string, previous: Character[], next: Character[]) {
     const retained = new Set(next.map(character => character.avatarPath).filter(Boolean))
     for (const character of previous) {

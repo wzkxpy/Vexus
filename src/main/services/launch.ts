@@ -5,14 +5,14 @@ import * as path from 'path'
 import { shell } from 'electron'
 import { GameMonitor } from './monitor'
 import { container } from '../container'
-import { SessionService } from '../database/session.service'
-import { RouteRepository } from '../database/route.repo'
+import type { SessionService } from '../database/session.service'
+import type { RouteRepository } from '../database/route.repo'
 import { logger } from '../logger'
 import { UserError } from '../utils/errors'
-const kill = require('tree-kill')
 
 
 let gameMonitor: GameMonitor | null = null
+let launching = false
 
 function killPid(pid: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -32,6 +32,20 @@ function killPid(pid: number): Promise<boolean> {
 
 // 启动游戏
 export async function launchGame(gameId: string, exePath: string) {
+  // 主进程兜底：渲染进程状态可能滞后，不能只依赖界面禁用启动按钮。
+  if (launching || isGameRunning()) {
+    throw new UserError('已有游戏在运行中')
+  }
+
+  launching = true
+  try {
+    return await startGame(gameId, exePath)
+  } finally {
+    launching = false
+  }
+}
+
+async function startGame(gameId: string, exePath: string) {
   if (!fs.existsSync(exePath)) {
     throw new UserError('Exe file is not exist')
   }
@@ -84,8 +98,9 @@ export async function launchGame(gameId: string, exePath: string) {
   return { success: true, pid }
 }
 
-export function isGameRunning() {
-  return gameMonitor?.isActive() ?? false
+export function isGameRunning(gameId?: string) {
+  if (!gameMonitor?.isActive()) return false
+  return gameId ? gameMonitor.getGameId() === gameId : true
 }
 
 // 退出兜底：只落库，不杀游戏，也不触发窗口通知。

@@ -1,5 +1,5 @@
 // src/main/services/game.service.ts
-import { GameRepository } from './game.repo'
+import type { GameRepository } from './game.repo'
 import { GAME_METADATA_SECTIONS } from '@/shared/types'
 import type {
   CharacterDraft,
@@ -9,8 +9,9 @@ import type {
   NewGame,
   ProviderSource
 } from '@/shared/types'
-import { MediaService } from '../services/media'
-import { VoiceActorAliasService } from '../services/voiceActorAlias'
+import type { MediaService } from '../services/media'
+import type { VoiceActorAliasService } from '../services/voiceActorAlias'
+import type { RouteTreeFileStore } from '../services/routeTreeFile'
 import { fetchGameScores, fetchProviderSection } from '../providers/manager'
 import { logger } from '../logger'
 import { UserError } from '../utils/errors'
@@ -20,7 +21,8 @@ export class GameService {
   constructor(
     private repo: GameRepository,
     private mediaService: MediaService,
-    private voiceActorAliases: VoiceActorAliasService
+    private voiceActorAliases: VoiceActorAliasService,
+    private routeTreeStore: RouteTreeFileStore
   ) {}
 
   // private mediaBaseDir = path.join(app.getPath('userData'), 'media')
@@ -36,8 +38,23 @@ export class GameService {
 
   
   deleteGame(id: string): boolean {
-    // deleteFile(path.join(this.mediaService.mediaBaseDir, id))
-    return this.repo.delete(id)
+    // DB 是权威数据源：删除成功后再尽力清理外部资源，清理失败只记日志。
+    const deleted = this.repo.delete(id)
+    if (!deleted) return false
+
+    try {
+      this.mediaService.deleteGameMedia(id)
+    } catch (error) {
+      logger.error('media', 'failed to delete game media', { gameId: id, error })
+    }
+
+    try {
+      this.routeTreeStore.remove(id)
+    } catch (error) {
+      logger.error('route-tree', 'failed to remove game route tree', { gameId: id, error })
+    }
+
+    return true
   }
 
   // 全量更新

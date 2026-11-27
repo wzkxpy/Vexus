@@ -1,5 +1,4 @@
 // src/main/main.ts
-// import 'dotenv/config' // 创建环境变量
 import { app, BrowserWindow, dialog, Menu, nativeImage, protocol, Tray, type MessageBoxOptions } from 'electron';
 import { createWindow } from './window';
 import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerSettingsIPC, registerFileIPC, registerClipboardIPC, registerBackupIPC, registerLogIPC } from './ipc';
@@ -181,13 +180,11 @@ async function bootstrap() {
   )
 
   const gameRepo = new GameRepository(db)
-  const gameService = new GameService(gameRepo, mediaService, voiceActorAliasService)
   const routeRepo = new RouteRepository(db)
   const routeService = new RouteService(routeRepo)
-  const routeTreeService = new RouteTreeService(
-    routeService,
-    new RouteTreeFileStore(path.join(app.getPath('userData'), 'route-trees'))
-  )
+  const routeTreeStore = new RouteTreeFileStore(path.join(app.getPath('userData'), 'route-trees'))
+  const routeTreeService = new RouteTreeService(routeService, routeTreeStore)
+  const gameService = new GameService(gameRepo, mediaService, voiceActorAliasService, routeTreeStore)
   const sessionRepo = new SessionRepository(db)
   const sessionService = new SessionService(sessionRepo, routeRepo)
   const sessionImportService = new SessionImportService(sessionService)
