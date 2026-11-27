@@ -191,6 +191,7 @@ async function bootstrap() {
   const backupService = new BackupService(db, app.getPath('userData'), app.getVersion())
   container.register('sessionService', sessionService)
   container.register('routeRepo', routeRepo)
+  container.register('gameService', gameService)
   // 注册自定义协议用于加载媒体文件
   const mediaDir = path.join(app.getPath('userData'), 'media')
   protocol.handle('vexus-media', async (request) => {

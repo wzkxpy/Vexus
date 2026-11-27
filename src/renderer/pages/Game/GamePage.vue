@@ -11,7 +11,7 @@
         <span v-if="playtimeScrolledPast" class="compact-playtime">{{ formattedPlaytime }}</span>
         <button v-if="launchScrolledPast" class="launch-btn compact-launch" :class="{ running: isRunning }" :disabled="launchPending || launchBlocked"
           :aria-busy="launchPending"
-          :aria-label="launchPending ? '请稍候' : isRunning ? '停止游戏' : launchBlocked ? '已有游戏在运行中，无法启动' : '启动游戏'"
+          :aria-label="launchPending ? '启动中' : isRunning ? '停止游戏' : launchBlocked ? '已有游戏在运行中，无法启动' : '启动游戏'"
           @click="handleLaunchToggle">
           <Square v-if="isRunning" :size="13" fill="currentColor" />
           <Play v-else :size="15" fill="currentColor" />
@@ -63,7 +63,7 @@
             <button ref="launchElement" class="launch-btn" :class="{ running: isRunning }" :disabled="launchPending || launchBlocked" :aria-busy="launchPending" @click="handleLaunchToggle">
               <Square v-if="isRunning" :size="13" fill="currentColor" />
               <Play v-else :size="15" fill="currentColor" />
-              {{ launchPending ? '请稍候…' : isRunning ? '停止游戏' : '启动游戏' }}
+              {{ launchPending ? '启动中…' : isRunning ? '停止游戏' : '启动游戏' }}
             </button>
             
             <OptionsMenu :items="menuItems" :context="game">

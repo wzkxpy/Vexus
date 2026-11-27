@@ -7,6 +7,8 @@ import { GameMonitor } from './monitor'
 import { container } from '../container'
 import type { SessionService } from '../database/session.service'
 import type { RouteRepository } from '../database/route.repo'
+import type { GameService } from '../database/game.service'
+import { cancelMagpieTrigger, ensureMagpieRunning, triggerMagpieHotkey, type MagpieLaunch } from './magpie'
 import { logger } from '../logger'
 import { UserError } from '../utils/errors'
 
@@ -49,6 +51,16 @@ async function startGame(gameId: string, exePath: string) {
   if (!fs.existsSync(exePath)) {
     throw new UserError('Exe file is not exist')
   }
+  cancelMagpieTrigger()
+  // Magpie 必须在游戏前启动，避免它初始化窗口时抢走游戏焦点；失败不影响游戏启动。
+  let magpieLaunch: MagpieLaunch | null = null
+  try {
+    const game = container.get<GameService>('gameService').getGame(gameId)
+    if (game?.settings.magpie) magpieLaunch = await ensureMagpieRunning()
+  } catch (error) {
+    logger.warn('launch', 'magpie preparation failed', { gameId, error })
+  }
+
   let child: ChildProcess
   try {
     child = spawn(exePath, [], {
@@ -94,6 +106,7 @@ async function startGame(gameId: string, exePath: string) {
   const routeId = routeRepo.getPlayingRouteId(gameId)
   gameMonitor = new GameMonitor(gameId, pid, routeId, sessionService, routeRepo)
   await gameMonitor.start()
+  if (magpieLaunch) triggerMagpieHotkey(gameId, pid, magpieLaunch.coldStart)
   logger.info('launch', 'started', { gameId, pid, routeId })
   return { success: true, pid }
 }
@@ -105,6 +118,7 @@ export function isGameRunning(gameId?: string) {
 
 // 退出兜底：只落库，不杀游戏，也不触发窗口通知。
 export function finalizeActiveGame() {
+  cancelMagpieTrigger()
   const monitor = gameMonitor
   if (!monitor) return
   try {
@@ -118,6 +132,7 @@ export function finalizeActiveGame() {
 
 // 托盘退出时同时结束游戏：先静默落库，再杀进程，避免监控定时器在退出过程中触发通知。
 export async function quitActiveGame() {
+  cancelMagpieTrigger()
   const monitor = gameMonitor
   if (!monitor) return
   const pids = monitor.getPidList()
@@ -139,6 +154,7 @@ export async function quitActiveGame() {
 
 // 点击停止
 export async function stopGame(gameId: string, exePath: string) {
+  cancelMagpieTrigger()
   const monitor = gameMonitor
   if (!monitor) {
     throw new UserError('No running game')

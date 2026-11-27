@@ -106,12 +106,22 @@
         <section v-if="activeSection === 'tools'" id="tools" class="setting-section">
           <div class="section-heading"><Wrench :size="18" :stroke-width="1.7" /><h2>外部工具</h2></div>
           <div class="setting-card">
-            <SettingRow title="Magpie 程序路径" stacked><input
-                aria-label="Magpie 程序路径" v-model.trim="form.magpiePath" class="full-input"
-                @blur="save('magpiePath')" @keydown.enter="blurInput"></SettingRow>
-            <SettingRow title="Magpie 快捷键"><input aria-label="Magpie 快捷键" v-model.trim="form.magpieHotkey"
-                class="hotkey-input" @blur="save('magpieHotkey')"
-                @keydown.enter="blurInput"></SettingRow>
+            <SettingRow title="Magpie 程序路径" stacked>
+              <div class="path-picker">
+                <input aria-label="Magpie 程序路径" v-model.trim="form.magpiePath" class="full-input"
+                  @blur="save('magpiePath')" @keydown.enter="blurInput">
+                <button type="button" class="path-picker-btn" aria-label="选择 Magpie 程序"
+                  title="选择 Magpie 程序" @click="pickMagpieExecutable"><FolderOpen :size="16" /></button>
+              </div>
+              <input ref="magpieInputRef" type="file" accept=".exe" hidden @change="onSelectMagpieExecutable">
+            </SettingRow>
+            <SettingRow title="Magpie 快捷键">
+              <button type="button" class="hotkey-btn" :class="{ recording: recordingHotkey, empty: !form.magpieHotkey && !recordingHotkey }"
+                aria-label="设置 Magpie 快捷键" @click="toggleHotkeyRecording" @keydown="captureHotkey"
+                @blur="recordingHotkey = false">
+                {{ recordingHotkey ? '请按下快捷键…' : (form.magpieHotkey || '点击设置') }}
+              </button>
+            </SettingRow>
           </div>
         </section>
       </div>
@@ -121,7 +131,7 @@
 
 <script setup lang="ts">
 import { computed, defineComponent, h, onBeforeUnmount, onMounted, reactive, ref, toRaw } from 'vue'
-import { ChevronRight, Eye, EyeOff, Globe2, Monitor, Moon, PanelsTopLeft, SlidersHorizontal, Sun, Wrench } from '@lucide/vue'
+import { ChevronRight, Eye, EyeOff, FolderOpen, Globe2, Monitor, Moon, PanelsTopLeft, SlidersHorizontal, Sun, Wrench } from '@lucide/vue'
 import type { Settings } from '@/shared/types'
 import { useSettingsStore } from '@/renderer/stores/settings.store'
 
@@ -238,6 +248,67 @@ function setValue<K extends keyof Settings>(key: K, value: Settings[K]) { form[k
 // Proxy 是嵌套对象，任一字段变化后保存整个对象。
 function saveProxy() { save('proxy') }
 function blurInput(event: KeyboardEvent) { (event.target as HTMLInputElement).blur() }
+// 文件名输入框只能返回文件名，需通过渲染进程文件输入取系统绝对路径；选中后立即保存。
+const magpieInputRef = ref<HTMLInputElement | null>(null)
+function pickMagpieExecutable() { magpieInputRef.value?.click() }
+async function onSelectMagpieExecutable(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // 清空以便再次选择同一个文件也能触发 change。
+  input.value = ''
+  if (!file) return
+  try {
+    form.magpiePath = await window.fileAPI.getFilePath(file)
+    await save('magpiePath')
+  } catch (error) {
+    console.error('读取 Magpie 程序路径失败：', error)
+  }
+}
+// 快捷键点击后进入录入状态并直接识别按键组合；Esc 取消，Delete/Backspace 清除。
+const recordingHotkey = ref(false)
+const HOTKEY_MODIFIER_KEYS = new Set(['Control', 'Shift', 'Alt', 'Meta'])
+const HOTKEY_KEY_NAMES: Record<string, string> = {
+  ' ': 'Space', 'Enter': 'Enter', 'Tab': 'Tab',
+  'Backspace': 'Backspace', 'Delete': 'Delete', 'Insert': 'Insert',
+  'Home': 'Home', 'End': 'End', 'PageUp': 'PageUp', 'PageDown': 'PageDown',
+  'ArrowUp': 'Up', 'ArrowDown': 'Down', 'ArrowLeft': 'Left', 'ArrowRight': 'Right'
+}
+function toggleHotkeyRecording() { recordingHotkey.value = !recordingHotkey.value }
+// 录入结束后主动失焦，避免空格等按键在 keyup 时再次激活按钮、重新进入录入状态。
+function finishHotkeyRecording(event: KeyboardEvent) {
+  recordingHotkey.value = false
+  if (event.currentTarget instanceof HTMLElement) event.currentTarget.blur()
+}
+function captureHotkey(event: KeyboardEvent) {
+  if (!recordingHotkey.value || event.repeat) return
+  event.preventDefault()
+  event.stopPropagation()
+  if (event.key === 'Escape') {
+    recordingHotkey.value = false
+    return
+  }
+  // 只按修饰键或未知按键时继续等待主键。
+  if (HOTKEY_MODIFIER_KEYS.has(event.key) || event.key === 'Unidentified' || event.key === 'Dead') return
+  const hasModifier = event.ctrlKey || event.altKey || event.shiftKey || event.metaKey
+  if (!hasModifier && (event.key === 'Backspace' || event.key === 'Delete')) {
+    if (form.magpieHotkey) { form.magpieHotkey = ''; save('magpieHotkey') }
+    finishHotkeyRecording(event)
+    return
+  }
+  const parts: string[] = []
+  if (event.ctrlKey) parts.push('Ctrl')
+  if (event.altKey) parts.push('Alt')
+  if (event.shiftKey) parts.push('Shift')
+  if (event.metaKey) parts.push('Win')
+  // 命名按键（方向键、F 键等）按映射保存，普通字符统一大写。
+  const key = event.key.length === 1
+    ? (event.key === '+' ? 'Plus' : event.key.toUpperCase())
+    : (HOTKEY_KEY_NAMES[event.key] ?? event.key)
+  parts.push(key)
+  form.magpieHotkey = parts.join('+')
+  save('magpieHotkey')
+  finishHotkeyRecording(event)
+}
 </script>
 
 <style scoped>
@@ -319,7 +390,14 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .alias-error { margin: 10px 2px 0; color: #c84d5a; font-size: 13px; }
 .backup-status { margin: 10px 2px 0; color: #3f6b4f; font-size: 13px; word-break: break-all; }
 .full-input { width: 100%; }
-.hotkey-input { width: 220px; }
+.path-picker { display: flex; gap: 8px; }
+.path-picker input { flex: 1; min-width: 0; }
+.path-picker-btn { display: grid; flex-shrink: 0; place-items: center; width: 42px; height: 42px; border: 1px solid #9caac0; border-radius: 8px; background: #fafbfe; color: #50627e; }
+.path-picker-btn:hover { background: #edf1fa; color: var(--accent); }
+.hotkey-btn { width: 220px; height: 42px; padding: 0 12px; border: 1px solid #9caac0; border-radius: 8px; background: #fafbfe; color: #24344d; font-size: 15px; text-align: center; }
+.hotkey-btn:hover { background: #edf1fa; }
+.hotkey-btn.empty { color: #6b7a91; }
+.hotkey-btn.recording { border-color: #4165bc; background: white; color: var(--accent); box-shadow: 0 0 0 3px #edf2fd; }
 .loading-card { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 180px; color: #4c5d77; }
 .loading-card .spinner { width: 16px; height: 16px; border: 2px solid #dbe2f0; border-top-color: #6289e5; border-radius: 50%; }
 .spinner { animation: spin 1s linear infinite; }
@@ -350,7 +428,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   }
   .setting-row { min-height: 69px; }
   .proxy-grid { grid-template-columns: 1fr; }
-  .hotkey-input { width: 160px; }
+  .hotkey-btn { width: 160px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
