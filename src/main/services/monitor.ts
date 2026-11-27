@@ -77,7 +77,27 @@ export class GameMonitor {
     }
   }
 
+  public isActive() {
+    return this.active
+  }
+
   public stop() {
+    if (!this.active) return
+    this.finalize()
+
+    // 落库后再通知渲染进程，确保刷新读到的时长和线路归属已是最新。
+    const mainWindow = BrowserWindow.getAllWindows()[0]
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      logger.warn('monitor', 'no window to notify game stopped', { gameId: this.gameId })
+      return
+    }
+    mainWindow.show()
+    mainWindow.focus()
+    mainWindow.webContents.send('game:stopped', { gameId: this.gameId })
+  }
+
+  // 只保存当前会话，不触碰窗口和渲染进程；用于退出应用等需要静默结束场景。
+  public finalize() {
     if (!this.active) return
     this.active = false
 
@@ -125,16 +145,6 @@ export class GameMonitor {
         error
       })
     }
-
-    // 落库后再通知渲染进程，确保刷新读到的时长和线路归属已是最新。
-    const mainWindow = BrowserWindow.getAllWindows()[0]
-    if (!mainWindow) {
-      logger.warn('monitor', 'no window to notify game stopped', { gameId: this.gameId })
-      return
-    }
-    mainWindow.show()
-    mainWindow.focus()
-    mainWindow.webContents.send('game:stopped', { gameId: this.gameId })
   }
 
   private isPidAlive(pid: number): boolean {

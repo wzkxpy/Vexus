@@ -14,6 +14,22 @@ const kill = require('tree-kill')
 
 let gameMonitor: GameMonitor | null = null
 
+function killPid(pid: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      process.kill(pid, 'SIGKILL')
+      resolve(true)
+    } catch (err: any) {
+      if (err.code === 'ESRCH') { // 忽略 ESRCH
+        resolve(true)
+      } else {
+        logger.warn('launch', 'failed to kill pid', { pid, error: err.message })
+        resolve(false)
+      }
+    }
+  })
+}
+
 // 启动游戏
 export async function launchGame(gameId: string, exePath: string) {
   if (!fs.existsSync(exePath)) {
@@ -68,35 +84,62 @@ export async function launchGame(gameId: string, exePath: string) {
   return { success: true, pid }
 }
 
+export function isGameRunning() {
+  return gameMonitor?.isActive() ?? false
+}
+
+// 退出兜底：只落库，不杀游戏，也不触发窗口通知。
+export function finalizeActiveGame() {
+  const monitor = gameMonitor
+  if (!monitor) return
+  try {
+    monitor.finalize()
+  } catch (error) {
+    logger.error('launch', 'failed to finalize active game', error)
+  } finally {
+    if (gameMonitor === monitor) gameMonitor = null
+  }
+}
+
+// 托盘退出时同时结束游戏：先静默落库，再杀进程，避免监控定时器在退出过程中触发通知。
+export async function quitActiveGame() {
+  const monitor = gameMonitor
+  if (!monitor) return
+  const pids = monitor.getPidList()
+  try {
+    monitor.finalize()
+  } catch (error) {
+    logger.error('launch', 'failed to finalize game on quit', error)
+  } finally {
+    if (gameMonitor === monitor) gameMonitor = null
+  }
+
+  try {
+    await Promise.all(pids.map(killPid))
+    logger.info('launch', 'quit active game')
+  } catch (error) {
+    logger.error('launch', 'failed to kill game on quit', error)
+  }
+}
+
 // 点击停止
 export async function stopGame(gameId: string, exePath: string) {
-  if (!gameMonitor) {
+  const monitor = gameMonitor
+  if (!monitor) {
     throw new UserError('No running game')
   }
   try {
-    const pids = gameMonitor.getPidList()
-    const killPid = (pid: number) => {
-      return new Promise((resolve) => {
-        try {
-          process.kill(pid, 'SIGKILL')
-          resolve(true)
-        } catch (err: any) {
-          if (err.code === 'ESRCH') { // 忽略 ESRCH
-            resolve(true)
-          } else {
-            logger.warn('launch', 'failed to kill pid', { pid, error: err.message })
-            resolve(false)
-          }
-        }
-      })
-    }
-    await Promise.all(pids.map(pid => killPid(pid)))
+    const pids = monitor.getPidList()
+    await Promise.all(pids.map(killPid))
   } catch (err: any) {
     throw new Error(err.message || '停止游戏失败')
   } finally {
-    gameMonitor.stop()
-    gameMonitor = null
-    logger.info('launch', 'stopped', { gameId })
+    try {
+      monitor.stop()
+    } finally {
+      if (gameMonitor === monitor) gameMonitor = null
+      logger.info('launch', 'stopped', { gameId })
+    }
   }
   return { success: true }
 }

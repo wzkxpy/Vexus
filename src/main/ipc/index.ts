@@ -20,6 +20,7 @@ import type { VoiceActorAliasService } from '../services/voiceActorAlias'
 import type { BackupService } from '../services/backup'
 import { getLogDir, logger } from '../logger'
 import { isUserError, UserError } from '../utils/errors'
+import { setAutoLaunch } from '../services/autoLaunch'
 // export function registerAllIPC() {
   
 // }
@@ -237,6 +238,10 @@ export function registerSettingsIPC(voiceActorAliasService: VoiceActorAliasServi
     return getSetting(key)
   })
   handle('setSetting', (_, key: keyof Settings, value: any) => {
+    if (key === 'autoLaunch') {
+      setAutoLaunch(Boolean(value))
+      return
+    }
     return setSetting(key, value)
   })
   handle('openVoiceActorAliasesFile', () => {

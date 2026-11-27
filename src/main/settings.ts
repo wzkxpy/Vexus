@@ -17,9 +17,9 @@ const store = new Store<Settings>({
     magpieHotkey: '',
     subTitle: true,
     proxy: {
-      enabled: true,
+      enabled: false,
       protocol: 'http',
-      host: '127.0.0.1',
+      host: '',
       port: 7890
     },
     gameSortType: 'addedAt',

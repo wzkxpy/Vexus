@@ -1,6 +1,6 @@
 // src/main/main.ts
 // import 'dotenv/config' // 创建环境变量
-import { app, BrowserWindow, dialog, Menu, nativeImage, protocol, Tray } from 'electron';
+import { app, BrowserWindow, dialog, Menu, nativeImage, protocol, Tray, type MessageBoxOptions } from 'electron';
 import { createWindow } from './window';
 import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerSettingsIPC, registerFileIPC, registerClipboardIPC, registerBackupIPC, registerLogIPC } from './ipc';
 import Database from 'better-sqlite3'
@@ -22,16 +22,21 @@ import { RouteTreeService } from './services/routeTree';
 import { VoiceActorAliasService } from './services/voiceActorAlias';
 import { BackupService } from './services/backup';
 import { getLogDir, initLogger, logger } from './logger';
+import { syncAutoLaunchState } from './services/autoLaunch';
+import { finalizeActiveGame, isGameRunning, quitActiveGame } from './services/launch';
 
 initLogger()
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
+let quitPromptOpen = false
 
 function handleFatal(context: string, error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
   logger.fatal('app', context, error)
+  // app.exit 不会触发 before-quit，这里补一次静默落库。
+  finalizeActiveGame()
   try {
     dialog.showErrorBox('Vexus 发生错误', `${context}\n\n${message}\n\n日志目录：${getLogDir()}`)
   } catch {
@@ -82,6 +87,42 @@ function showMainWindow() {
   mainWindow.focus()
 }
 
+async function requestQuit() {
+  if (quitPromptOpen) return
+  if (!isGameRunning()) {
+    app.quit()
+    return
+  }
+
+  quitPromptOpen = true
+  try {
+    const options: MessageBoxOptions = {
+      type: 'warning',
+      title: '游戏正在运行',
+      message: '退出 Vexus 会同时结束正在运行的游戏。',
+      detail: '游戏会被强制关闭，未保存的进度可能丢失。',
+      buttons: ['退出应用和游戏', '取消'],
+      defaultId: 1,
+      cancelId: 1,
+      noLink: true
+    }
+    const parent = mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()
+      ? mainWindow
+      : undefined
+    const { response } = parent
+      ? await dialog.showMessageBox(parent, options)
+      : await dialog.showMessageBox(options)
+    if (response !== 0) return
+
+    await quitActiveGame()
+    app.quit()
+  } catch (error) {
+    logger.error('app', 'quit flow failed', error)
+  } finally {
+    quitPromptOpen = false
+  }
+}
+
 function createTray() {
   const iconPath = app.isPackaged
     ? path.join(process.resourcesPath, 'icon.ico')
@@ -97,7 +138,7 @@ function createTray() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: '显示 Vexus', click: showMainWindow },
     { type: 'separator' },
-    { label: '退出', click: () => app.quit() }
+    { label: '退出', click: requestQuit }
   ]))
   tray.on('click', showMainWindow)
 }
@@ -108,6 +149,7 @@ app.on('second-instance', () => {
 })
 app.on('before-quit', () => {
   isQuitting = true
+  finalizeActiveGame()
   logger.info('app', 'quitting')
 })
 
@@ -125,6 +167,7 @@ async function bootstrap() {
     electron: process.versions.electron,
     userData: app.getPath('userData')
   })
+  syncAutoLaunchState()
 
   // 初始化数据库和服务
   const dbPath = path.join(app.getPath('userData'), 'vexus.db')
@@ -174,10 +217,12 @@ async function bootstrap() {
     }
   })
 
-  // 创建主窗口
-  const win = createWindow()
+  // 开机自启带 --hidden 时不显示主窗口；托盘创建失败则回退为显示窗口。
+  const startHidden = process.argv.includes('--hidden')
+  const win = createWindow({ show: !startHidden })
   mainWindow = win
   createTray()
+  if (startHidden && !tray) win.show()
   // 关闭按钮只隐藏到托盘，真正退出走托盘菜单。
   win.on('close', event => {
     if (isQuitting || !tray) return

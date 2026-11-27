@@ -5,10 +5,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export function createWindow() {
+export function createWindow(options: { show?: boolean } = {}) {
   const win = new BrowserWindow({
     width: 1160,
     height: 730,
+    show: options.show ?? true,
 
     autoHideMenuBar: true,   // 隐藏菜单栏
     frame: false,            // 隐藏标题栏
