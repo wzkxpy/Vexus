@@ -2,6 +2,7 @@
 import { fetch, type Dispatcher } from 'undici'
 import { normalizeVndbId } from '@/shared/utils/vndb'
 import { isTransientNetworkError } from '../../utils/network'
+import { logger } from '../../logger'
 import type { VndbQueryResponse, VndbVn } from './types'
 
 // 公开查询无需鉴权，默认限流 200 次 / 5 分钟。
@@ -40,6 +41,7 @@ export class VndbClient {
   constructor(private agent?: Dispatcher) {}
 
   async searchVns(keyword: string): Promise<VndbVn[]> {
+    logger.debug('vndb', 'search', { keyword })
     const response = await this.query<VndbVn>('vn', {
       filters: ['search', '=', keyword],
       fields: VNDB_FIELDS.search,
@@ -50,6 +52,7 @@ export class VndbClient {
   }
 
   async getVn(id: string, fields: string): Promise<VndbVn | null> {
+    logger.debug('vndb', 'fetch vn', { id })
     const response = await this.query<VndbVn>('vn', {
       filters: ['id', '=', normalizeVndbId(id)],
       fields,

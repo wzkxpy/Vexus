@@ -35,7 +35,13 @@
                   @click="setValue('theme', item.value)"><component :is="item.icon" :size="14" />{{ item.label }}</button>
               </div>
             </SettingRow>
+            <SettingRow title="日志">
+              <button class="file-btn" type="button" :disabled="openingLogs" @click="openLogsFolder">
+                {{ openingLogs ? '打开中…' : '打开目录' }}
+              </button>
+            </SettingRow>
           </div>
+          <p v-if="logsError" class="alias-error" role="alert">{{ logsError }}</p>
         </section>
 
         <!-- 游戏标题显示偏好 -->
@@ -143,6 +149,7 @@ const settingsStore = useSettingsStore()
 const form = reactive<Settings>({ autoLaunch: false, theme: 'system', gameTitle: 'Local', subTitle: true, playtimeFormat: 'detail', bangumiToken: '', magpiePath: '', magpieHotkey: '', proxy: { enabled: false, protocol: 'http', host: '', port: 7890 }, gameSortType: 'addedAt', gameSortOrder: 'asc', librarySeriesMode: false })
 const loading = ref(true), showToken = ref(false), activeSection = ref('general')
 const aliasError = ref(''), openingFile = ref(false)
+const openingLogs = ref(false), logsError = ref('')
 const exporting = ref(false), backupPercent = ref<number | null>(null)
 const backupMessage = ref(''), backupError = ref('')
 let disposeBackupProgress: (() => void) | undefined
@@ -191,6 +198,19 @@ async function openVoiceActorAliasesFile() {
     aliasError.value = message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '') || '打开声优马甲映射文件失败'
   } finally {
     openingFile.value = false
+  }
+}
+async function openLogsFolder() {
+  if (openingLogs.value) return
+  openingLogs.value = true
+  logsError.value = ''
+  try {
+    await window.logsAPI.openFolder()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    logsError.value = message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '') || '打开日志目录失败'
+  } finally {
+    openingLogs.value = false
   }
 }
 // 页面打开时一次性读取设置；常规保存不显示额外提示。

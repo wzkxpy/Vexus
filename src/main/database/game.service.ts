@@ -12,6 +12,8 @@ import type {
 import { MediaService } from '../services/media'
 import { VoiceActorAliasService } from '../services/voiceActorAlias'
 import { fetchGameScores, fetchProviderSection } from '../providers/manager'
+import { logger } from '../logger'
+import { UserError } from '../utils/errors'
 
 
 export class GameService {
@@ -56,11 +58,11 @@ export class GameService {
     }
 
     const game = this.repo.get(gameId)
-    if (!game) throw new Error('Game not found')
+    if (!game) throw new UserError('Game not found')
 
     const sourceId = source === 'bangumi' ? game.externalIds.bgmId : game.externalIds.vndbId
     if (!sourceId) {
-      throw new Error(`未设置 ${source === 'bangumi' ? 'Bangumi' : 'VNDB'} ID，请先编辑数据源 ID`)
+      throw new UserError(`未设置 ${source === 'bangumi' ? 'Bangumi' : 'VNDB'} ID，请先编辑数据源 ID`)
     }
     const result = await fetchProviderSection(source, sourceId, section)
     if (result.section === 'characters') {
@@ -71,14 +73,14 @@ export class GameService {
 
   async fetchExternalScores(gameId: string): Promise<ExternalScoreFetchResult> {
     const game = this.repo.get(gameId)
-    if (!game) throw new Error('Game not found')
+    if (!game) throw new UserError('Game not found')
     return fetchGameScores(game.externalIds)
   }
 
   async updateCharacters(gameId: string, characters: CharacterDraft[]): Promise<Game> {
     const game = this.repo.get(gameId)
-    if (!game) throw new Error('Game not found')
-    if (!Array.isArray(characters)) throw new Error('无效的角色数据')
+    if (!game) throw new UserError('Game not found')
+    if (!Array.isArray(characters)) throw new UserError('无效的角色数据')
 
     const currentAvatarPaths = new Set(
       (game.characters ?? [])
@@ -87,13 +89,13 @@ export class GameService {
     )
     for (const character of characters) {
       if (!character || typeof character.name !== 'string' || typeof character.voiceActor !== 'string') {
-        throw new Error('无效的角色数据')
+        throw new UserError('无效的角色数据')
       }
       if (character.avatarPath && !currentAvatarPaths.has(character.avatarPath)) {
-        throw new Error('无效的角色头像路径')
+        throw new UserError('无效的角色头像路径')
       }
       if (character.avatarUrl && typeof character.avatarUrl !== 'string') {
-        throw new Error('无效的角色头像地址')
+        throw new UserError('无效的角色头像地址')
       }
     }
 
@@ -110,7 +112,7 @@ export class GameService {
           prepared.characters
         )
       } catch (error) {
-        console.error('Failed to clean up old character avatars:', error)
+        logger.error('media', 'failed to clean up old character avatars', { gameId, error })
       }
       return updatedGame
     } catch (error) {
@@ -122,7 +124,7 @@ export class GameService {
   // 更新单个媒体资源
   async updateMedia(gameId: string, type: 'cover' | 'banner' | 'icon', sourcePath: string) {
     const game = this.repo.get(gameId)
-    if (!game) throw new Error('Game not found')
+    if (!game) throw new UserError('Game not found')
 
     // 1. 让 MediaService 处理文件
     const savedPath = await this.mediaService.setMediaFromFile(gameId, type, sourcePath)
@@ -156,17 +158,17 @@ export class GameService {
   renameSeries(oldName: string, newName: string) {
     const from = oldName.trim()
     const to = newName.trim()
-    if (!from || !to) throw new Error('系列名称不能为空')
+    if (!from || !to) throw new UserError('系列名称不能为空')
     if (from === to) return
     this.repo.transaction(() => {
-      if (this.repo.seriesExists(to)) throw new Error('已存在同名系列')
+      if (this.repo.seriesExists(to)) throw new UserError('已存在同名系列')
       this.repo.renameSeries(from, to)
     })
   }
 
   deleteSeries(name: string) {
     const seriesName = name.trim()
-    if (!seriesName) throw new Error('系列名称不能为空')
+    if (!seriesName) throw new UserError('系列名称不能为空')
     this.repo.deleteSeries(seriesName)
   }
 }

@@ -1,6 +1,7 @@
 import { SessionRepository } from "./session.repo";
 import { RouteRepository } from "./route.repo";
 import { Session } from "@/shared/types";
+import { UserError } from '../utils/errors';
 
 
 export class SessionService {
@@ -20,8 +21,8 @@ export class SessionService {
 
   updateSession(session: Session) {
     const gameId = this.repo.getGameId(session.id)
-    if (!gameId) throw new Error('Session not found')
-    if (gameId !== session.gameId) throw new Error('Session game id mismatch')
+    if (!gameId) throw new UserError('Session not found')
+    if (gameId !== session.gameId) throw new UserError('Session game id mismatch')
     this.validateSession(session)
     this.repo.update(this.normalizeTag(session))
   }
@@ -29,15 +30,15 @@ export class SessionService {
   // 将同一标签下的待绑定记录一次性关联到线路。
   assignTagToRoute(gameId: string, tag: string, routeId: string) {
     if (typeof gameId !== 'string' || typeof tag !== 'string' || typeof routeId !== 'string') {
-      throw new Error('Invalid route tag mapping')
+      throw new UserError('Invalid route tag mapping')
     }
     const normalizedTag = tag.trim()
     if (!gameId || !normalizedTag || !routeId) {
-      throw new Error('Game, tag and route ids required')
+      throw new UserError('Game, tag and route ids required')
     }
-    if (normalizedTag.length > 80) throw new Error('Invalid route tag')
+    if (normalizedTag.length > 80) throw new UserError('Invalid route tag')
     if (!this.routeRepo.belongsToGame(routeId, gameId)) {
-      throw new Error('Route does not belong to game')
+      throw new UserError('Route does not belong to game')
     }
     this.repo.assignTagToRoute(gameId, normalizedTag, routeId)
   }
@@ -48,12 +49,12 @@ export class SessionService {
 
   importSessions(gameId: string, sessions: Session[]) {
     if (sessions.length === 0) {
-      throw new Error('没有可导入的游玩记录')
+      throw new UserError('没有可导入的游玩记录')
     }
 
     for (const session of sessions) {
       if (session.gameId !== gameId) {
-        throw new Error('Session game id mismatch')
+        throw new UserError('Session game id mismatch')
       }
       this.validateSessionFields(session)
     }
@@ -79,7 +80,7 @@ export class SessionService {
       const existingStart = Date.parse(existing.startedAt)
       const existingEnd = Date.parse(existing.endedAt)
       if (start < existingEnd && end > existingStart) {
-        throw new Error('Playtime overlaps with existing records')
+        throw new UserError('Playtime overlaps with existing records')
       }
     }
   }
@@ -87,44 +88,44 @@ export class SessionService {
   // 检查单条记录的字段有效性
   private validateSessionFields(session: Session) {
     if (!session.id) {
-      throw new Error('Session id required')
+      throw new UserError('Session id required')
     }
     if (!session.gameId) {
-      throw new Error('Game id required')
+      throw new UserError('Game id required')
     }
     if (session.routeId !== null) {
       if (typeof session.routeId !== 'string' || !session.routeId) {
-        throw new Error('Invalid route id')
+        throw new UserError('Invalid route id')
       }
       if (!this.routeRepo.belongsToGame(session.routeId, session.gameId)) {
-        throw new Error('Route does not belong to game')
+        throw new UserError('Route does not belong to game')
       }
     }
     if (session.routeTag !== null) {
       if (typeof session.routeTag !== 'string' || !session.routeTag.trim() || session.routeTag.trim().length > 80) {
-        throw new Error('Invalid route tag')
+        throw new UserError('Invalid route tag')
       }
     }
     if (!['auto', 'manual', 'import'].includes(session.source)) {
-      throw new Error('Invalid session source')
+      throw new UserError('Invalid session source')
     }
     if (!Number.isFinite(session.duration) || session.duration < 0 || session.duration > 86400) {
-      throw new Error('Duration cannot be negative or more than one day')
+      throw new UserError('Duration cannot be negative or more than one day')
     }
     const hasStartedAt = session.startedAt !== null
     const hasEndedAt = session.endedAt !== null
     if (hasStartedAt !== hasEndedAt) {
-      throw new Error('Started at and ended at must both be provided')
+      throw new UserError('Started at and ended at must both be provided')
     }
     if (!hasStartedAt || !hasEndedAt) return
     // 检测时间格式和逻辑
     const start = Date.parse(session.startedAt!)
     const end = Date.parse(session.endedAt!)
     if (!Number.isFinite(start) || !Number.isFinite(end)) { // isFinite 非无穷的数字
-      throw new Error('Invalid session time')
+      throw new UserError('Invalid session time')
     }
     if (end < start) {
-      throw new Error('Ended at cannot be earlier than started at')
+      throw new UserError('Ended at cannot be earlier than started at')
     }
 
   }
@@ -147,7 +148,7 @@ export class SessionService {
       const previous = timedSessions[index - 1]
       const current = timedSessions[index]
       if (Date.parse(current.startedAt!) < Date.parse(previous.endedAt!)) {
-        throw new Error('Playtime overlaps within replacement records')
+        throw new UserError('Playtime overlaps within replacement records')
       }
     }
   }

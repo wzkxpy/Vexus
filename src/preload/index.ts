@@ -77,6 +77,10 @@ contextBridge.exposeInMainWorld('clipboardAPI', {
   writeText: (text: string): Promise<void> => ipcRenderer.invoke('clipboard:writeText', text)
 })
 
+contextBridge.exposeInMainWorld('logsAPI', {
+  openFolder: (): Promise<{ success: boolean }> => ipcRenderer.invoke('logs:openFolder')
+})
+
 contextBridge.exposeInMainWorld('backupAPI', {
   exportBackup: (): Promise<BackupExportResult> => ipcRenderer.invoke('backup:export'),
   onProgress: (callback: (progress: BackupProgress) => void): (() => void) => {

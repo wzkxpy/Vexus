@@ -1,8 +1,8 @@
 // src/main/main.ts
 // import 'dotenv/config' // 创建环境变量
-import { app, BrowserWindow, Menu, nativeImage, protocol, Tray } from 'electron';
+import { app, BrowserWindow, dialog, Menu, nativeImage, protocol, Tray } from 'electron';
 import { createWindow } from './window';
-import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerSettingsIPC, registerFileIPC, registerClipboardIPC, registerBackupIPC } from './ipc';
+import { registerWindowIPC, registerDBIPC, registerLaunchIPC, registerProviderIPC, registerSettingsIPC, registerFileIPC, registerClipboardIPC, registerBackupIPC, registerLogIPC } from './ipc';
 import Database from 'better-sqlite3'
 import { initDatabase } from './database/index'
 import { GameRepository } from './database/game.repo'
@@ -21,10 +21,59 @@ import { RouteTreeFileStore } from './services/routeTreeFile';
 import { RouteTreeService } from './services/routeTree';
 import { VoiceActorAliasService } from './services/voiceActorAlias';
 import { BackupService } from './services/backup';
+import { getLogDir, initLogger, logger } from './logger';
+
+initLogger()
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
+
+function handleFatal(context: string, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  logger.fatal('app', context, error)
+  try {
+    dialog.showErrorBox('Vexus 发生错误', `${context}\n\n${message}\n\n日志目录：${getLogDir()}`)
+  } catch {
+    // 对话框无法显示时日志仍已同步落盘，继续退出即可。
+  }
+  app.exit(1)
+}
+
+process.on('uncaughtException', error => {
+  handleFatal('主进程发生未捕获异常，Vexus 即将退出', error)
+})
+process.on('unhandledRejection', reason => {
+  logger.error('process', 'unhandled rejection', reason)
+})
+
+app.on('child-process-gone', (_event, details) => {
+  logger.error('process', 'child process gone', details)
+})
+app.on('render-process-gone', (_event, webContents, details) => {
+  logger.error('renderer', 'render process gone', { url: webContents.getURL(), ...details })
+})
+app.on('web-contents-created', (_event, contents) => {
+  contents.on('preload-error', (_event, preloadPath, error) => {
+    logger.error('renderer', 'preload failed', { preloadPath, error })
+  })
+  contents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    // -3 是主动取消导航（ERR_ABORTED），不算加载失败。
+    if (!isMainFrame || errorCode === -3) return
+    logger.error('renderer', 'page load failed', { errorCode, errorDescription, url: validatedURL })
+  })
+  contents.on('console-message', details => {
+    // 渲染进程的未捕获异常和 Vue 错误最终都会落到 console.error。
+    if (details.level !== 'error') return
+    // IPC 失败已在主进程按通道记录，跳过渲染进程的二次包装。
+    if (details.message.includes('Error invoking remote method')) return
+    logger.error('renderer-console', details.message, {
+      source: details.sourceId,
+      line: details.lineNumber
+    })
+  })
+  contents.on('unresponsive', () => logger.warn('renderer', 'window unresponsive'))
+})
 
 function showMainWindow() {
   if (!mainWindow || mainWindow.isDestroyed()) return
@@ -39,7 +88,7 @@ function createTray() {
     : path.join(app.getAppPath(), 'build', 'icon.ico')
   const icon = nativeImage.createFromPath(iconPath)
   if (icon.isEmpty()) {
-    console.warn('[Tray] icon not found:', iconPath)
+    logger.warn('tray', 'icon not found', { iconPath })
     return
   }
 
@@ -53,22 +102,35 @@ function createTray() {
   tray.on('click', showMainWindow)
 }
 
-app.on('second-instance', showMainWindow)
+app.on('second-instance', () => {
+  logger.info('app', 'second instance launched; focusing existing window')
+  showMainWindow()
+})
 app.on('before-quit', () => {
   isQuitting = true
+  logger.info('app', 'quitting')
 })
 
-app.whenReady().then(() => {
+async function bootstrap() {
   // 单实例：第二次启动时唤起已有窗口，避免两个进程同时写 SQLite。
   if (!app.requestSingleInstanceLock()) {
+    logger.info('app', 'another instance is running; quitting')
     app.quit()
     return
   }
+
+  logger.info('app', 'starting', {
+    version: app.getVersion(),
+    packaged: app.isPackaged,
+    electron: process.versions.electron,
+    userData: app.getPath('userData')
+  })
 
   // 初始化数据库和服务
   const dbPath = path.join(app.getPath('userData'), 'vexus.db')
   const db = new Database(dbPath)
   initDatabase(db)
+  logger.info('db', 'database ready', { path: dbPath })
   
   const mediaService = new MediaService(getProxyAgent)
   const voiceActorAliasService = new VoiceActorAliasService(
@@ -106,7 +168,8 @@ app.whenReady().then(() => {
           'Cache-Control': 'public, max-age=31536000, immutable'
         }
       })
-    } catch {
+    } catch (error) {
+      logger.debug('media', 'media file not served', { relativePath, error })
       return new Response(null, { status: 404 })
     }
   })
@@ -131,7 +194,12 @@ app.whenReady().then(() => {
   registerLaunchIPC() // Register IPC handlers for launching games
   registerSettingsIPC(voiceActorAliasService) // Register IPC handlers for settings management
   registerProviderIPC(gameService) // Register IPC handlers for external metadata providers
-});
+  registerLogIPC()
+}
+
+app.whenReady().then(bootstrap).catch(error => {
+  handleFatal('启动失败，Vexus 即将退出', error)
+})
 
 
 app.on('window-all-closed', () => {

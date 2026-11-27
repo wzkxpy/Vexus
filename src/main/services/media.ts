@@ -8,6 +8,8 @@ import { mapWithConcurrency } from '../utils/async'
 import { app } from 'electron'
 import sharp from 'sharp'
 import { Dispatcher } from 'undici';
+import { logger } from '../logger'
+import { UserError } from '../utils/errors'
 
 const MEDIA_DOWNLOAD_CONCURRENCY = 3
 
@@ -38,9 +40,10 @@ export class MediaService {
         downloadTasks.push(() => downloadFile(url, localPath, this.getAgent()))
       }
       for (const character of characters ?? []) {
-        if (!character.avatarUrl) continue
+        const avatarUrl = character.avatarUrl
+        if (!avatarUrl) continue
         const localPath = path.join(tempDir, `${character.uuid}_avatar.jpg`)
-        downloadTasks.push(() => downloadFile(character.avatarUrl, localPath, this.getAgent()))
+        downloadTasks.push(() => downloadFile(avatarUrl, localPath, this.getAgent()))
       }
 
       // 图片站和代理对突发连接较敏感，限制同时下载的数量。
@@ -59,7 +62,7 @@ export class MediaService {
       if (!gameDirExisted) {
         fs.rmSync(gameDir, { recursive: true, force: true })
       }
-      console.error('Failed to initialize game media:', error)
+      logger.error('media', 'initialize failed', { gameId, error })
       throw new Error('下载或处理游戏图片失败，请检查网络或代理设置后重试')
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true })
@@ -156,14 +159,14 @@ export class MediaService {
     try {
       url = new URL(value)
     } catch {
-      throw new Error('无效的角色头像地址')
+      throw new UserError('无效的角色头像地址')
     }
     const allowedHost =
       url.hostname === 'bgm.tv' ||
       url.hostname.endsWith('.bgm.tv') ||
       url.hostname === 't.vndb.org'
     if (url.protocol !== 'https:' || !allowedHost) {
-      throw new Error('无效的角色头像地址')
+      throw new UserError('无效的角色头像地址')
     }
   }
 

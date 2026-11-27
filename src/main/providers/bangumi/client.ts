@@ -1,6 +1,7 @@
 // src/main/providers/bangumi/client.ts
 import { BangumiSubject, BangumiCharacter } from "./types"
 import { fetch, Dispatcher } from 'undici'
+import { logger } from '../../logger'
 
 export class BangumiClient {
   private static readonly BASE_URL = 'https://api.bgm.tv'
@@ -56,19 +57,19 @@ export class BangumiClient {
 
   // get 获取条目信息
   async getSubject(subject_id: string): Promise<BangumiSubject> {
-    console.log(`Fetching subject with Bangumi ID: ${subject_id}`);
+    logger.debug('bangumi', 'fetch subject', { subjectId: subject_id });
     return this.getRequest<BangumiSubject>(`/v0/subjects/${subject_id}`)
   }
 
   // get 获取角色信息
   async getCharacters(subject_id: string): Promise<BangumiCharacter[]> {
-    console.log(`Fetching characters with Bangumi ID: ${subject_id}`);
+    logger.debug('bangumi', 'fetch characters', { subjectId: subject_id });
     return this.getRequest<BangumiCharacter[]>(`/v0/subjects/${subject_id}/characters`)
   }
 
   // post 根据游戏名搜索
   async searchGame(keyword: string): Promise<BangumiSubject[]> {
-    console.log(`Searching games with keyword: ${keyword}`);
+    logger.debug('bangumi', 'search', { keyword });
     return this.postRequest<BangumiSubject[]>(
       '/v0/search/subjects',
       {

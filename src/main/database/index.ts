@@ -1,5 +1,5 @@
 // src/main/database/index.ts
-import Database from 'better-sqlite3'
+import type { Database } from 'better-sqlite3'
 
 
 export function initDatabase(db: Database) {

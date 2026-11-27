@@ -6,6 +6,7 @@
   "scripts": {
     "start": "vite",
     "build": "vite build",
+    "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder --win nsis",
@@ -59,13 +60,17 @@
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
     "@types/archiver": "^8.0.0",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^22.20.7",
     "@types/ps-tree": "^1.1.6",
     "@vitejs/plugin-vue": "^6.0.4",
     "electron": "^39.5.0",
     "electron-builder": "^26.18.0",
+    "typescript": "^5.9.3",
     "vite": "^6.4.1",
     "vite-plugin-electron": "^0.29.0",
-    "vite-plugin-electron-renderer": "^0.14.6"
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vue-tsc": "^3.3.14"
   },
   "dependencies": {
     "@lucide/vue": "^1.64.0",

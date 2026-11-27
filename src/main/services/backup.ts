@@ -4,9 +4,11 @@ import { randomUUID } from 'crypto'
 import Database from 'better-sqlite3'
 import type { Database as DatabaseType } from 'better-sqlite3'
 import { ZipArchive } from 'archiver'
-import type { ProgressData } from 'archiver'
+import type { ProgressData, ZipEntryData } from 'archiver'
 import { BACKUP_FORMAT, BACKUP_VERSION } from '@/shared/types'
 import type { BackupManifest, BackupProgress } from '@/shared/types'
+import { logger } from '../logger'
+import { UserError } from '../utils/errors'
 
 const PROGRESS_INTERVAL_MS = 120
 
@@ -42,7 +44,7 @@ export class BackupService {
     try {
       fs.rmSync(this.tempRoot, { recursive: true, force: true })
     } catch (error) {
-      console.warn('Failed to clean stale backup temp directory.', error)
+      logger.warn('backup', 'failed to clean stale temp directory', error)
     }
   }
 
@@ -50,7 +52,7 @@ export class BackupService {
     destPath: string,
     onProgress?: (progress: BackupProgress) => void
   ): Promise<BackupExportOutput> {
-    if (this.busy) throw new Error('已有备份任务正在进行')
+    if (this.busy) throw new UserError('已有备份任务正在进行')
 
     this.busy = true
     const tempDir = path.join(this.tempRoot, randomUUID())
@@ -107,7 +109,7 @@ export class BackupService {
 
   private resolveTarget(destPath: string): string {
     if (typeof destPath !== 'string' || !destPath.trim()) {
-      throw new Error('无效的备份保存路径')
+      throw new UserError('无效的备份保存路径')
     }
     let target = path.resolve(destPath.trim())
     if (!target.toLowerCase().endsWith('.zip')) target += '.zip'
@@ -118,7 +120,7 @@ export class BackupService {
     const insideUserData =
       relative === '' ||
       (!path.isAbsolute(relative) && relative.split(path.sep)[0] !== '..')
-    if (insideUserData) throw new Error('备份文件不能保存在 Vexus 数据目录内')
+    if (insideUserData) throw new UserError('备份文件不能保存在 Vexus 数据目录内')
     return target
   }
 
@@ -286,7 +288,9 @@ export class BackupService {
       archive.append(`${JSON.stringify(manifest, null, 2)}\n`, { name: 'manifest.json' })
       archive.append(buildReadme(), { name: 'README.txt' })
       for (const file of files) {
-        archive.file(file.absolutePath, { name: file.name, store: file.store })
+        // store 只存在于 ZIP 条目定义中，archive.file 的参数类型更宽。
+        const entry: ZipEntryData = { name: file.name, store: file.store }
+        archive.file(file.absolutePath, entry)
       }
       archive.finalize().catch(fail)
     })

@@ -35,6 +35,8 @@ import {
 import { ErogameScapeClient } from './erogame/client'
 import { isTransientNetworkError } from '../utils/network'
 import { getProxyAgent, getSetting } from '../settings'
+import { logger } from '../logger'
+import { UserError } from '../utils/errors'
 
 function getBangumiToken() {
   const token = getSetting('bangumiToken')
@@ -67,7 +69,7 @@ function requireSource(source: string): ProviderSource {
 export async function searchGames(source: string, keyword: string): Promise<GameCandidate[]> {
   const provider = requireSource(source)
   const query = keyword.trim()
-  if (!query) throw new Error('请输入搜索关键词')
+  if (!query) throw new UserError('请输入搜索关键词')
 
   if (provider === 'bangumi') {
     const subjects = await createBangumiClient().searchGame(query)
@@ -86,11 +88,11 @@ export async function searchGames(source: string, keyword: string): Promise<Game
 export async function fetchGame(source: string, subjectId: string): Promise<GameCandidate> {
   const provider = requireSource(source)
   const id = subjectId.trim()
-  if (!id) throw new Error('请输入数据源 ID')
+  if (!id) throw new UserError('请输入数据源 ID')
 
   if (provider === 'bangumi') {
     if (!/^\d+$/.test(id)) {
-      throw new Error('Bangumi ID 应为纯数字')
+      throw new UserError('Bangumi ID 应为纯数字')
     }
     const subject = await createBangumiClient().getSubject(id)
     return bangumiToSearchResult(subject)
@@ -99,7 +101,7 @@ export async function fetchGame(source: string, subjectId: string): Promise<Game
   const normalizedId = normalizeVndbId(id)
   try {
     const vn = await createVndbClient().getVn(normalizedId, VNDB_FIELDS.search)
-    if (!vn) throw new Error(`未找到 VNDB ID ${normalizedId} 对应的条目`)
+    if (!vn) throw new UserError(`未找到 VNDB ID ${normalizedId} 对应的条目`)
     return vndbToSearchResult(vn)
   } catch (error) {
     throw mapVndbIdError(error)
@@ -110,11 +112,11 @@ export async function fetchGame(source: string, subjectId: string): Promise<Game
 export async function buildGame(source: string, sourceId: string): Promise<NewGame> {
   const provider = requireSource(source)
   const id = sourceId.trim()
-  if (!id) throw new Error('缺少数据源 ID')
+  if (!id) throw new UserError('缺少数据源 ID')
 
   if (provider === 'bangumi') {
     if (!/^\d+$/.test(id)) {
-      throw new Error('Bangumi ID 应为纯数字')
+      throw new UserError('Bangumi ID 应为纯数字')
     }
     const client = createBangumiClient()
     const [subject, characters] = await Promise.all([
@@ -131,7 +133,7 @@ export async function buildGame(source: string, sourceId: string): Promise<NewGa
       client.getVn(normalizedId, VNDB_FIELDS.details),
       client.getVn(normalizedId, VNDB_FIELDS.characters)
     ])
-    if (!vn) throw new Error(`未找到 VNDB ID ${normalizedId} 对应的条目`)
+    if (!vn) throw new UserError(`未找到 VNDB ID ${normalizedId} 对应的条目`)
     return vndbToNewGame(vn, characterData?.va ?? [])
   } catch (error) {
     throw mapVndbIdError(error)
@@ -167,6 +169,7 @@ export async function fetchGameScores(
           }
         })
         .catch(error => {
+          logger.warn('provider', 'score fetch failed', { key, error })
           result.errors.push({ key, message: toScoreErrorMessage(error) })
         })
     )
@@ -194,7 +197,7 @@ export async function fetchGameScores(
 
 async function fetchBangumiScore(sourceId: string): Promise<number | undefined> {
   if (!/^\d+$/.test(sourceId)) {
-    throw new Error('Bangumi ID 应为纯数字')
+    throw new UserError('Bangumi ID 应为纯数字')
   }
 
   try {
@@ -203,10 +206,10 @@ async function fetchBangumiScore(sourceId: string): Promise<number | undefined> 
   } catch (error) {
     const message = error instanceof Error ? error.message : ''
     if (message.includes('Bangumi API 错误 404')) {
-      throw new Error(`未找到 Bangumi ID ${sourceId} 对应的条目`)
+      throw new UserError(`未找到 Bangumi ID ${sourceId} 对应的条目`)
     }
     if (message.includes('Bangumi API 错误 401') || message.includes('Bangumi API 错误 403')) {
-      throw new Error('Bangumi 认证失败，请检查访问 Token')
+      throw new UserError('Bangumi 认证失败，请检查访问 Token')
     }
     if (isTransientNetworkError(error)) {
       throw new Error('无法连接 Bangumi，请检查网络或代理设置')
@@ -240,7 +243,7 @@ async function fetchBangumiSection(
   section: GameMetadataSection
 ): Promise<ProviderSectionResult> {
   if (!/^\d+$/.test(sourceId)) {
-    throw new Error('Bangumi ID 应为纯数字')
+    throw new UserError('Bangumi ID 应为纯数字')
   }
 
   const client = createBangumiClient()
@@ -269,10 +272,10 @@ async function fetchBangumiSection(
   } catch (error) {
     const message = error instanceof Error ? error.message : ''
     if (message.includes('Bangumi API 错误 404')) {
-      throw new Error(`未找到 Bangumi ID ${sourceId} 对应的条目`)
+      throw new UserError(`未找到 Bangumi ID ${sourceId} 对应的条目`)
     }
     if (message.includes('Bangumi API 错误 401') || message.includes('Bangumi API 错误 403')) {
-      throw new Error('Bangumi 认证失败，请检查访问 Token')
+      throw new UserError('Bangumi 认证失败，请检查访问 Token')
     }
     throw error
   }
@@ -324,14 +327,14 @@ async function fetchVndbSection(
 
 async function getVndbVn(client: VndbClient, sourceId: string, fields: string): Promise<VndbVn> {
   const vn = await client.getVn(sourceId, fields)
-  if (!vn) throw new Error(`未找到 VNDB ID ${sourceId} 对应的条目`)
+  if (!vn) throw new UserError(`未找到 VNDB ID ${sourceId} 对应的条目`)
   return vn
 }
 
 function mapVndbIdError(error: unknown): Error {
   // 越界或不存在的 ID 会被 VNDB 以 400 拒绝，需要比通用参数错误更明确的提示。
   if (error instanceof VndbApiError && error.status === 400) {
-    return new Error('VNDB ID 不存在或格式无效')
+    return new UserError('VNDB ID 不存在或格式无效')
   }
   return mapVndbError(error)
 }
@@ -339,7 +342,7 @@ function mapVndbIdError(error: unknown): Error {
 function mapVndbError(error: unknown): Error {
   if (error instanceof VndbApiError) {
     if (error.status === 429) return new Error('VNDB 请求过于频繁，请稍后重试')
-    if (error.status === 400) return new Error('VNDB 请求参数有误')
+    if (error.status === 400) return new UserError('VNDB 请求参数有误')
     if (error.status >= 500) return new Error('VNDB 服务暂时不可用，请稍后重试')
     return new Error(`VNDB API 错误 ${error.status}：${error.message}`)
   }

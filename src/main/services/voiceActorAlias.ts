@@ -6,6 +6,7 @@ import {
   normalizeVoiceActorNames,
   parseVoiceActorAliasMap
 } from '@/shared/utils/voiceActor'
+import { UserError } from '../utils/errors'
 
 function messageOf(error: unknown) {
   return error instanceof Error ? error.message : String(error)
@@ -39,7 +40,7 @@ export class VoiceActorAliasService {
     try {
       raw = JSON.parse(text.replace(/^\uFEFF/, ''))
     } catch (error) {
-      throw new Error(`声优马甲映射文件格式错误（${this.filePath}）：${messageOf(error)}`)
+      throw new UserError(`声优马甲映射文件格式错误（${this.filePath}）：${messageOf(error)}`)
     }
     return parseVoiceActorAliasMap(raw)
   }

@@ -8,6 +8,7 @@ import {
 import { flattenRoutePoints, orderRoutesByTree } from '@/shared/routeTree'
 import type { RouteService } from '../database/route.service'
 import type { RouteTreeFileStore } from './routeTreeFile'
+import { logger } from '../logger'
 
 const MAX_NODES = 5000
 const MAX_DEPTH = 256
@@ -169,6 +170,9 @@ export function reconcileRouteTree(tree: RouteTree | null, routes: Route[]): { t
 }
 
 export class RouteTreeService {
+  // 损坏文件在内存中修复但不会自动写回，避免每次加载都重复告警。
+  private reportedTreeIssues = new Set<string>()
+
   constructor(private routeService: RouteService, private store: RouteTreeFileStore) {}
 
   get(gameId: string): { routes: Route[]; tree: RouteTree } {
@@ -176,15 +180,26 @@ export class RouteTreeService {
     const routes = this.routeService.getGameRoutes(gameId)
     let parsed: RouteTree | null = null
     let raw: unknown = null
+    let parseError: unknown = undefined
     try {
       raw = this.store.read(gameId)
       parsed = raw === null ? null : parseRouteTree(raw)
     } catch (error) {
-      console.warn(`Invalid route tree for game ${gameId}; using default structure.`, error)
+      parseError = error
     }
     const { tree, repaired } = reconcileRouteTree(parsed, routes)
-    // 文件不存在时生成默认树是正常路径；只有已有文件被修复时才提示。
-    if (repaired && raw !== null) console.warn(`Route tree for game ${gameId} was repaired in memory.`)
+    // 文件不存在时生成默认树是正常路径；只有已有文件损坏或被修复时才提示。
+    const repairedExisting = repaired && raw !== null
+    if (parseError !== undefined || repairedExisting) {
+      if (!this.reportedTreeIssues.has(gameId)) {
+        this.reportedTreeIssues.add(gameId)
+        logger.warn('route-tree',
+          parseError !== undefined ? 'invalid tree; using default structure' : 'tree repaired in memory',
+          { gameId, error: parseError })
+      } else {
+        logger.debug('route-tree', 'tree issue still present', { gameId })
+      }
+    }
     return { routes: orderRoutesByTree(routes, tree), tree }
   }
 
@@ -210,7 +225,7 @@ export class RouteTreeService {
       try {
         this.store.discard(gameId)
       } catch (cleanupError) {
-        console.warn(`Failed to clean route tree temp file for game ${gameId}.`, cleanupError)
+        logger.warn('route-tree', 'failed to clean temp file', { gameId, error: cleanupError })
       }
       throw error
     }

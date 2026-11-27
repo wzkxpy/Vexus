@@ -2,6 +2,7 @@
 import * as fs from 'fs';
 import { fetch, Dispatcher } from 'undici'
 import { isTransientNetworkError } from './network'
+import { logger } from '../logger'
 
 const DOWNLOAD_RETRIES = 1
 const RETRY_DELAY_MS = 400
@@ -37,7 +38,7 @@ export function deleteFile(filePath: string): boolean {
     fs.unlinkSync(filePath)
     return true
   } catch (err: any) {
-    console.error(`Failed to delete ${filePath}`, err)
+    logger.error('file', 'failed to delete file', { filePath, error: err })
     return false
   }
 }

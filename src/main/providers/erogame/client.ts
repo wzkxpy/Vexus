@@ -1,6 +1,7 @@
 // src/main/providers/erogame/client.ts
 import { fetch, type Dispatcher } from 'undici'
 import { isTransientNetworkError } from '../../utils/network'
+import { logger } from '../../logger'
 
 // 批评空间没有官方 API，社区通行做法是提交固定 SQL 让站点返回 HTML 表格。
 // 官方站点在部分网络不可达，默认使用社区镜像，并保留官方地址作为回退。
@@ -22,17 +23,24 @@ export class ErogameScapeClient {
     }
 
     await throttleRequest()
+    logger.debug('erogame', 'fetch score', { id })
 
-    let firstError: unknown
+    const failures: Array<{ baseUrl: string; error: unknown }> = []
     for (const baseUrl of EROGAME_BASE_URLS) {
       try {
         const html = await this.requestScoreTable(baseUrl, id)
         return parseMedianScore(html)
       } catch (error) {
-        if (firstError == null) firstError = error
+        failures.push({ baseUrl, error })
+        logger.debug('erogame', 'request failed', { baseUrl, error })
       }
     }
 
+    logger.warn('erogame', 'all sources failed', {
+      id,
+      attempts: failures.map(failure => failure.baseUrl)
+    })
+    const firstError = failures[0]?.error
     throw firstError instanceof Error
       ? firstError
       : new Error('批评空间请求失败，请稍后重试')

@@ -65,6 +65,10 @@ declare global {
       writeText: (text: string) => Promise<void>
     },
 
+    logsAPI: {
+      openFolder: () => Promise<{ success: boolean }>
+    },
+
     launchAPI: {
       launchGame: (gameId: string, exePath: string) => Promise<{success: boolean}>
       stopGame: (gameId: string, exePath: string) => Promise<{success: boolean}>

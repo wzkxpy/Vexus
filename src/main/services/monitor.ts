@@ -5,6 +5,7 @@ import { Session } from '@/shared/types'
 import type { SessionService } from '../database/session.service'
 import type { RouteRepository } from '../database/route.repo'
 import { formatLocalDate } from '../../shared/utils';
+import { logger } from '../logger'
 
 export class GameMonitor {
   private pids: Set<number> = new Set();
@@ -34,7 +35,7 @@ export class GameMonitor {
 
   public async start() {
     if (this.active) {
-      console.warn('[Monitor] session already running')
+      logger.warn('monitor', 'session already running', { gameId: this.gameId })
       return
     }
     this.active = true
@@ -42,37 +43,36 @@ export class GameMonitor {
     this.timer = setInterval(() => {
       // setInterval 不消费 checkProcess 的 Promise，必须显式接住异常。
       void this.checkProcess().catch(error => {
-        console.warn('[Monitor] process check failed:', error)
+        logger.warn('monitor', 'process check failed', { gameId: this.gameId, error })
       })
     }, this.INTERVAL)
-    console.log('[Monitor] started:', { gameId: this.gameId, pids: this.getPidList() })
+    logger.debug('monitor', 'started', { gameId: this.gameId, pids: this.getPidList() })
   }
 
   private async checkProcess() {
     if (!this.active) return;
-    console.log(this.pids);
-    
+
     for (const pid of this.pids) {
       if (!this.isPidAlive(pid)) {
         this.pids.delete(pid);
-        console.log(`[Monitor] PID ${pid} exited, searching for heirs...`);
-        
+        logger.info('monitor', 'pid exited; searching for heirs', { pid });
+
         const children = await this.findChildPids(pid).catch(error => {
           // 进程发现失败不应终止监控，最多退化为只跟踪当前 PID。
-          console.warn(`[Monitor] failed to find heirs of PID ${pid}:`, error)
+          logger.warn('monitor', 'failed to find heirs', { pid, error })
           return [] as number[]
         });
         if (children.length > 0) {
           children.forEach(childPid => {
             this.pids.add(childPid);
-            console.log(`[Monitor] New heir found: ${childPid}`);
+            logger.info('monitor', 'heir discovered', { pid: childPid });
           });
         }
       }
     }
 
     if (this.pids.size === 0) {
-      console.log('[Monitor] game fully exit')
+      logger.info('monitor', 'game fully exited', { gameId: this.gameId })
       this.stop();
     }
   }
@@ -94,16 +94,7 @@ export class GameMonitor {
       ? this.routeId
       : null
 
-    console.log('[Playtime] save:', {
-      gameId: this.gameId,
-      routeId,
-      playDate: playDate,
-      startedAt: new Date(this.startedAtMs).toLocaleTimeString('zh-CN', { hour12: false }),
-      endedAt: new Date(this.endedAtMs).toLocaleTimeString('zh-CN', { hour12: false }),
-      duration
-    })
-
-    this.sessionService.addSession({
+    const session: Session = {
       id: crypto.randomUUID(),
       gameId: this.gameId,
       routeId,
@@ -113,10 +104,34 @@ export class GameMonitor {
       startedAt: new Date(this.startedAtMs).toISOString(), // number -> ISO string
       endedAt: new Date(this.endedAtMs).toISOString(),
       source: 'auto'
-    } as Session)
+    }
+    try {
+      this.sessionService.addSession(session)
+      logger.info('playtime', 'session saved', {
+        gameId: this.gameId,
+        routeId,
+        playDate: playDate,
+        startedAt: session.startedAt,
+        endedAt: session.endedAt,
+        duration
+      })
+    } catch (error) {
+      // 落库失败仍要通知渲染进程，避免界面一直停留在“运行中”。
+      logger.error('playtime', 'session save failed', {
+        gameId: this.gameId,
+        routeId,
+        playDate: playDate,
+        duration,
+        error
+      })
+    }
 
     // 落库后再通知渲染进程，确保刷新读到的时长和线路归属已是最新。
     const mainWindow = BrowserWindow.getAllWindows()[0]
+    if (!mainWindow) {
+      logger.warn('monitor', 'no window to notify game stopped', { gameId: this.gameId })
+      return
+    }
     mainWindow.show()
     mainWindow.focus()
     mainWindow.webContents.send('game:stopped', { gameId: this.gameId })
@@ -138,8 +153,11 @@ export class GameMonitor {
       execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], {
         windowsHide: true,
         maxBuffer: 10 * 1024 * 1024
-      }, (error, stdout) => {
+      }, (error, stdout, stderr) => {
         if (error) {
+          // PowerShell 的 stderr 比通用错误消息更能说明失败原因。
+          const detail = stderr.trim()
+          if (detail) error.message = `${error.message}：${detail}`
           reject(error)
           return
         }

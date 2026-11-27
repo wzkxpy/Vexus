@@ -2,7 +2,9 @@
 // Electron IPC 
 // 负责注册主进程的 IPC 事件处理器, 供 preload 暴露给渲染进程调用
 
-import { app, dialog, ipcMain, BrowserWindow, clipboard } from 'electron'
+import { app, dialog, ipcMain, BrowserWindow, clipboard, shell } from 'electron'
+import type { IpcMainInvokeEvent } from 'electron'
+import * as fs from 'fs'
 import * as path from 'path'
 import { GameService } from '../database/game.service'
 import { SessionService } from '../database/session.service'
@@ -16,9 +18,92 @@ import { RouteService } from '../database/route.service'
 import { RouteTreeService } from '../services/routeTree'
 import type { VoiceActorAliasService } from '../services/voiceActorAlias'
 import type { BackupService } from '../services/backup'
+import { getLogDir, logger } from '../logger'
+import { isUserError, UserError } from '../utils/errors'
 // export function registerAllIPC() {
   
 // }
+
+type InvokeHandler = (event: IpcMainInvokeEvent, ...args: any[]) => unknown
+
+const DESTRUCTIVE_CHANNELS = new Set(['deleteGame', 'deleteSession', 'deleteSeries'])
+
+// 统一记录 IPC 失败；错误原样抛回渲染进程，保持现有错误提示。
+function handle(channel: string, handler: InvokeHandler) {
+  ipcMain.handle(channel, async (event, ...args) => {
+    try {
+      const result = await handler(event, ...args)
+      if (DESTRUCTIVE_CHANNELS.has(channel)) {
+        logger.info('ipc', channel, { ...describeCall(channel, args), result })
+      }
+      return result
+    } catch (error) {
+      const data = { ...describeCall(channel, args), error }
+      if (isUserError(error)) logger.warn('ipc', channel, data)
+      else logger.error('ipc', channel, data)
+      throw error
+    }
+  })
+}
+
+function clipText(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  return value.length > 80 ? `${value.slice(0, 80)}…` : value
+}
+
+function field(value: unknown, key: string): unknown {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined
+}
+
+// 只记录排障所需字段；设置值和导入原文可能含 Token 或个人数据，禁止落盘。
+function describeCall(channel: string, args: unknown[]): Record<string, unknown> {
+  switch (channel) {
+    case 'setSetting':
+      return { key: args[0] }
+    case 'importSessions':
+      return { gameId: args[0], textLength: typeof args[1] === 'string' ? args[1].length : undefined }
+    case 'addGame':
+      return { originalTitle: clipText(field(args[0], 'originalTitle')) }
+    case 'updateGame':
+      return { gameId: field(args[0], 'id') }
+    case 'addSession':
+      return { gameId: field(args[0], 'gameId') }
+    case 'updateSession':
+      return { sessionId: field(args[0], 'id'), gameId: field(args[0], 'gameId') }
+    case 'updateCharacters':
+      return { gameId: args[0], count: Array.isArray(args[1]) ? args[1].length : undefined }
+    case 'updateMedia':
+      return { gameId: args[0], type: args[1] }
+    case 'searchGames':
+      return { source: args[0], keyword: clipText(args[1]) }
+    case 'fetchGame':
+    case 'buildGame':
+      return { source: args[0], sourceId: args[1] }
+    case 'fetchGameSection':
+      return { gameId: args[0], section: args[1], source: args[2] }
+    case 'updateRouteStatus':
+      return { gameId: args[0], routeId: args[1] }
+    case 'assignTagToRoute':
+    case 'getGameRouteTree':
+    case 'saveGameRouteTree':
+    case 'fetchGameScores':
+    case 'stopGame':
+    case 'getGameSessions':
+      return { gameId: args[0] }
+    case 'launchGame':
+      return { gameId: args[0], exePath: args[1] }
+    case 'deleteGame':
+    case 'getGame':
+    case 'deleteSession':
+      return { id: args[0] }
+    case 'deleteSeries':
+      return { name: args[0] }
+    case 'openFolder':
+      return { path: args[0] }
+    default:
+      return {}
+  }
+}
 
 export function registerWindowIPC(win: BrowserWindow) {
   ipcMain.on('window:minimize', () => {
@@ -33,15 +118,25 @@ export function registerWindowIPC(win: BrowserWindow) {
 }
 
 export function registerFileIPC() {
-  ipcMain.handle('openFolder', async (_, exePath: string) => {
+  handle('openFolder', async (_, exePath: string) => {
     return openFolder(exePath)
   })
 }
 
 export function registerClipboardIPC() {
-  ipcMain.handle('clipboard:writeText', (_, text: string) => {
-    if (typeof text !== 'string') throw new Error('Invalid clipboard text')
+  handle('clipboard:writeText', (_, text: string) => {
+    if (typeof text !== 'string') throw new UserError('Invalid clipboard text')
     clipboard.writeText(text)
+  })
+}
+
+export function registerLogIPC() {
+  handle('logs:openFolder', async () => {
+    const dir = getLogDir()
+    fs.mkdirSync(dir, { recursive: true })
+    const error = await shell.openPath(dir)
+    if (error) throw new Error(error)
+    return { success: true }
   })
 }
 
@@ -54,145 +149,145 @@ export function registerDBIPC(
   routeTreeService: RouteTreeService
 ) {
   // Game
-  ipcMain.handle('addGame', (_, newgame: NewGame) => {
+  handle('addGame', (_, newgame: NewGame) => {
     return gameService.addGame(newgame)
   })
-  ipcMain.handle('deleteGame', (_, id: string) => {
+  handle('deleteGame', (_, id: string) => {
     return gameService.deleteGame(id)
   })
-  ipcMain.handle('getGame', (_, id: string) => {
+  handle('getGame', (_, id: string) => {
     return gameService.getGame(id)
   })
-  ipcMain.handle('getAllGames', () => {
+  handle('getAllGames', () => {
     return gameService.getAllGames()
   })
-  ipcMain.handle('updateGame', (_, game: Game) => {
+  handle('updateGame', (_, game: Game) => {
     return gameService.updateGame(game)
   })
-  ipcMain.handle('updateCharacters', (_, gameId: string, characters) => {
+  handle('updateCharacters', (_, gameId: string, characters) => {
     if (typeof gameId !== 'string' || !gameId || !Array.isArray(characters)) {
-      throw new Error('Invalid character update request')
+      throw new UserError('Invalid character update request')
     }
     return gameService.updateCharacters(gameId, characters)
   })
-  ipcMain.handle('updateMedia', (_, gameId: string, type: 'cover' | 'banner' | 'icon', sourcePath: string) => {
+  handle('updateMedia', (_, gameId: string, type: 'cover' | 'banner' | 'icon', sourcePath: string) => {
     return gameService.updateMedia(gameId, type, sourcePath)
   })
-  ipcMain.handle('renameSeries', (_, oldName: string, newName: string) => {
+  handle('renameSeries', (_, oldName: string, newName: string) => {
     if (typeof oldName !== 'string' || typeof newName !== 'string' || !oldName.trim() || !newName.trim()) {
-      throw new Error('Invalid series rename request')
+      throw new UserError('Invalid series rename request')
     }
     return gameService.renameSeries(oldName, newName)
   })
-  ipcMain.handle('deleteSeries', (_, name: string) => {
+  handle('deleteSeries', (_, name: string) => {
     if (typeof name !== 'string' || !name.trim()) {
-      throw new Error('Invalid series delete request')
+      throw new UserError('Invalid series delete request')
     }
     return gameService.deleteSeries(name)
   })
   // Session
-  ipcMain.handle('getGameSessions', (_, gameid: string) => {
+  handle('getGameSessions', (_, gameid: string) => {
     return sessionService.getGameSessions(gameid)
   })
-  ipcMain.handle('addSession', (_, session: Session) => {
+  handle('addSession', (_, session: Session) => {
     return sessionService.addSession(session)
   })
-  ipcMain.handle('deleteSession', (_, id: string) => {
+  handle('deleteSession', (_, id: string) => {
     return sessionService.deleteSession(id)
   })
-  ipcMain.handle('updateSession', (_, session: Session) =>{
+  handle('updateSession', (_, session: Session) =>{
     return sessionService.updateSession(session)
   })
-  ipcMain.handle('importSessions', (_, gameId: string, text: string) => {
+  handle('importSessions', (_, gameId: string, text: string) => {
     return sessionImportService.import(gameId, text)
   })
-  ipcMain.handle('assignTagToRoute', (_, gameId: string, tag: string, routeId: string) => {
+  handle('assignTagToRoute', (_, gameId: string, tag: string, routeId: string) => {
     return sessionService.assignTagToRoute(gameId, tag, routeId)
   })
   // Route
-  ipcMain.handle('getGameRouteTree', (_, gameId: string) => {
-    if (typeof gameId !== 'string' || !gameId) throw new Error('Invalid game id')
+  handle('getGameRouteTree', (_, gameId: string) => {
+    if (typeof gameId !== 'string' || !gameId) throw new UserError('Invalid game id')
     return routeTreeService.get(gameId)
   })
-  ipcMain.handle('saveGameRouteTree', (_, gameId: string, routes: Route[], tree: RouteTree, resetLockIds: string[] = []) => {
-    if (typeof gameId !== 'string' || !gameId) throw new Error('Invalid game id')
+  handle('saveGameRouteTree', (_, gameId: string, routes: Route[], tree: RouteTree, resetLockIds: string[] = []) => {
+    if (typeof gameId !== 'string' || !gameId) throw new UserError('Invalid game id')
     return routeTreeService.save(gameId, routes, tree, resetLockIds)
   })
-  ipcMain.handle('updateRouteStatus', (_, gameId: string, routeId: string, status: RouteStatus) => {
+  handle('updateRouteStatus', (_, gameId: string, routeId: string, status: RouteStatus) => {
     return routeService.updateRouteStatus(gameId, routeId, status)
   })
 }
 
 
 export function registerLaunchIPC() {  
-  ipcMain.handle('launchGame', async (_, gameId: string, exePath: string) => {
+  handle('launchGame', async (_, gameId: string, exePath: string) => {
     return launchGame(gameId, exePath)
   })
 
-  ipcMain.handle('stopGame', async (_, gameId: string, exePath: string) => {
+  handle('stopGame', async (_, gameId: string, exePath: string) => {
     return stopGame(gameId, exePath)
   })
 }
 
 export function registerSettingsIPC(voiceActorAliasService: VoiceActorAliasService) {
-  ipcMain.handle('getSettings', () => {
+  handle('getSettings', () => {
     return getSettings()
   })
-  ipcMain.handle('getSetting', (_, key: keyof Settings) => {
+  handle('getSetting', (_, key: keyof Settings) => {
     return getSetting(key)
   })
-  ipcMain.handle('setSetting', (_, key: keyof Settings, value: any) => {
+  handle('setSetting', (_, key: keyof Settings, value: any) => {
     return setSetting(key, value)
   })
-  ipcMain.handle('openVoiceActorAliasesFile', () => {
+  handle('openVoiceActorAliasesFile', () => {
     return voiceActorAliasService.openFile()
   })
 }
 
 export function registerProviderIPC(gameService: GameService) {
-  ipcMain.handle('searchGames', async (_, source: unknown, keyword: unknown) => {
+  handle('searchGames', async (_, source: unknown, keyword: unknown) => {
     const provider = requireProviderSource(source)
     if (typeof keyword !== 'string') {
-      throw new Error('Invalid search request')
+      throw new UserError('Invalid search request')
     }
     return await searchGames(provider, keyword)
   })
-  ipcMain.handle('fetchGame', async (_, source: unknown, subjectId: unknown) => {
+  handle('fetchGame', async (_, source: unknown, subjectId: unknown) => {
     const provider = requireProviderSource(source)
     if (typeof subjectId !== 'string' || !subjectId.trim()) {
-      throw new Error('Invalid game lookup request')
+      throw new UserError('Invalid game lookup request')
     }
     return await fetchGame(provider, subjectId)
   })
-  ipcMain.handle('buildGame', async (_, source: unknown, sourceId: unknown) => {
+  handle('buildGame', async (_, source: unknown, sourceId: unknown) => {
     const provider = requireProviderSource(source)
     if (typeof sourceId !== 'string' || !sourceId.trim()) {
-      throw new Error('Invalid build game request')
+      throw new UserError('Invalid build game request')
     }
     return await buildGame(provider, sourceId)
   })
-  ipcMain.handle('fetchGameSection', async (_, gameId: unknown, section: unknown, source: unknown) => {
+  handle('fetchGameSection', async (_, gameId: unknown, section: unknown, source: unknown) => {
     if (
       typeof gameId !== 'string' ||
       !gameId ||
       typeof section !== 'string' ||
       !isGameMetadataSection(section)
     ) {
-      throw new Error('Invalid metadata section request')
+      throw new UserError('Invalid metadata section request')
     }
     const provider = requireProviderSource(source)
     return gameService.fetchMetadataSection(gameId, section, provider)
   })
-  ipcMain.handle('fetchGameScores', async (_, gameId: unknown) => {
+  handle('fetchGameScores', async (_, gameId: unknown) => {
     if (typeof gameId !== 'string' || !gameId) {
-      throw new Error('Invalid game scores request')
+      throw new UserError('Invalid game scores request')
     }
     return gameService.fetchExternalScores(gameId)
   })
 }
 
 export function registerBackupIPC(backupService: BackupService) {
-  ipcMain.handle('backup:export', async (event): Promise<BackupExportResult> => {
+  handle('backup:export', async (event): Promise<BackupExportResult> => {
     const win = BrowserWindow.fromWebContents(event.sender)
     const options = {
       title: '导出备份',
@@ -212,6 +307,7 @@ export function registerBackupIPC(backupService: BackupService) {
         // 窗口在导出期间关闭时忽略进度发送失败。
       }
     })
+    logger.info('backup', 'export completed', { bytes: exported.bytes, path: exported.path })
     return { canceled: false, path: exported.path, bytes: exported.bytes }
   })
 }
@@ -231,7 +327,7 @@ function isProviderSource(value: string): value is ProviderSource {
 
 function requireProviderSource(value: unknown): ProviderSource {
   if (typeof value !== 'string' || !isProviderSource(value)) {
-    throw new Error('Invalid provider source')
+    throw new UserError('Invalid provider source')
   }
   return value
 }

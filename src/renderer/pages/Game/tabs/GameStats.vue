@@ -159,7 +159,7 @@ const chartOptions: ChartOptions<'bar'> = {
     tooltip: {
       mode: 'index',
       intersect: false,
-      filter: item => item.parsed.y > 0,
+      filter: item => (item.parsed.y ?? 0) > 0,
       callbacks: {
         label: item => `${item.dataset.label ?? ''}: ${item.parsed.y} 分钟`
       }
